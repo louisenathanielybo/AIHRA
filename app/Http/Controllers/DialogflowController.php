@@ -3,58 +3,61 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\KnowledgeBase;
 use App\Models\Query;
 use Illuminate\Support\Str;
+use App\Services\DialogflowService;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class DialogflowController extends Controller
 {
+    /**
+     * Handle Dialogflow webhook requests.
+     */
     public function webhook(Request $request)
     {
         try {
-            $queryText = trim(strip_tags($request->input('queryResult.queryText', '')));
-            if (empty($queryText) || strlen($queryText) > 500) {
-                return response()->json(['fulfillmentText' => 'I did not understand that.']);
+            $queryText = trim($request->input('queryResult.queryText', ''));
+            if ($queryText === '') {
+                return response()->json([
+                    'fulfillmentText' => 'No message received.'
+                ]);
             }
 
-            // 1️⃣ Check knowledge_base table
-            $knowledgeBase = KnowledgeBase::where('sampleQuestion', 'like', "%{$queryText}%")
-                ->orWhereRaw('LOWER(sampleQuestion) LIKE LOWER(?)', ["%{$queryText}%"])
-                ->first();
+            $sessionId  = session()->getId();
+            $dialogflow = new DialogflowService();
+            $result     = $dialogflow->detectIntent($queryText, $sessionId);
+            $dialogflow->close();
 
-            $answer = $knowledgeBase ? $knowledgeBase->answer : null;
-            $confidence = $request->input('queryResult.intentDetectionConfidence', 0);
+            $fulfillmentText = $result->getFulfillmentText() ?? 'I’m not sure, please clarify.';
 
-            // 2️⃣ Determine final response
-            if ($answer) {
-                $fulfillmentText = $answer;
-            } elseif ($confidence >= 0.6) {
-                // Use Dialogflow response if confidence is high
-                $fulfillmentText = $request->input('queryResult.fulfillmentText', "I’m not sure, please clarify.");
-            } else {
-                // Low confidence: escalate to HR
-                $fulfillmentText = "Your question has been forwarded to HR for assistance.";
-            }
+            // ✅ Fallback to the SYSTEM user if no one is logged in
+            $employeeNum = Auth::check()
+    ? Auth::user()->employeeNum
+    : 0; 
 
-            // 3️⃣ Log the query
             Query::create([
-                'queryID' => Str::uuid(),
-                'employeeNum' => $request->input('employeeNum', 'guest'),
-                'question' => $queryText,
-                'response' => $fulfillmentText,
-                'confidenceScore' => $confidence,
-                'queryType' => $knowledgeBase ? 'KnowledgeBase' : 'Smalltalk',
-                'questionTime' => now(),
-                'responseTime' => now(),
-                'isEscalated' => $confidence < 0.6,
-                'handledBy' => $confidence < 0.6 ? 'HR' : null,
+                'queryID'         => Str::uuid(),
+                'employeeNum'     => $employeeNum,
+                'question'        => $queryText,
+                'response'        => $fulfillmentText,
+                'confidenceScore' => $result->getIntentDetectionConfidence(),
+                'queryType'       => 'Dialogflow',
+                'questionTime'    => now(),
+                'responseTime'    => now(),
+                'isEscalated'     => $result->getIntentDetectionConfidence() < 0.6,
+                'handledBy'       => $result->getIntentDetectionConfidence() < 0.6 ? 'HR' : 'Bot',
             ]);
 
-            return response()->json(['fulfillmentText' => $fulfillmentText]);
+            return response()->json([
+                'fulfillmentText' => $fulfillmentText
+            ]);
 
-        } catch (\Exception $e) {
-            \Log::error('Dialogflow webhook error: ' . $e->getMessage());
-            return response()->json(['fulfillmentText' => 'An error occurred. Please try again later.'], 500);
+        } catch (\Throwable $e) {
+            Log::error('Dialogflow error: '.$e->getMessage());
+            return response()->json([
+                'fulfillmentText' => '⚠️ Error talking to AIHRA.'
+            ], 500);
         }
     }
 }
