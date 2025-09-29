@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('styles')
-<link rel="stylesheet" href="{{ asset('admin/assets/dashboard.css') }}">
+<link rel="stylesheet" href="{{ asset('public/css/dashboard.css') }}">
 <style>
     /* Chat bubble styles */
     .chat-bubble {
@@ -117,22 +117,38 @@
     </div>
 
     <!-- Feedback Section -->
-    <div id="feedback" class="table-container section" style="display:none;">
-        <h2>Give Feedback</h2>
-        <form method="POST" action="{{ route('feedback.store') }}">
-            @csrf
-            <label>Rating:</label><br>
-            <div class="star-rating">
-                @for($i=1;$i<=5;$i++)
-                    <span class="star" data-value="{{ $i }}">★</span>
-                @endfor
-            </div>
-            <input type="hidden" name="rating" id="ratingValue" required><br>
-            <label>Suggestion:</label><br><br>
-            <textarea name="suggestion" class="input"></textarea><br><br>
-            <button type="submit" class="btn review">Submit Feedback</button>
-        </form>
-    </div>
+<div id="feedback" class="table-container section" style="display:none;">
+    <h2>Give Feedback</h2>
+
+    <form method="POST" action="{{ route('feedback.store') }}" class="feedback-form">
+        @csrf
+
+        <!-- Rating -->
+        <label for="ratingValue" style="font-weight:bold;">Your Rating:</label>
+        <div class="star-rating" style="margin:10px 0;">
+            @for($i=1;$i<=5;$i++)
+                <span class="star" data-value="{{ $i }}">★</span>
+            @endfor
+        </div>
+        <input type="hidden" name="rating" id="ratingValue" required>
+
+        <!-- Suggestion -->
+        <label for="suggestion" style="font-weight:bold; display:block; margin-top:15px;">Your Suggestion:</label>
+        <textarea 
+            name="suggestion" 
+            id="suggestion" 
+            class="input" 
+            placeholder="Write your feedback here..."
+            style="width:100%; min-height:100px; padding:10px; border:1px solid #ccc; border-radius:6px; resize: vertical;" 
+            required></textarea>
+
+        <!-- Submit Button -->
+        <div style="margin-top:15px;">
+            <button type="submit" class="btn review">✅ Submit Feedback</button>
+        </div>
+    </form>
+</div>
+
 
     <!-- Account Section -->
     <div id="account" class="table-container section" style="display:none;">

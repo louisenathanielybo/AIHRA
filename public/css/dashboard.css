@@ -191,3 +191,34 @@ table th {
 .star:hover ~ .star {
   color: #ccc; /* keep right-side stars gray on hover */
 }
+
+/* Feedback Form */
+.feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feedback-form label {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.feedback-form textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.feedback-form .star-rating {
+  margin: 8px 0;
+}
+
+.feedback-form button {
+  align-self: flex-start; /* keeps button left aligned */
+}
