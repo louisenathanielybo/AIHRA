@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>HR Module</title>
-    <link rel="stylesheet" href="{{ asset('admin/assets/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
 </head>
 <body>
     <!-- Sidebar -->
@@ -15,10 +15,16 @@
             <li><a href="#account" onclick="showSection('account')">Account</a></li>
         </ul>
         <div class="account">
-            <img src="{{ asset('uploads/'.$user->profile_pic) }}" 
+            <img src="{{ isset($user) && $user->profile_pic ? asset('uploads/'.$user->profile_pic) : asset('admin/assets/default-profile.png') }}" 
                  alt="HR" 
                  style="width:80px;height:80px;border-radius:50%;object-fit:cover;background:#fff;">
-            <a href="{{ route('logout') }}" class="logout">Log Out</a>
+                 
+            <form method="POST" action="{{ route('logout') }}" style="display:inline;">
+                @csrf
+                <button type="submit" class="logout" style="background:none; border:none; padding:0; cursor:pointer; color:#fff; font:inherit;">
+                    Log Out
+                </button>
+            </form>
         </div>
     </div>
 
@@ -26,14 +32,14 @@
     <div class="main">
         <!-- Home Section -->
         <div id="home" class="table-container section">
-            <h2>Welcome, {{ $user->username }}!</h2>
+            <h2>Welcome, {{ $user->username ?? 'HR User' }}!</h2>
             <p>This is your HR dashboard. Use the sidebar to navigate between sections.</p>
         </div>
 
         <!-- Inbox Section -->
         <div id="inbox" class="table-container section" style="display:none;">
             <h2>Inbox Tickets</h2>
-            @if($inbox->count())
+            @if(isset($inbox) && $inbox->count())
                 <table>
                     <tr>
                         <th>Ticket No</th>
@@ -50,7 +56,7 @@
                             <td>{{ $t->message }}</td>
                             <td>{{ $t->status }}</td>
                             <td>{{ $t->priority }}</td>
-                            <td>{{ $t->created_at }}</td>
+                            <td>{{ \Carbon\Carbon::parse($t->created_at)->format('M d, Y H:i') }}</td>
                         </tr>
                     @endforeach
                 </table>
@@ -73,11 +79,11 @@
             </form>
 
             <!-- List announcements -->
-            @forelse($announcements as $a)
+            @forelse($announcements ?? [] as $a)
                 <div class="card" style="margin-bottom:15px; padding:10px; border:1px solid #eee; border-radius:6px;">
                     <h3>{{ $a->title }}</h3>
                     <p>{!! nl2br(e($a->content)) !!}</p>
-                    <small>📅 {{ $a->created_at }}</small>
+                    <small>📅 {{ \Carbon\Carbon::parse($a->created_at)->format('M d, Y H:i') }}</small>
                 </div>
             @empty
                 <p>No announcements yet.</p>
@@ -88,13 +94,13 @@
         <div id="account" class="table-container section" style="display:none;">
             <h2>Account</h2>
             <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
-                <img src="{{ asset('uploads/'.$user->profile_pic) }}" 
+                <img src="{{ isset($user) && $user->profile_pic ? asset('uploads/'.$user->profile_pic) : asset('admin/assets/default-profile.png') }}" 
                      alt="Profile Picture" 
                      style="width:120px;height:120px;border-radius:50%;object-fit:cover;">
                 <a href="{{ url('profile') }}" style="text-decoration:none;color:#0c5726;font-weight:bold;">✏️ Edit Profile</a>
             </div>
             <p><strong>About Me:</strong></p>
-            <p>{!! nl2br(e($user->about)) !!}</p>
+            <p>{{ $user->about ?? 'No information provided.' }}</p>
         </div>
     </div>
 
