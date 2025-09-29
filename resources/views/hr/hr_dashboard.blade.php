@@ -109,7 +109,6 @@
             </div>
         </div>
 
-
         <!-- Announcements Section -->
         <div id="announcements" class="table-container section" style="display:none;">
             <h2>Announcements</h2>
