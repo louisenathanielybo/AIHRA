@@ -76,3 +76,10 @@ Route::middleware('auth')->group(function () {
     // Optional: other HR routes
     Route::get('/hr', [HRController::class, 'index'])->name('hr.dashboard');
 });
+
+// HR Dashboard
+Route::get('/hr/dashboard', [HRController::class, 'index'])->name('hr.dashboard');
+
+// HR Profile
+Route::get('/hr/profile', [HRController::class, 'editProfile'])->name('hr.profile');
+Route::put('/hr/profile/update', [HRController::class, 'updateProfile'])->name('hr.profile.update');
