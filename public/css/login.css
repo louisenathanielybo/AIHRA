@@ -18,7 +18,7 @@ body::before {
   right: 0;
   bottom: 0;
 
-  background: url('../../DWCC SCHOOL.jpg') no-repeat center center/cover;
+  background: url('/img/DWCC SCHOOL.jpg') no-repeat center center/cover;
   background-color: rgba(0, 87, 38, 0.5); /* transparent green layer */
   background-blend-mode: overlay; /* mixes color + image */
 
