@@ -141,50 +141,12 @@
     </div>
 
     <!-- Chat Section -->
-<div id="chat" class="table-container section" style="display:none;">
-    <h2>Chatbot</h2>
-    <div id="chatBox" class="chat-box">
-        <div class="chat-row bot">
-            <div class="chat-bubble">
-                Hi! I’m Aihra - Your AI Human Resource Assistant. How can I help you?<br>
-                Please choose a topic below:
-            </div>
-        </div>
-
-        <!-- Topics -->
-        <div class="chat-row bot" id="topics">
-            <div class="suggestion-box">
-                <div class="suggestion" onclick="showSubQuestions('employment')">Employment</div>
-                <div class="suggestion" onclick="showSubQuestions('promotion')">Promotion</div>
-                <div class="suggestion" onclick="showSubQuestions('benefits')">Benefits</div>
-                <div class="suggestion" onclick="showSubQuestions('development')">Employee Development</div>
-            </div>
-        </div>
-
-        <!-- Sub-questions -->
-        <div class="chat-row bot sub-questions" id="employment-questions" style="display:none;">
-            <div class="suggestion-box">
-                <div class="suggestion" onclick="sendQuick('How long is a regular day’s work?')">How long is a regular day’s work?</div>
-                <div class="suggestion" onclick="sendQuick('What will happen if I’m late 5 days in a row?')">What if I’m late 5 days in a row?</div>
-            </div>
-        </div>
-        <div class="chat-row bot sub-questions" id="promotion-questions" style="display:none;">
-            <div class="suggestion-box">
-                <div class="suggestion" onclick="sendQuick('What are the requirements for promotion?')">Promotion requirements?</div>
-                <div class="suggestion" onclick="sendQuick('How long do I need to work to be promoted?')">How long to be promoted?</div>
-            </div>
-        </div>
-        <div class="chat-row bot sub-questions" id="benefits-questions" style="display:none;">
-            <div class="suggestion-box">
-                <div class="suggestion" onclick="sendQuick('What medical benefits do I have?')">Medical benefits?</div>
-                <div class="suggestion" onclick="sendQuick('Do we have financial aid for emergencies?')">Financial aid?</div>
-            </div>
-        </div>
-        <div class="chat-row bot sub-questions" id="development-questions" style="display:none;">
-            <div class="suggestion-box">
-                <div class="suggestion" onclick="sendQuick('Will the school pay for my seminars?')">Seminars covered?</div>
-                <div class="suggestion" onclick="sendQuick('Who is eligible for schooling privileges?')">Schooling privileges?</div>
-            </div>
+    <div id="chat" class="table-container section" style="display:none;">
+        <h2>Chatbot</h2>
+        <div id="chatBox" style="width:100%; height:400px; border:1px solid #ccc; border-radius:6px; padding:10px; overflow-y:auto; background:#f9f9f9; margin-bottom:10px; display:flex; flex-direction:column; gap:8px;"></div>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="userMessage" placeholder="Type your message..." style="flex:1; padding:10px; border-radius:20px; border:1px solid #ccc;">
+            <button onclick="sendMessage()" style="padding:10px 20px; background:#0c5726; color:white; border:none; border-radius:20px; cursor:pointer;">Send</button>
         </div>
     </div>
 
@@ -240,10 +202,10 @@ function showSubQuestions(topic) {
 }
 function sendMessage() {
     let msg = document.getElementById('userMessage').value;
-    if (!msg.trim()) return;
+    if (msg.trim() === '') return;
+
     let chatBox = document.getElementById('chatBox');
-    chatBox.innerHTML += `<div class="chat-row user"><div class="chat-bubble">${msg}</div></div>`;
-    chatBox.scrollTop = chatBox.scrollHeight;
+    chatBox.innerHTML += `<div class="chat-bubble user"><b>You:</b> ${msg}</div>`;
 
     fetch('{{ url("dialogflow-webhook") }}', {
         method: 'POST',
@@ -252,23 +214,41 @@ function sendMessage() {
     })
     .then(res => res.json())
     .then(data => {
-        chatBox.innerHTML += `<div class="chat-row bot"><div class="chat-bubble">${data.fulfillmentText}</div></div>`;
+        let botMessage = data.fulfillmentText;
+        let isEscalated = botMessage.includes("forwarded to HR");
+
+        chatBox.innerHTML += `<div class="chat-bubble bot" style="${isEscalated ? 'background:#fff3cd; color:#856404;' : ''}">
+                                <b>Bot:</b> ${botMessage}
+                              </div>`;
         chatBox.scrollTop = chatBox.scrollHeight;
     })
-    .catch(() => {
-        chatBox.innerHTML += `<div class="chat-row bot"><div class="chat-bubble" style="background:#f8d7da;color:#721c24;">Error: Could not connect.</div></div>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
+    .catch(err => {
+        chatBox.innerHTML += `<div class="chat-bubble bot" style="background:#f8d7da; color:#721c24;">
+                                <b>Error:</b> Could not connect.
+                              </div>`;
     });
     document.getElementById('userMessage').value = '';
 }
-function sendQuick(message) {
-    document.getElementById('userMessage').value = message;
-    sendMessage();
-}
 
-function scrollChat() {
-    let chatBox = document.getElementById('chatBox');
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
+// ⭐ Star rating handler
+document.addEventListener('DOMContentLoaded', () => {
+    const stars = document.querySelectorAll('.star');
+    const ratingValue = document.getElementById('ratingValue');
+
+    stars.forEach((star, index) => {
+        star.addEventListener('mouseover', () => {
+            stars.forEach((s, i) => s.style.color = i <= index ? '#ffc107' : '#ccc');
+        });
+
+        star.addEventListener('mouseout', () => {
+            stars.forEach((s, i) => s.style.color = i < ratingValue.value ? '#ffc107' : '#ccc');
+        });
+
+        star.addEventListener('click', () => {
+            ratingValue.value = index + 1;
+            stars.forEach((s, i) => s.style.color = i <= index ? '#ffc107' : '#ccc');
+        });
+    });
+});
 </script>
 @endsection
