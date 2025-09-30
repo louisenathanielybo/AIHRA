@@ -77,8 +77,9 @@ body {
 .sidebar .logout {
   display: block;
   margin: 15px auto;
-  padding: 10px;
-  width: 80%;
+  padding: 10px 0;      /* keep top/bottom padding */
+  width: auto;           /* let it adjust to content */
+  min-width: 120px;      /* optional: ensure it’s wide enough */
   text-align: center;
   border: none;
   background: #28a745;
@@ -86,7 +87,10 @@ body {
   cursor: pointer;
   border-radius: 4px;
   text-decoration: none;
+  font-size: 16px;
+  font-family: inherit;
 }
+
 
 .sidebar .logout:hover {
   background: #218838;
