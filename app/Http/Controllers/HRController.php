@@ -63,4 +63,41 @@ class HRController extends Controller
 
         return redirect()->route('hr.profile')->with('success', 'Profile updated successfully!');
     }
+
+    public function sendReply(Request $request)
+{
+    $request->validate([
+        'ticket_no' => 'required|string',
+        'message'   => 'required|string',
+    ]);
+
+    $ticket = \App\Models\HrInbox::where('ticket_no', $request->ticket_no)->first();
+
+    if (!$ticket) {
+        return back()->with('error', 'Ticket not found.');
+    }
+
+    // ✅ Create a corresponding Query entry so it shows in the chatbot
+    \App\Models\Query::create([
+        'queryID'         => \Illuminate\Support\Str::uuid(),
+        'employeeNum'     => $ticket->from_user,
+        'question'        => '[HR Reply]',
+        'response'        => $request->message,
+        'confidenceScore' => 1.0,
+        'queryType'       => 'ManualReply',
+        'questionTime'    => now(),
+        'responseTime'    => now(),
+        'isEscalated'     => false,
+        'handledBy'       => 'HR',
+    ]);
+
+    // ✅ Update ticket status
+    $ticket->update([
+        'status' => 'Resolved',
+        'updated_at' => now(),
+    ]);
+
+    return back()->with('success', 'Reply sent successfully and recorded in the chat.');
+}
+
 }

@@ -92,3 +92,4 @@ Route::get('/hr/dashboard', [HRController::class, 'index'])->name('hr.dashboard'
 // HR Profile
 Route::get('/hr/profile', [HRController::class, 'editProfile'])->name('hr.profile');
 Route::put('/hr/profile/update', [HRController::class, 'updateProfile'])->name('hr.profile.update');
+Route::post('/hr/reply', [App\Http\Controllers\HRController::class, 'sendReply'])->name('hr.reply');
