@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('styles')
-<link rel="stylesheet" href="{{ asset('public/css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ asset('/css/dashboard.css') }}">
 <style>
     .chat-box {
         width: 100%;
@@ -202,6 +202,7 @@
             <label>Rating:</label>
             <div class="star-rating">@for($i=1;$i<=5;$i++)<span class="star" data-value="{{ $i }}">★</span>@endfor</div>
             <input type="hidden" name="rating" id="ratingValue" required>
+            <br>
             <label>Suggestion:</label>
             <textarea name="suggestion" required></textarea>
             <button type="submit">✅ Submit Feedback</button>
