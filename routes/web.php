@@ -40,10 +40,19 @@ require __DIR__.'/auth.php';
 
 Route::middleware(['auth', 'role:Admin'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
-    Route::get('/admin/assigned-items', [App\Http\Controllers\StockController::class, 'index'])->name('admin.assigned-items.index');
-    Route::get('/admin/assigned-items/{id}/edit', [App\Http\Controllers\StockController::class, 'edit'])->name('admin.assigned-items.edit');
-    Route::put('/admin/assigned-items/{id}', [App\Http\Controllers\StockController::class, 'update'])->name('admin.assigned-items.update');
-    Route::delete('/admin/assigned-items/{id}', [App\Http\Controllers\StockController::class, 'destroy'])->name('admin.assigned-items.destroy');
+
+    // Knowledge Base
+    Route::post('/admin/kb/add', [AdminController::class, 'addKnowledge'])->name('admin.kb.add');
+    Route::post('/admin/kb/import', [AdminController::class, 'importKnowledge'])->name('admin.kb.import');
+    Route::get('/admin/kb/export', [AdminController::class, 'exportKnowledge'])->name('admin.kb.export');
+    Route::get('/admin/kb/delete/{id}', [AdminController::class, 'deleteKnowledge'])->name('admin.kb.delete');
+
+    // Announcements
+    Route::post('/admin/announcement/add', [AdminController::class, 'addAnnouncement'])->name('admin.announcement.add');
+    Route::get('/admin/announcement/delete/{id}', [AdminController::class, 'deleteAnnouncement'])->name('admin.announcement.delete');
+
+    // Profile Update
+    Route::post('/admin/profile/update', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
 });
 
 Route::middleware(['auth', 'role:HR'])->group(function () {
