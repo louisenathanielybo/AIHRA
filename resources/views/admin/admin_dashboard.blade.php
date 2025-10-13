@@ -100,7 +100,6 @@
                 <tr>
                     <td>{{ $a->id }}</td>
                     <td>{{ $a->title }}</td>
-                    <td>{!! nl2br(e($a->content)) !!}</td>
                     <td><a href="{{ route('admin.announcement.delete', $a->id) }}" onclick="return confirm('Delete this announcement?')">🗑 Delete</a></td>
                 </tr>
             @empty
@@ -115,7 +114,10 @@
         <table>
             <tr><th>ID</th><th>Rating</th><th>Suggestion</th><th>Date</th></tr>
             @forelse($feedback as $f)
-                <tr><td>{{ $f->id }}</td><td>{{ $f->rating }}</td><td>{{ $f->suggestion }}</td><td>{{ $f->created_at }}</td></tr>
+                <tr><td>{{ $f->feedbackID }}</td>
+                <td>{{ $f->rating }}</td>
+                <td>{{ $f->suggestion }}</td>
+                <td>{{ $f->timeStamp }}</td></tr>
             @empty
                 <tr><td colspan="4">No feedback yet.</td></tr>
             @endforelse
@@ -124,7 +126,10 @@
         <table>
             <tr><th>ID</th><th>Reason</th><th>Details</th><th>Date</th></tr>
             @forelse($flags as $fl)
-                <tr><td>{{ $fl->id }}</td><td>{{ $fl->reason }}</td><td>{{ $fl->details }}</td><td>{{ $fl->created_at }}</td></tr>
+                <tr><td>{{ $fl->flaggedID }}</td>
+                <td>{{ $fl->reason }}</td>
+                <td>{{ $fl->details }}</td>
+                <td>{{ $fl->created_at }}</td></tr>
             @empty
                 <tr><td colspan="4">No flagged responses yet.</td></tr>
             @endforelse

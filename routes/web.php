@@ -7,7 +7,6 @@ use App\Http\Controllers\HRController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\FeedbackController;
-use App\Http\Controllers\HrAnnouncementController;
 use App\Http\Controllers\FlagController;
 use App\Http\Controllers\DialogflowController;
 
@@ -80,7 +79,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group(function () {
     // Store announcement
-    Route::post('/hr/announcements', [HrAnnouncementController::class, 'store'])->name('hr.announcements.store');
+    Route::post('/hr/announcements', [HRController::class, 'store'])->name('hr.announcements.store');
 
     // Optional: other HR routes
     Route::get('/hr', [HRController::class, 'index'])->name('hr.dashboard');
