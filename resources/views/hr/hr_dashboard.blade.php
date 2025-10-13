@@ -36,15 +36,15 @@
         <!-- ✅ Inbox Section (clean version) -->
         <div id="inbox" class="table-container section" style="display:none;">
             @if(session('success'))
-                <div style="background:#d4edda; color:#155724; padding:8px; border-radius:4px; margin-bottom:10px;">
-                    {{ session('success') }}
-                </div>
-            @endif
-            @if(session('error'))
-                <div style="background:#f8d7da; color:#721c24; padding:8px; border-radius:4px; margin-bottom:10px;">
-                    {{ session('error') }}
-                </div>
-            @endif
+    <div style="background:#d4edda; color:#155724; padding:8px; border-radius:4px; margin-bottom:10px;">
+        {{ session('success') }}
+    </div>
+@endif
+@if(session('error'))
+    <div style="background:#f8d7da; color:#721c24; padding:8px; border-radius:4px; margin-bottom:10px;">
+        {{ session('error') }}
+    </div>
+@endif
 
             <h2>Inbox</h2>
 
@@ -109,6 +109,20 @@
                     @else
                         <p>No messages yet.</p>
                     @endif
+
+                    <!-- Message Input -->
+                    <form method="POST" action="{{ route('hr.reply') }}">
+    @csrf
+    <input type="hidden" name="ticket_no" value="{{ $t->ticket_no }}">
+    <div style="display:flex; margin-top:10px;">
+                        @csrf
+                        <div style="display:flex; margin-top:10px;">
+                            <input type="text" placeholder="Send a message..." style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px 0 0 4px;">
+                            <button type="submit" style="padding:8px 12px; background:#28a745; color:white; border:none; border-radius:0 4px 4px 0;">
+                                ➤
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

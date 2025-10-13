@@ -97,64 +97,40 @@ class HRController extends Controller
         return redirect()->route('hr.profile')->with('success', 'Profile updated successfully!');
     }
 
-    /**
-     * HR reply to a ticket (keeps chatbot log updated).
-     */
     public function sendReply(Request $request)
-    {
-        $request->validate([
-            'ticket_no' => 'required|string',
-            'message'   => 'required|string',
-        ]);
+{
+    $request->validate([
+        'ticket_no' => 'required|string',
+        'message'   => 'required|string',
+    ]);
 
-        $ticket = HrInbox::where('ticket_no', $request->ticket_no)->first();
+    $ticket = \App\Models\HrInbox::where('ticket_no', $request->ticket_no)->first();
 
-        if (!$ticket) {
-            return back()->with('error', 'Ticket not found.');
-        }
-
-        // ✅ Create a corresponding Query entry so it shows in the chatbot
-        Query::create([
-            'queryID'         => Str::uuid(),
-            'employeeNum'     => $ticket->from_user,
-            'question'        => '[HR Reply]',
-            'response'        => $request->message,
-            'confidenceScore' => 1.0,
-            'queryType'       => 'ManualReply',
-            'questionTime'    => now(),
-            'responseTime'    => now(),
-            'isEscalated'     => false,
-            'handledBy'       => 'HR',
-        ]);
-
-        // ✅ Update ticket status
-        $ticket->update([
-            'status' => 'Resolved',
-            'updated_at' => now(),
-        ]);
-
-        return back()->with('success', 'Reply sent successfully and recorded in the chat.');
+    if (!$ticket) {
+        return back()->with('error', 'Ticket not found.');
     }
 
-    /**
-     * 🟩 Show the Announcements section (for HR sidebar).
-     */
-    public function announcements()
-    {
-        $announcements = DB::table('announcements')
-            ->orderBy('createdAt', 'desc')
-            ->get();
+    // ✅ Create a corresponding Query entry so it shows in the chatbot
+    \App\Models\Query::create([
+        'queryID'         => \Illuminate\Support\Str::uuid(),
+        'employeeNum'     => $ticket->from_user,
+        'question'        => '[HR Reply]',
+        'response'        => $request->message,
+        'confidenceScore' => 1.0,
+        'queryType'       => 'ManualReply',
+        'questionTime'    => now(),
+        'responseTime'    => now(),
+        'isEscalated'     => false,
+        'handledBy'       => 'HR',
+    ]);
 
-        $user = Auth::user();
-        return view('hr.announcements', compact('announcements', 'user'));
-    }
+    // ✅ Update ticket status
+    $ticket->update([
+        'status' => 'Resolved',
+        'updated_at' => now(),
+    ]);
 
-    /**
-     * 🟩 Show the Account section (for HR sidebar).
-     */
-    public function account()
-    {
-        $user = Auth::user();
-        return view('hr.account', compact('user'));
-    }
+    return back()->with('success', 'Reply sent successfully and recorded in the chat.');
+}
+
 }

@@ -14,8 +14,20 @@ class HrInbox extends Model
         'message',
         'status',
         'priority',
-        'created_at'
     ];
 
-    public $timestamps = false;
+    /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = true;
+
+    /**
+     * Cast dates properly so Laravel recognizes them.
+     */
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 }
