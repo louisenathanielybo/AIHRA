@@ -186,6 +186,10 @@
             </div>
         </div>
     </div>
+    <div id="chatBox">
+  <div id="chatMessages" style="height:400px;overflow-y:auto;"></div>
+</div>
+
 
     <div class="chat-input">
         <input type="text" id="userMessage" placeholder="Type your message..." />
@@ -313,5 +317,66 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+const ticketInput = document.getElementById('ticket_no');
+let ticketNo = ticketInput ? ticketInput.value : null;
+
+
+
+// employee sending message
+document.getElementById('employeeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('employeeMessage').value.trim();
+    if (!msg) return;
+
+    await fetch(`/employee/send`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json', 
+            'X-CSRF-TOKEN': '{{ csrf_token() }}' 
+        },
+        body: JSON.stringify({ from_user: '{{ Auth::user()->employeeNum ?? "unknown" }}', message: msg })
+    });
+
+    document.getElementById('employeeMessage').value = '';
+    loadMessages();
+});
+
+
 </script>
+
+<script>
+
+async function loadMessages() {
+    const ticketNo = document.getElementById('ticket_no').value.trim();
+    if (!ticketNo) return; // No ticket yet
+
+    try {
+       const res = await fetch(`/chat/messages/${ticketNo}`);
+
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+
+        const chatEl = document.getElementById('chatMessages');
+        chatEl.innerHTML = '';
+
+        data.forEach(msg => {
+            const side = msg.sender === 'employee' ? 'left' : 'right';
+            const color = msg.sender === 'employee' ? '#e8ffe8' : '#e0f0ff';
+            chatEl.innerHTML += `
+                <div style="text-align:${side}; margin:6px;">
+                    <div style="display:inline-block; background:${color}; padding:8px 12px; border-radius:8px;">
+                        ${msg.message}
+                    </div><br>
+                    <small>${new Date(msg.created_at).toLocaleString()}</small>
+                </div>`;
+        });
+
+        chatEl.scrollTop = chatEl.scrollHeight;
+    } catch (err) {
+        console.error("Error loading messages", err);
+    }
+}
+
+</script>
+
 @endsection

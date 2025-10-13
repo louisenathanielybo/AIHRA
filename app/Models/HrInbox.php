@@ -9,12 +9,16 @@ class HrInbox extends Model
     protected $table = 'hr_inbox';
 
     protected $fillable = [
-        'ticket_no',
-        'from_user',
-        'message',
-        'status',
-        'priority',
-    ];
+    'ticket_no',
+    'from_user',
+    'message',
+    'status',
+    'priority',
+    'category',
+    'intent',
+    'confidence',
+];
+
 
     /**
      * Indicates if the model should be timestamped.

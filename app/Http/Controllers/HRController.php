@@ -9,6 +9,7 @@ use App\Models\HrAnnouncement;
 use App\Models\HrInbox;
 use App\Models\Query;
 use Illuminate\Support\Str;
+use App\Models\HrReply;
 
 class HRController extends Controller
 {
@@ -97,40 +98,79 @@ class HRController extends Controller
         return redirect()->route('hr.profile')->with('success', 'Profile updated successfully!');
     }
 
-    public function sendReply(Request $request)
-{
-    $request->validate([
-        'ticket_no' => 'required|string',
-        'message'   => 'required|string',
-    ]);
+    /**
+     * ✅ HR replies to a ticket.
+     */
+    
 
-    $ticket = \App\Models\HrInbox::where('ticket_no', $request->ticket_no)->first();
-
-    if (!$ticket) {
-        return back()->with('error', 'Ticket not found.');
+    /**
+     * Return tickets as JSON.
+     */
+    public function ticketsJson()
+    {
+        return response()->json(HrInbox::orderBy('created_at', 'desc')->get());
     }
 
-    // ✅ Create a corresponding Query entry so it shows in the chatbot
-    \App\Models\Query::create([
-        'queryID'         => \Illuminate\Support\Str::uuid(),
-        'employeeNum'     => $ticket->from_user,
-        'question'        => '[HR Reply]',
-        'response'        => $request->message,
-        'confidenceScore' => 1.0,
-        'queryType'       => 'ManualReply',
-        'questionTime'    => now(),
-        'responseTime'    => now(),
-        'isEscalated'     => false,
-        'handledBy'       => 'HR',
+    public function getMessages($ticket_no)
+{
+    // Employee’s original message
+    $inbox = HrInbox::where('ticket_no', $ticket_no)->first();
+
+    // HR replies (multiple possible)
+    $replies = HrReply::where('ticket_no', $ticket_no)
+        ->orderBy('replied_at', 'asc')
+        ->get();
+
+    // Combine employee + HR messages
+    $messages = collect();
+
+    if ($inbox) {
+        $messages->push([
+            'sender' => 'employee',
+            'message' => $inbox->message,
+            'created_at' => $inbox->created_at,
+        ]);
+    }
+
+    foreach ($replies as $r) {
+        $messages->push([
+            'sender' => 'hr',
+            'message' => $r->hr_message,
+            'created_at' => $r->replied_at,
+        ]);
+    }
+
+    return response()->json($messages->sortBy('created_at')->values());
+}
+
+   public function reply(Request $request)
+{
+    $request->validate([
+        'ticket_no' => 'required|string|exists:hr_inbox,ticket_no',
+        'message' => 'required|string',
     ]);
 
-    // ✅ Update ticket status
-    $ticket->update([
-        'status' => 'Resolved',
-        'updated_at' => now(),
+    // Save to hr_replies for record
+    \App\Models\HrReply::create([
+        'ticket_no'  => $request->ticket_no,
+        'hr_message' => $request->message,
+        'replied_by' => Auth::check() ? Auth::user()->username : 'HR',
+        'replied_at' => now(),
     ]);
 
-    return back()->with('success', 'Reply sent successfully and recorded in the chat.');
+    // Also insert directly into chat_messages (like a bot reply)
+    DB::table('chat_messages')->insert([
+        'ticket_no' => $request->ticket_no,
+        'sender'    => 'hr',
+        'message'   => $request->message,
+        'created_at' => now(),
+    ]);
+
+    // Update status
+    \App\Models\HrInbox::where('ticket_no', $request->ticket_no)
+        ->update(['status' => 'Replied', 'updated_at' => now()]);
+
+    return response()->json(['success' => true, 'message' => 'Reply sent and displayed in chat.']);
 }
 
 }

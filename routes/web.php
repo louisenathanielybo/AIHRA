@@ -7,6 +7,7 @@ use App\Http\Controllers\HRController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\HrAnnouncementController;
 use App\Http\Controllers\FlagController;
 use App\Http\Controllers\DialogflowController;
 
@@ -56,7 +57,6 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
 
 Route::middleware(['auth', 'role:HR'])->group(function () {
     Route::get('/hr', [HRController::class, 'index'])->name('hr.dashboard');
-    Route::post('/hr/reply', [HRController::class, 'sendReply'])->name('hr.reply');
 });
 
 Route::middleware(['auth', 'role:Employee'])->group(function () {
@@ -80,7 +80,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group(function () {
     // Store announcement
-    Route::post('/hr/announcements', [HRController::class, 'store'])->name('hr.announcements.store');
+    Route::post('/hr/announcements', [HrAnnouncementController::class, 'store'])->name('hr.announcements.store');
 
     // Optional: other HR routes
     Route::get('/hr', [HRController::class, 'index'])->name('hr.dashboard');
@@ -92,4 +92,26 @@ Route::get('/hr/dashboard', [HRController::class, 'index'])->name('hr.dashboard'
 // HR Profile
 Route::get('/hr/profile', [HRController::class, 'editProfile'])->name('hr.profile');
 Route::put('/hr/profile/update', [HRController::class, 'updateProfile'])->name('hr.profile.update');
-Route::post('/hr/reply', [App\Http\Controllers\HRController::class, 'sendReply'])->name('hr.reply');
+Route::post('/hr/reply', [HRController::class, 'reply'])->name('hr.reply');
+
+
+
+Route::get('/hr/messages/{ticket_no}', [HrController::class, 'getMessages']);
+Route::post('/hr/reply-ajax', [HrController::class, 'reply'])->name('hr.reply.ajax');
+Route::get('/hr/tickets/json', [HrController::class, 'ticketsJson'])->name('hr.tickets.json');
+
+Route::post('/employee/send', [App\Http\Controllers\ChatController::class, 'sendMessage']);
+
+
+use App\Http\Controllers\ChatController;
+
+Route::get('/get-latest-ticket', [ChatController::class, 'getLatestTicket'])->name('employee.latestTicket');
+Route::get('/employee/messages/{ticket_no}', [ChatController::class, 'getMessages'])->name('employee.messages');
+Route::get('/chat/messages/{ticket_no}', function ($ticket_no) {
+    $messages = DB::table('chat_messages')
+        ->where('ticket_no', $ticket_no)
+        ->orderBy('created_at', 'asc')
+        ->get(['sender', 'message', 'created_at']);
+
+    return response()->json($messages);
+});
