@@ -133,7 +133,6 @@
         @forelse($announcements as $announcement)
             <div class='card' style='margin-bottom:15px; padding:10px; border:1px solid #eee; border-radius:6px;'>
                 <h3>{{ $announcement->title }}</h3>
-                <p>{!! nl2br(e($announcement->content)) !!}</p>
             </div>
         @empty
             <p>No announcements yet.</p>
@@ -194,18 +193,24 @@
     </div>
 </div>
 
-    <!-- Feedback Section -->
+        <!-- Feedback Section -->
     <div id="feedback" class="table-container section" style="display:none;">
         <h2>Give Feedback</h2>
-        <form method="POST" action="{{ route('feedback.store') }}">
+        <form method="POST" action="{{ route('feedback.store') }}" class="feedback-form">
             @csrf
-            <label>Rating:</label>
-            <div class="star-rating">@for($i=1;$i<=5;$i++)<span class="star" data-value="{{ $i }}">★</span>@endfor</div>
+
+            <label for="ratingValue">Rating:</label>
+            <div class="star-rating">
+                @for ($i = 1; $i <= 5; $i++)
+                    <span class="star" data-value="{{ $i }}">★</span>
+                @endfor
+            </div>
             <input type="hidden" name="rating" id="ratingValue" required>
-            <br>
-            <label>Suggestion:</label>
-            <textarea name="suggestion" required></textarea>
-            <button type="submit">✅ Submit Feedback</button>
+
+            <label for="suggestion">Suggestion:</label>
+            <textarea name="suggestion" id="suggestion" placeholder="Write your feedback here..." required></textarea>
+
+            <button type="submit" class="btn review">✅ Submit Feedback</button>
         </form>
     </div>
 
@@ -274,6 +279,39 @@ function scrollChat() {
     let chatBox = document.getElementById('chatBox');
     chatBox.scrollTop = chatBox.scrollHeight;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const stars = document.querySelectorAll('.star-rating .star');
+    const ratingInput = document.getElementById('ratingValue');
+    let selectedRating = 0;
+
+    stars.forEach((star, index) => {
+        const value = index + 1;
+
+        // Hover effect
+        star.addEventListener('mouseover', () => {
+            stars.forEach((s, i) => {
+                s.style.color = i < value ? '#ffc107' : '#ccc';
+            });
+        });
+
+        // Restore selected rating when mouse leaves
+        star.addEventListener('mouseout', () => {
+            stars.forEach((s, i) => {
+                s.style.color = i < selectedRating ? '#ffc107' : '#ccc';
+            });
+        });
+
+        // Click to select rating
+        star.addEventListener('click', () => {
+            selectedRating = value;
+            ratingInput.value = value;
+            stars.forEach((s, i) => {
+                s.style.color = i < value ? '#ffc107' : '#ccc';
+            });
+        });
+    });
+});
 
 </script>
 @endsection
