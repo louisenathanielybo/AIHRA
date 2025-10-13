@@ -56,6 +56,7 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
 
 Route::middleware(['auth', 'role:HR'])->group(function () {
     Route::get('/hr', [HRController::class, 'index'])->name('hr.dashboard');
+    Route::post('/hr/reply', [HRController::class, 'sendReply'])->name('hr.reply');
 });
 
 Route::middleware(['auth', 'role:Employee'])->group(function () {
@@ -91,3 +92,4 @@ Route::get('/hr/dashboard', [HRController::class, 'index'])->name('hr.dashboard'
 // HR Profile
 Route::get('/hr/profile', [HRController::class, 'editProfile'])->name('hr.profile');
 Route::put('/hr/profile/update', [HRController::class, 'updateProfile'])->name('hr.profile.update');
+

@@ -136,4 +136,25 @@ class HRController extends Controller
         return back()->with('success', 'Reply sent successfully and recorded in the chat.');
     }
 
+    /**
+     * 🟩 Show the Announcements section (for HR sidebar).
+     */
+    public function announcements()
+    {
+        $announcements = DB::table('announcements')
+            ->orderBy('createdAt', 'desc')
+            ->get();
+
+        $user = Auth::user();
+        return view('hr.announcements', compact('announcements', 'user'));
+    }
+
+    /**
+     * 🟩 Show the Account section (for HR sidebar).
+     */
+    public function account()
+    {
+        $user = Auth::user();
+        return view('hr.account', compact('user'));
+    }
 }
