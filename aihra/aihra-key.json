@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "aihra-472311",
+  "private_key_id": "1558881f4ab8521a3d67654740e949fd0d001728",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDeqjWttH4YWq2c\n/0IltnW+VuXAVVyMJFX+v0Tk1x+dLVW8yg4OGrzNuiT8/bc5IIKjbLCg1VMS1WXi\nu1QcSTr76PwmGs5FbIikBJoVMbJLP67SyClEwaEYKPzxAhkCnd7Q9/r5IOiaBgFe\n9IXLNZ4DXsAgE535IVTuzCwKk39pCv3za0tLVJRESnsL4e7SQqVUiAqBpylqA7U3\nQib+OTDm2FB56x8N9YjKHKapofyJdxOao9WFUEkp1cpWTat5YE4DUKq6TIDT4v9s\n8BIE/mTPRrHx4bKwbcA+DCoHjmyglByhd960i3KRlsbBR1J+s/+qFX1icIByyrwU\nhltIl4xzAgMBAAECggEATR6BsfSKGdBKQk6Mb/hmhnKdZ4SJJcat/Cnt6B50BiG+\nCMGopYzwKIbYqcEMNR6D8KtD76iC+cpsW9+KzbM1WSuELYRqPdRN7RTk8wM/390i\nJUILPROdQntrw+N4mxXnptPEmoWh2jrLPcKOFmgvHrax70osFC3Nt1mCxXT5k30D\n5w//dGBVK41RpJExCJXhOSiejyaoRPtT1SHwWSzF4QocBpBWx2VVAk/n51S7S0F3\nM7fF4/5pLXGb/rdU7VNKwlwU6W6kPMt57ysZKy4TTzMI/q7qWWnye+vQJR+SCUsk\nVIelqpxKJeziVe3olNTP1EPLa8PoAmLfSmFedzXZ7QKBgQD+mXwrXFRqoaz72Vj6\nfCA+wo3+nBzN4fSRr0Bw1Xp7yDOivlRf1Q7DROjdHG0GWmbzDfLcusFX8LkrJATs\nJWaF5Ngr5vfNWmtbZk1ipEfB1NFm93hYaXY0y+iDnEFXsdEYVyAWP5W4qRN7CHbh\ngjoSlcVf6v40sFJNP1no/AbOpwKBgQDf48F5yI4tniS89tRjWG40QeQ3BB57UVdq\n8K1lNrNQ2i8rZibbYDdeAbREW6vQ/m2aHEULCsjmQD9qgZszhU3vAq1aiCenWd5s\nOCh1ZJzqqPUbf/KGOwf9Vdx7v511021HI/UhNVhhSWjrKM93NYo4rUGb8MZFWayM\nQUBmRRh5VQKBgQD43ZT3WYgWtzS89Ya5Si3Gyyw7TeQGB7Gl2jXWVYYlituWYA9f\noYaNr0UkJU4Y4LMzMFZOFqs5R8/ocIvzPNfLV5dKyrk83P6F2Ckam9ScjmemC45y\ndZwbHZqJU2q3ytPFxBxUQxEZ8QNexzZVVpNnaUkGalDTteqtIZjEWd5ZjwKBgGk/\nT7xII04egXazMbRh5ax7LSUPsqSV4FpNObXSuQjRCEuGgc2utVhjxLI9xc9BS5Se\npXZDY52ZpjYTJzpY+AHbaFKensV04bJN0/cbjQhi1JZQ11lydpcIvdUOhp7U/RHs\nPVeXFCznrYKedKi9anSqPaVo0kvXk9167yMkaBThAoGBAMXvPDeQHigfkyG2RLkZ\nhyHsGZpnPoLXm+wPVZfWC5LDAsu73ikolicQXbHSACEE60Jzvh2X/9Wn/VuDoJAh\nUmqH3D2VzDb5inxHha7hcwvAEGE3LlTJ2wEMLBYklER+fA/ARcdQEsUFTXw07Pbu\npVP6NZeAV/Mi34uN2uymHcK/\n-----END PRIVATE KEY-----\n",
+  "client_email": "aihra-dialogflow@aihra-472311.iam.gserviceaccount.com",
+  "client_id": "116880942476929227852",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/aihra-dialogflow%40aihra-472311.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

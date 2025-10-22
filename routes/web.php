@@ -40,6 +40,9 @@ require __DIR__.'/auth.php';
 Route::middleware(['auth', 'role:Admin'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
 
+    // Create Account
+    Route::post('/admin/account/create', [AdminController::class, 'createAccount'])->name('admin.account.create');//CHANGES
+
     // Knowledge Base
     Route::post('/admin/kb/add', [AdminController::class, 'addKnowledge'])->name('admin.kb.add');
     Route::post('/admin/kb/import', [AdminController::class, 'importKnowledge'])->name('admin.kb.import');

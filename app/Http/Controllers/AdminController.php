@@ -91,4 +91,43 @@ class AdminController extends Controller
 
         return redirect()->route('admin.dashboard')->with('success', 'Profile updated!');
     }
+
+    //CHANGES
+    public function createAccount(Request $request)
+    {
+    \Log::info('🟩 CreateAccount triggered', $request->all());
+
+    $request->validate([
+        'employeeNum' => 'required|string|unique:users,employeeNum',
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|string|min:6',
+        'firstName' => 'required|string',
+        'lastName' => 'required|string',
+        'role' => 'required|in:HR,Employee',
+        'sex' => 'required|in:Male,Female',
+        'age' => 'required',
+    ]);
+
+    try {
+        DB::table('users')->insert([
+            'employeeNum' => $request->employeeNum,
+            'email' => $request->email,
+            'password' => $request->password,
+            'firstName' => $request->firstName,
+            'lastName' => $request->lastName,
+            'middleName' => $request->middleName,
+            'role' => $request->role,
+            'sex' => $request->sex,
+            'age' => $request->age,
+            'status' => 'Active',
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Account created successfully!');
+    } catch (\Exception $e) {
+        \Log::error('❌ Account creation failed', ['error' => $e->getMessage()]);
+        return back()->with('error', 'Failed to create account: ' . $e->getMessage());
+    }
+}
+//CHANGES
+
 }

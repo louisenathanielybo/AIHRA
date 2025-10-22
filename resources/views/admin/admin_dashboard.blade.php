@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="{{ asset('/css/dashboard.css') }}">
 <style>
     .sidebar {
-        width: 220px;
+        width: 200px;
         background: #0c5726;
         color: white;
         height: 100vh;
@@ -43,7 +43,7 @@
 <div class="sidebar">
     <h1>AIHRA</h1>
     <ul>
-        <li class="active"><a href="#kb" onclick="showSection('kb')">Knowledge Base</a></li>
+        <li class="active"><a href="#kb" onclick="showSection('kb')">Create Account</a></li>
         <li><a href="#announcements" onclick="showSection('announcements')">Announcements</a></li>
         <li><a href="#feedback" onclick="showSection('feedback')">Feedback & Flags</a></li>
         <li><a href="#profile" onclick="showSection('profile')">Profile</a></li>
@@ -58,30 +58,70 @@
 </div>
 
 <div class="main">
-    {{-- KNOWLEDGE BASE --}}
+    {{-- CREATE ACCOUNT --}} 
     <div id="kb" class="section active">
-        <h2>Knowledge Base</h2>
-        <form method="POST" action="{{ route('admin.kb.add') }}">
+        <h2>Create Account</h2>
+
+        @if(session('success'))
+            <p style="color:green">{{ session('success') }}</p>
+        @endif
+
+        @if ($errors->any())
+            <div style="color:red;">
+                {{ implode(', ', $errors->all()) }}
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('admin.account.create') }}">
             @csrf
-            <label>Question:</label>
-            <input type="text" name="question" required>
-            <label>Answer:</label>
-            <textarea name="answer" required></textarea>
-            <button type="submit">Add Entry</button>
+            <label>Employee Number:</label>
+            <input type="text" name="employeeNum" required>
+
+            <label>Email:</label>
+            <input type="email" name="email" required>
+
+            <label>Password:</label>
+            <input type="password" name="password" required>
+
+            <label>First Name:</label>
+            <input type="text" name="firstName" required>
+
+            <label>Middle Name:</label>
+            <input type="text" name="middleName">
+
+            <label>Last Name:</label>
+            <input type="text" name="lastName" required>
+
+            <label>Role:</label>
+            <select name="role" required>
+                <option value="HR">HR</option>
+                <option value="Employee">Employee</option>
+            </select>
+
+            <label>Sex:</label>
+            <select name="sex" required>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+            </select>
+
+            <label>Birthdate:</label>
+            <input type="date" name="age" required>
+
+            <button type="submit">Create Account</button>
         </form>
 
+        <h3>Existing Users</h3>
         <table>
-            <tr><th>ID</th><th>Question</th><th>Answer</th><th>Action</th></tr>
-            @forelse($kb as $row)
+            <tr><th>Employee #</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr>
+            @foreach(DB::table('users')->where('role', '!=', 'Admin')->get() as $user)
                 <tr>
-                    <td>{{ $row->id }}</td>
-                    <td>{{ $row->question }}</td>
-                    <td>{{ $row->answer }}</td>
-                    <td><a href="{{ route('admin.kb.delete', $row->id) }}" onclick="return confirm('Delete this entry?')">🗑 Delete</a></td>
+                    <td>{{ $user->employeeNum }}</td>
+                    <td>{{ $user->firstName }} {{ $user->lastName }}</td>
+                    <td>{{ $user->email }}</td>
+                    <td>{{ $user->role }}</td>
+                    <td>{{ $user->status }}</td>
                 </tr>
-            @empty
-                <tr><td colspan="4">No knowledge base entries yet.</td></tr>
-            @endforelse
+            @endforeach
         </table>
     </div>
 
