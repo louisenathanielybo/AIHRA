@@ -115,3 +115,12 @@ Route::get('/chat/messages/{ticket_no}', function ($ticket_no) {
 
     return response()->json($messages);
 });
+
+
+use App\Http\Controllers\GuidedQuestionController;
+
+Route::middleware(['auth'])->group(function () {
+    Route::post('/dialogflow-webhook', [DialogflowController::class, 'webhook']);
+    Route::get('/guided', [GuidedQuestionController::class, 'index']);
+    Route::get('/guided/{id}', [GuidedQuestionController::class, 'show']);
+});
