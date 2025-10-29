@@ -24,7 +24,7 @@
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
 
-    input, textarea, button {
+    input, textarea, button, select {
         margin: 5px 0;
         padding: 8px;
         width: 100%;
@@ -36,6 +36,28 @@
         color: white;
         cursor: pointer;
     }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    .success-message {
+        background: #d4edda;
+        color: #155724;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
 </style>
 @endsection
 
@@ -45,6 +67,7 @@
     <ul>
         <li class="active"><a href="#kb" onclick="showSection('kb')">Knowledge Base</a></li>
         <li><a href="#announcements" onclick="showSection('announcements')">Announcements</a></li>
+        <li><a href="#create-account" onclick="showSection('create-account')">Create Account</a></li>
         <li><a href="#feedback" onclick="showSection('feedback')">Feedback & Flags</a></li>
         <li><a href="#profile" onclick="showSection('profile')">Profile</a></li>
     </ul>
@@ -108,6 +131,214 @@
         </table>
     </div>
 
+   {{-- CREATE ACCOUNT --}}
+<div id="create-account" class="section">
+    <h2>Create New Account</h2>
+    
+    @if(session('success'))
+        <div class="success-message">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="error-message">
+            <ul>
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    {{-- CREATE ACCOUNT FORM --}}
+    <div id="create-account-form">
+        <form method="POST" action="{{ route('admin.create-account') }}">
+            @csrf
+            
+            <div class="form-group">
+                <label for="employeeNum">Employee Number *</label>
+                <input type="text" id="employeeNum" name="employeeNum" value="{{ old('employeeNum') }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address *</label>
+                <input type="email" id="email" name="email" value="{{ old('email') }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password *</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password_confirmation">Confirm Password *</label>
+                <input type="password" id="password_confirmation" name="password_confirmation" required>
+            </div>
+
+            <div class="form-group">
+                <label for="firstName">First Name *</label>
+                <input type="text" id="firstName" name="firstName" value="{{ old('firstName') }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="lastName">Last Name *</label>
+                <input type="text" id="lastName" name="lastName" value="{{ old('lastName') }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="middleName">Middle Name</label>
+                <input type="text" id="middleName" name="middleName" value="{{ old('middleName') }}">
+            </div>
+
+            <div class="form-group">
+                <label for="role">Role *</label>
+                <select id="role" name="role" required>
+                    <option value="">Select Role</option>
+                    <option value="employee" {{ old('role') == 'employee' ? 'selected' : '' }}>Employee</option>
+                    <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrator</option>
+                    <option value="hr" {{ old('role') == 'hr' ? 'selected' : '' }}>HR Manager</option>
+                    <option value="manager" {{ old('role') == 'manager' ? 'selected' : '' }}>Department Manager</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="sex">Gender *</label>
+                <select id="sex" name="sex" required>
+                    <option value="">Select Gender</option>
+                    <option value="male" {{ old('sex') == 'male' ? 'selected' : '' }}>Male</option>
+                    <option value="female" {{ old('sex') == 'female' ? 'selected' : '' }}>Female</option>
+                    <option value="other" {{ old('sex') == 'other' ? 'selected' : '' }}>Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="age">Age *</label>
+                <input type="number" id="age" name="age" value="{{ old('age') }}" min="18" max="65" required>
+            </div>
+
+            <div class="form-group">
+                <label for="about">About (Optional)</label>
+                <textarea id="about" name="about" placeholder="Brief description about the user">{{ old('about') }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="status">Account Status *</label>
+                <select id="status" name="status" required>
+                    <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
+                    <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    <option value="suspended" {{ old('status') == 'suspended' ? 'selected' : '' }}>Suspended</option>
+                </select>
+            </div>
+
+            <button type="submit">Create Account</button>
+        </form>
+    </div>
+
+    {{-- EDIT ACCOUNT FORM (Hidden by default) --}}
+    <div id="edit-account-form" style="display: none;">
+        <h3>Edit Account</h3>
+        <form method="POST" action="" id="edit-form">
+            @csrf
+            <input type="hidden" name="_method" value="PUT">
+            <input type="hidden" id="edit_employeeNum" name="employeeNum">
+            
+            <div class="form-group">
+                <label for="edit_email">Email Address *</label>
+                <input type="email" id="edit_email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="edit_firstName">First Name *</label>
+                <input type="text" id="edit_firstName" name="firstName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="edit_lastName">Last Name *</label>
+                <input type="text" id="edit_lastName" name="lastName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="edit_middleName">Middle Name</label>
+                <input type="text" id="edit_middleName" name="middleName">
+            </div>
+
+            <div class="form-group">
+                <label for="edit_role">Role *</label>
+                <select id="edit_role" name="role" required>
+                    <option value="">Select Role</option>
+                    <option value="employee">Employee</option>
+                    <option value="admin">Administrator</option>
+                    <option value="hr">HR Manager</option>
+                    <option value="manager">Department Manager</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="edit_sex">Gender *</label>
+                <select id="edit_sex" name="sex" required>
+                    <option value="">Select Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="edit_age">Age *</label>
+                <input type="number" id="edit_age" name="age" min="18" max="65" required>
+            </div>
+
+            <div class="form-group">
+                <label for="edit_about">About (Optional)</label>
+                <textarea id="edit_about" name="about" placeholder="Brief description about the user"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="edit_status">Account Status *</label>
+                <select id="edit_status" name="status" required>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="suspended">Suspended</option>
+                </select>
+            </div>
+
+            <button type="submit">Update Account</button>
+            <button type="button" onclick="cancelEdit()" style="background: #6c757d;">Cancel</button>
+        </form>
+    </div>
+
+    <h3 style="margin-top: 30px;">Existing Accounts</h3>
+    <table>
+        <tr>
+            <th>Employee #</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+        @forelse($users as $user)
+            <tr>
+                <td>{{ $user->employeeNum }}</td>
+                <td>{{ $user->firstName }} {{ $user->lastName }}</td>
+                <td>{{ $user->email }}</td>
+                <td>{{ ucfirst($user->role) }}</td>
+                <td>{{ ucfirst($user->status) }}</td>
+                <td>
+                    <a href="#" onclick="editAccount('{{ $user->employeeNum }}')">✏️ Edit</a>
+                    @if($user->employeeNum != Auth::user()->employeeNum)
+                        | <a href="{{ route('admin.delete-account', $user->employeeNum) }}" 
+                             onclick="return confirm('Are you sure you want to delete this account?')">🗑 Delete</a>
+                    @endif
+                </td>
+            </tr>
+        @empty
+            <tr><td colspan="6">No accounts found.</td></tr>
+        @endforelse
+    </table>
+</div>
+
     {{-- FEEDBACK --}}
     <div id="feedback" class="section">
         <h2>Feedback</h2>
@@ -161,6 +392,51 @@ function showSection(id) {
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.sidebar ul li').forEach(li => li.classList.remove('active'));
     event.target.closest('li').classList.add('active');
+}
+
+async function editAccount(employeeNum) {
+    try {
+        const response = await fetch(`/admin/get-account/${employeeNum}`);
+        const user = await response.json();
+        
+        if (user.error) {
+            alert(user.error);
+            return;
+        }
+
+        // Populate the form fields
+        document.getElementById('edit_employeeNum').value = user.employeeNum;
+        document.getElementById('edit_email').value = user.email;
+        document.getElementById('edit_firstName').value = user.firstName;
+        document.getElementById('edit_lastName').value = user.lastName;
+        document.getElementById('edit_middleName').value = user.middleName || '';
+        document.getElementById('edit_role').value = user.role;
+        document.getElementById('edit_sex').value = user.sex;
+        document.getElementById('edit_age').value = user.age;
+        document.getElementById('edit_about').value = user.about || '';
+        document.getElementById('edit_status').value = user.status;
+
+        // Update form action
+        document.getElementById('edit-form').action = `/admin/update-account/${user.employeeNum}`;
+
+        // Show edit form and hide create form
+        document.getElementById('create-account-form').style.display = 'none';
+        document.getElementById('edit-account-form').style.display = 'block';
+        
+        // Scroll to the form
+        document.getElementById('edit-account-form').scrollIntoView({ behavior: 'smooth' });
+        
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+        alert('Error loading user data');
+    }
+}
+
+// Function to cancel edit and show create form
+function cancelEdit() {
+    document.getElementById('edit-account-form').style.display = 'none';
+    document.getElementById('create-account-form').style.display = 'block';
+    document.getElementById('edit-form').reset();
 }
 </script>
 @endsection

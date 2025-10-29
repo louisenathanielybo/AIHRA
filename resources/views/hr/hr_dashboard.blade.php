@@ -5,146 +5,256 @@
     <title>AIHRA - HR Dashboard</title>
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
     <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #f4f6f8;
-            margin: 0;
-            display: flex;
-        }
         .sidebar {
-            width: 240px;
+            width: 220px;
             background: #0c5726;
             color: white;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            height: 100vh;
+            float: left;
             padding: 20px;
         }
-        .sidebar h1 {
+        .sidebar h1 { 
+            font-size: 22px; 
+            margin-bottom: 20px; 
+        }
+        .sidebar ul { 
+            list-style: none; 
+            padding: 0; 
+        }
+        .sidebar ul li { 
+            margin-bottom: 15px; 
+        }
+        .sidebar ul li a { 
+            color: white; 
+            text-decoration: none; 
+            font-weight: bold; 
+        }
+        .sidebar ul li.active a { 
+            text-decoration: underline; 
+        }
+
+        .main { 
+            margin-left: 240px; 
+            padding: 20px; 
+        }
+        .section { 
+            display: none; 
+        }
+        .section.active { 
+            display: block; 
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 15px; 
+        }
+        th, td { 
+            border: 1px solid #ccc; 
+            padding: 8px; 
+            text-align: left; 
+        }
+
+        input, textarea, button, select {
+            margin: 5px 0;
+            padding: 8px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        button {
+            background: #0c5726;
+            color: white;
+            cursor: pointer;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        /* HR Dashboard Specific Styles */
+        .dashboard-cards {
+            display: flex;
+            gap: 15px;
             margin-bottom: 20px;
         }
-        .sidebar ul {
-            list-style: none;
-            padding: 0;
-        }
-        .sidebar ul li {
-            margin: 12px 0;
-        }
-        .sidebar ul li a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .sidebar ul li.active a {
-            color: #f5d742;
-        }
-        .main {
+        .card {
             flex: 1;
-            padding: 30px;
-        }
-        .table-container {
             background: white;
-            border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .card h3 {
+            margin: 0;
+            font-size: 24px;
+            color: #0c5726;
+        }
+        .card p {
+            margin: 5px 0 0 0;
+            color: #666;
+        }
+        .card.high { border-left: 4px solid #dc3545; }
+        .card.medium { border-left: 4px solid #ffc107; }
+        .card.low { border-left: 4px solid #28a745; }
+        .card.replied { border-left: 4px solid #007bff; }
+
+        .ticket-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
         }
         .ticket-list {
-            max-height: 500px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 6px;
-            background: #fafafa;
-        }
-        .ticket-item {
+            flex: 1;
             background: white;
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .ticket-item:hover {
-            background: #f0f8f0;
-        }
-        .chat-box {
-            border: 1px solid #ddd;
             border-radius: 8px;
             padding: 15px;
-            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .chat-container {
+            flex: 2;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            height: 500px;
+            height: 600px;
         }
+
+        .ticket-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .ticket-item:hover {
+            background: #e9ecef;
+            border-color: #0c5726;
+        }
+        .ticket-item.active {
+            background: #e8f5e8;
+            border-color: #0c5726;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .badge.high { background: #f8d7da; color: #721c24; }
+        .badge.medium { background: #fff3cd; color: #856404; }
+        .badge.low { background: #d1ecf1; color: #0c5460; }
+        .badge.replied { background: #d4edda; color: #155724; }
+        .badge.resolved { background: #e2e3e5; color: #383d41; }
+
         .chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding-right: 5px;
-            margin-bottom: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
         }
-        .chat-message {
-            margin-bottom: 12px;
-        }
-        .chat-message.user {
-            background: #e8ffe8;
+        .message {
+            margin-bottom: 15px;
             padding: 10px;
             border-radius: 8px;
+            max-width: 80%;
         }
-        .chat-message.hr {
-            background: #e0f0ff;
-            padding: 10px;
-            border-radius: 8px;
+        .message.employee {
+            background: #e3f2fd;
+            margin-right: auto;
+            border: 1px solid #bbdefb;
+        }
+        .message.hr {
+            background: #e8f5e8;
+            margin-left: auto;
+            border: 1px solid #c8e6c9;
             text-align: right;
         }
-        .badge {
-            padding: 3px 8px;
-            border-radius: 5px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-left: 5px;
+        .message-meta {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
         }
-        .badge.low { background: #c6f6d5; color: #22543d; }
-        .badge.medium { background: #fefcbf; color: #744210; }
-        .badge.high { background: #fed7d7; color: #742a2a; }
-        .badge.urgent { background: #f56565; color: white; }
-        .ticket-meta {
-            font-size: 13px;
-            color: #555;
-        }
+
         .reply-form {
             display: flex;
+            gap: 10px;
         }
-        .reply-form input[type="text"] {
+        .reply-form input {
             flex: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px 0 0 6px;
+            margin: 0;
         }
         .reply-form button {
-            background: #0c5726;
+            width: auto;
+            padding: 8px 20px;
+        }
+
+        .resolve-btn {
+            background: #28a745;
             color: white;
             border: none;
-            padding: 0 20px;
-            border-radius: 0 6px 6px 0;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
             cursor: pointer;
+            margin-top: 5px;
+            width: auto;
+        }
+        .resolved-badge {
+            color: #28a745;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .ticket-meta {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .ticket-meta span {
+            margin-right: 8px;
         }
     </style>
 </head>
 <body>
     <!-- Sidebar -->
     <div class="sidebar">
-        <div>
-            <h1>AIHRA</h1>
-            <ul>
-                <li class="active"><a href="#home" onclick="showSection('home')">Home</a></li>
-                <li><a href="#inbox" onclick="showSection('inbox')">Inbox</a></li>
-                <li><a href="#announcements" onclick="showSection('announcements')">Announcements</a></li>
-                <li><a href="#account" onclick="showSection('account')">Account</a></li>
-            </ul>
-        </div>
-
+        <h1>AIHRA</h1>
+        <ul>
+            <li class="active"><a href="#inbox" onclick="showSection('inbox')">📨 Inbox</a></li>
+            <li><a href="#announcements" onclick="showSection('announcements')">📢 Announcements</a></li>
+            <li><a href="#account" onclick="showSection('account')">👤 Account</a></li>
+        </ul>
         <div class="account">
             <img src="{{ isset($user) && $user->profile_picture ? asset('uploads/'.$user->profile_picture) : asset('admin/assets/default-profile.png') }}" 
                  alt="HR" 
@@ -159,97 +269,289 @@
     <!-- Main Section -->
     <div class="main">
         <!-- Inbox Section -->
-        <div id="inbox" class="table-container section">
+        <div id="inbox" class="section active">
+            <h2>HR Inbox</h2>
             
-            <h2>📨 HR Inbox</h2>
-        <!-- Counters --> <div style="display:flex; gap:10px; margin-bottom:20px;"> <div style="flex:1; text-align:center; background:#eee; padding:10px; border-radius:6px;"> <h3>{{ $inbox->count() }}</h3><p>All</p> </div> <div style="flex:1; text-align:center; background:#ffe5e5; padding:10px; border-radius:6px;"> <h3 style="color:red;">{{ $inbox->where('priority', 'Urgent')->count() }}</h3><p>Urgent</p> </div> <div style="flex:1; text-align:center; background:#eee; padding:10px; border-radius:6px;"> <h3>{{ $inbox->where('priority', 'High')->count() }}</h3><p>High</p> </div> <div style="flex:1; text-align:center; background:#eee; padding:10px; border-radius:6px;"> <h3>{{ $inbox->where('priority', 'Medium')->count() }}</h3><p>Medium</p> </div> <div style="flex:1; text-align:center; background:#eee; padding:10px; border-radius:6px;"> <h3>{{ $inbox->where('priority', 'Low')->count() }}</h3><p>Low</p> </div> </div>
+            <!-- Dashboard Cards -->
+            <div class="dashboard-cards">
+                <div class="card">
+                    <h3>{{ $inbox->count() }}</h3>
+                    <p>Total Tickets</p>
+                </div>
+                <div class="card high">
+                    <h3>{{ $inbox->where('priority', 'high')->count() }}</h3>
+                    <p>High Priority</p>
+                </div>
+                <div class="card medium">
+                    <h3>{{ $inbox->where('priority', 'medium')->count() }}</h3>
+                    <p>Medium Priority</p>
+                </div>
+                <div class="card low">
+                    <h3>{{ $inbox->where('priority', 'low')->count() }}</h3>
+                    <p>Low Priority</p>
+                </div>
+                <div class="card replied">
+                    <h3>{{ $inbox->where('status', 'Replied')->count() }}</h3>
+                    <p>Replied</p>
+                </div>
+            </div>
 
-            <div style="display:flex; gap:20px;">
+            <div class="ticket-container">
                 <!-- Ticket List -->
-                <div style="flex:1;">
+                <div class="ticket-list">
                     <h3>Pending Tickets</h3>
-                    <div class="ticket-list">
-                        @forelse($inbox as $ticket)
-                            <div class="ticket-item" onclick="openTicket('{{ $ticket->ticket_no }}')">
-                                <strong>🎫 {{ $ticket->ticket_no }}</strong>
-                                <div class="ticket-meta">
-                                    {{ Str::limit($ticket->message, 40) }}
-                                    <br>
-                                    <span class="badge {{ strtolower($ticket->priority) }}">{{ $ticket->priority }}</span>
-                                    <span class="badge" style="background:#e2e8f0;">{{ $ticket->category }}</span>
-                                    <span style="font-size:11px;color:#666;">{{ number_format($ticket->confidence * 100, 0) }}%</span>
+                    @forelse($inbox as $ticket)
+                        <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')">
+                            <strong>🎫 {{ $ticket->ticket_no }}</strong>
+                            <div class="ticket-meta">
+                                <div>{{ Str::limit($ticket->message, 50) }}</div>
+                                <div>
+                                    <span class="badge {{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span>
+                                    <span class="badge">{{ $ticket->category }}</span>
+                                    <span style="color:#666;">{{ number_format($ticket->confidence * 100, 0) }}%</span>
                                 </div>
+                                @if($ticket->status === 'Replied')
+                                    <span class="badge replied">Replied</span>
+                                @elseif($ticket->status === 'Resolved')
+                                    <span class="badge resolved">Resolved</span>
+                                @endif
+                                
+                                @if($ticket->status !== 'Resolved')
+                                <button class="resolve-btn" onclick="event.stopPropagation(); resolveTicket('{{ $ticket->ticket_no }}')">
+                                    ✅ Resolve
+                                </button>
+                                @else
+                                <span class="resolved-badge">✅ Resolved</span>
+                                @endif
                             </div>
-                        @empty
-                            <p>No tickets available.</p>
-                        @endforelse
-                    </div>
+                        </div>
+                    @empty
+                        <p>No tickets available.</p>
+                    @endforelse
                 </div>
 
-                <!-- Chat Box -->
-                <div style="flex:2;">
-                    <div class="chat-box" id="chatBox">
-                        <div class="chat-messages" id="chatMessages">
-                            <p>Select a ticket to view messages.</p>
-                        </div>
-                        <form id="replyForm" method="POST" action="{{ route('hr.reply') }}" class="reply-form">
-    @csrf
-    <input type="hidden" name="ticket_no" id="ticket_no">
-    <input type="text" id="replyMessage" name="message" placeholder="Type your reply..." required>
-    <button type="submit">Send ➤</button>
-</form>
-
+                <!-- Chat Container -->
+                <div class="chat-container">
+                    <h3>Ticket Conversation</h3>
+                    <div class="chat-messages" id="chatMessages">
+                        <p style="text-align: center; color: #666; margin-top: 50px;">Select a ticket to view conversation</p>
                     </div>
+                    <form id="replyForm" class="reply-form">
+                        @csrf
+                        <input type="hidden" name="ticket_no" id="ticket_no">
+                        <input type="text" id="replyMessage" name="message" placeholder="Type your reply..." required>
+                        <button type="submit">Send</button>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <!-- Other sections remain same -->
+        <!-- Other sections can be added here following the same style -->
     </div>
 
     <script>
+        let currentTicket = null;
+
         function showSection(id) {
-            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-            document.getElementById(id).style.display = 'block';
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
             document.querySelectorAll('.sidebar ul li').forEach(li => li.classList.remove('active'));
-            document.querySelector(`.sidebar ul li a[href="#${id}"]`).parentElement.classList.add('active');
+            event.target.closest('li').classList.add('active');
         }
 
-        function openTicket(ticketNo) {
-            const ticket = @json($inbox).find(t => t.ticket_no === ticketNo);
-            if (ticket) {
+        // Function to resolve ticket
+async function resolveTicket(ticketNo) {
+    if (!confirm('Mark this ticket as resolved?')) return;
+
+    try {
+        const res = await fetch('/hr/resolve-ticket', {  // ✅ Fixed path
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ ticket_no: ticketNo })
+        });
+
+        const result = await res.json();
+        console.log('Resolve response:', result);
+        
+        if (result.success) {
+            alert('Ticket resolved!');
+            location.reload();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Resolve error:', error);
+        alert('Failed to resolve ticket');
+    }
+}
+// Debug function to test routes
+async function debugRoutes() {
+    console.log('Testing HR routes...');
+    
+    // Test messages endpoint
+    try {
+        const testTicket = document.querySelector('.ticket-item')?.id.replace('ticket-', '');
+        if (testTicket) {
+            console.log('Testing messages endpoint with ticket:', testTicket);
+            const res = await fetch(`/hr/messages/${testTicket}`);
+            const data = await res.json();
+            console.log('Messages endpoint works:', data);
+        }
+    } catch (error) {
+        console.error('Messages endpoint failed:', error);
+    }
+}
+
+// Run this in browser console to test:
+// debugRoutes();
+
+// Debug function to test HR reply
+async function debugHRReply() {
+    const testTicket = document.querySelector('.ticket-item')?.id.replace('ticket-', '');
+    if (!testTicket) {
+        console.log('❌ No tickets found to test');
+        return;
+    }
+    
+    console.log('🧪 Testing HR reply with ticket:', testTicket);
+    
+    try {
+        // First test if we can get messages
+        console.log('1. Testing messages endpoint...');
+        const messagesRes = await fetch(`/hr/messages/${testTicket}`);
+        const messages = await messagesRes.json();
+        console.log('Messages endpoint result:', messages);
+        
+        // Test reply endpoint
+        console.log('2. Testing reply endpoint...');
+        const replyRes = await fetch('/hr/reply', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                ticket_no: testTicket,
+                message: 'Test reply from HR - ' + new Date().toLocaleTimeString()
+            })
+        });
+        
+        const replyResult = await replyRes.json();
+        console.log('Reply endpoint result:', replyResult);
+        
+        // Test messages again to see if reply was saved
+        console.log('3. Testing messages endpoint again...');
+        const messagesRes2 = await fetch(`/hr/messages/${testTicket}`);
+        const messages2 = await messagesRes2.json();
+        console.log('Messages after reply:', messages2);
+        
+        return { replyResult, messagesBefore: messages, messagesAfter: messages2 };
+    } catch (error) {
+        console.error('❌ Debug test failed:', error);
+        return null;
+    }
+}
+
+// Run in console: debugHRReply()
+
+        // Improved openTicket function to show all messages
+        async function openTicket(ticketNo) {
+            currentTicket = ticketNo;
+            
+            // Remove active class from all tickets
+            document.querySelectorAll('.ticket-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            // Add active class to selected ticket
+            document.getElementById(`ticket-${ticketNo}`).classList.add('active');
+
+            try {
+                const response = await fetch(`/hr/messages/${ticketNo}`);
+                const messages = await response.json();
+                
                 const chat = document.getElementById('chatMessages');
-                chat.innerHTML = `
-                    <div class="chat-message user">
-                        <strong>From Employee #${ticket.from_user}</strong><br>
-                        ${ticket.message}<br>
-                        <small>${ticket.created_at}</small>
-                    </div>
-                `;
-                document.getElementById('ticket_no').value = ticket.ticket_no;
+                chat.innerHTML = '';
+                
+                if (messages.length === 0) {
+                    chat.innerHTML = '<p style="text-align: center; color: #666; margin-top: 50px;">No messages found for this ticket</p>';
+                    return;
+                }
+                
+                messages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${msg.sender}`;
+                    messageDiv.innerHTML = `
+                        <div>${msg.message}</div>
+                        <div class="message-meta">
+                            ${msg.sender === 'employee' ? 'Employee' : 'HR'} • 
+                            ${new Date(msg.created_at).toLocaleString()}
+                        </div>
+                    `;
+                    chat.appendChild(messageDiv);
+                });
+                
+                document.getElementById('ticket_no').value = ticketNo;
+                chat.scrollTop = chat.scrollHeight;
+                
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                const chat = document.getElementById('chatMessages');
+                chat.innerHTML = '<p style="color: red;">Error loading messages</p>';
             }
         }
-        document.getElementById('replyForm').addEventListener('submit', async (e) => {
+
+        // Handle reply form submission
+document.getElementById('replyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const ticketNo = document.getElementById('ticket_no').value;
     const msg = document.getElementById('replyMessage').value.trim();
-    if (!msg || !ticketNo) return;
+    
+    if (!msg || !ticketNo) {
+        alert('Please select a ticket and enter a message');
+        return;
+    }
 
-    const res = await fetch(`{{ route('hr.reply') }}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify({ ticket_no: ticketNo, message: msg })
-    });
+    try {
+        console.log('Sending reply for ticket:', ticketNo);
+        
+        const res = await fetch(`/hr/reply`, {  // ✅ Use direct path instead of route name
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ 
+                ticket_no: ticketNo, 
+                message: msg 
+            })
+        });
 
-    if (res.ok) {
-        document.getElementById('replyMessage').value = '';
-        openTicket(ticketNo); // refresh the chat to show HR reply
+        const result = await res.json();
+        console.log('Reply response:', result);
+
+        if (res.ok && result.success) {
+            document.getElementById('replyMessage').value = '';
+            // Refresh the chat to show the new reply
+            await openTicket(ticketNo);
+        } else {
+            alert('Failed to send reply: ' + (result.message || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Reply error:', error);
+        alert('Failed to send reply. Check console for details.');
     }
 });
 
+        // Show inbox by default
+        document.addEventListener('DOMContentLoaded', function() {
+            showSection('inbox');
+        });
     </script>
 </body>
 </html>
