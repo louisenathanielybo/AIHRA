@@ -10,8 +10,12 @@ class User extends Authenticatable
 {
     use HasApiTokens, Notifiable;
 
-    protected $table = 'users'; // explicit, just to be safe
-    protected $primaryKey = 'employeeNum'; // if you still have an `id` column (default PK)
+    protected $table = 'users';
+    protected $primaryKey = 'employeeNum';
+    
+    // 🆕 ADD THESE LINES:
+    public $incrementing = false; // Since employeeNum might not be auto-incrementing
+    protected $keyType = 'string'; // If employeeNum is string
 
     protected $fillable = [
         'employeeNum',
@@ -32,10 +36,25 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    public $timestamps = false; // ⚡ set true only if your table has created_at/updated_at
+    public $timestamps = false;
 
-    // Disable auto hashing since you’re storing plain text for now
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    // 🆕 ADD THESE METHODS FOR AUTHENTICATION:
+    public function getAuthIdentifierName()
+    {
+        return 'employeeNum';
+    }
+
+    public function getAuthIdentifier()
+    {
+        return $this->employeeNum;
+    }
+
+    public function getAuthPassword()
+    {
+        return $this->password;
+    }
 }

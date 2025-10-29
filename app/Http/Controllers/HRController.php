@@ -113,64 +113,116 @@ class HRController extends Controller
 
     public function getMessages($ticket_no)
 {
-    // Employee’s original message
-    $inbox = HrInbox::where('ticket_no', $ticket_no)->first();
+    try {
+        // Employee's original message from hr_inbox
+        $inbox = HrInbox::where('ticket_no', $ticket_no)->first();
 
-    // HR replies (multiple possible)
-    $replies = HrReply::where('ticket_no', $ticket_no)
-        ->orderBy('replied_at', 'asc')
-        ->get();
+        // HR replies from hr_replies table
+        $replies = HrReply::where('ticket_no', $ticket_no)
+            ->orderBy('replied_at', 'asc')
+            ->get();
 
-    // Combine employee + HR messages
-    $messages = collect();
+        // Combine employee + HR messages
+        $messages = collect();
 
-    if ($inbox) {
-        $messages->push([
-            'sender' => 'employee',
-            'message' => $inbox->message,
-            'created_at' => $inbox->created_at,
-        ]);
+        if ($inbox) {
+            $messages->push([
+                'sender' => 'employee',
+                'message' => $inbox->message,
+                'created_at' => $inbox->created_at,
+            ]);
+        }
+
+        foreach ($replies as $reply) {
+            $messages->push([
+                'sender' => 'hr',
+                'message' => $reply->hr_message,
+                'created_at' => $reply->replied_at,
+            ]);
+        }
+
+        return response()->json($messages->sortBy('created_at')->values());
+
+    } catch (\Exception $e) {
+        \Log::error('Get Messages Error: ' . $e->getMessage());
+        return response()->json([], 500);
     }
-
-    foreach ($replies as $r) {
-        $messages->push([
-            'sender' => 'hr',
-            'message' => $r->hr_message,
-            'created_at' => $r->replied_at,
-        ]);
-    }
-
-    return response()->json($messages->sortBy('created_at')->values());
 }
 
-   public function reply(Request $request)
+
+  /**
+ * ✅ HR replies to a ticket - UPDATED to use only hr_replies table
+ */
+/**
+ * ✅ HR replies to a ticket - UPDATED to save to chat_messages
+ */
+/**
+ * ✅ HR replies to a ticket - FIXED timestamp issue
+ */
+/**
+ * ✅ HR replies to a ticket - ONLY using hr_replies table
+ */
+public function reply(Request $request)
 {
     $request->validate([
         'ticket_no' => 'required|string|exists:hr_inbox,ticket_no',
         'message' => 'required|string',
     ]);
 
-    // Save to hr_replies for record
-    \App\Models\HrReply::create([
-        'ticket_no'  => $request->ticket_no,
-        'hr_message' => $request->message,
-        'replied_by' => Auth::check() ? Auth::user()->username : 'HR',
-        'replied_at' => now(),
-    ]);
+    try {
+        // 🆕 FIXED: Only save to hr_replies table
+        HrReply::create([
+            'ticket_no'  => $request->ticket_no,
+            'hr_message' => $request->message,
+            'replied_by' => Auth::check() ? Auth::user()->username : 'HR',
+            'replied_at' => now(),
+        ]);
 
-    // Also insert directly into chat_messages (like a bot reply)
-    DB::table('chat_messages')->insert([
-        'ticket_no' => $request->ticket_no,
-        'sender'    => 'hr',
-        'message'   => $request->message,
-        'created_at' => now(),
-    ]);
+        // 🆕 REMOVED: No chat_messages insertion
 
-    // Update status
-    \App\Models\HrInbox::where('ticket_no', $request->ticket_no)
-        ->update(['status' => 'Replied', 'updated_at' => now()]);
+        // Update ticket status
+        HrInbox::where('ticket_no', $request->ticket_no)
+            ->update([
+                'status' => 'Replied', 
+                'updated_at' => now()
+            ]);
 
-    return response()->json(['success' => true, 'message' => 'Reply sent and displayed in chat.']);
+        return response()->json([
+            'success' => true, 
+            'message' => 'Reply sent successfully!'
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('HR Reply Error: ' . $e->getMessage());
+        \Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false, 
+            'message' => 'Failed to send reply: ' . $e->getMessage()
+        ], 500);
+    }
 }
+/**
+ * ✅ Resolve/Close a ticket
+ */
+public function resolveTicket(Request $request)
+{
+    $request->validate([
+        'ticket_no' => 'required|string|exists:hr_inbox,ticket_no',
+    ]);
 
+    try {
+        // Update ticket status
+        HrInbox::where('ticket_no', $request->ticket_no)
+            ->update([
+                'status' => 'Resolved', 
+                'updated_at' => now()
+            ]);
+
+        return response()->json(['success' => true, 'message' => 'Ticket resolved successfully!']);
+        
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => 'Failed to resolve ticket'], 500);
+    }
+}
 }

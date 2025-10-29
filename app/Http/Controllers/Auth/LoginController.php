@@ -14,7 +14,7 @@ class LoginController extends Controller
         return view('auth.login');
     }
 
-   public function login(Request $request)
+    public function login(Request $request)
 {
     $request->validate([
         'employeeNum' => 'required|string',
@@ -23,34 +23,54 @@ class LoginController extends Controller
 
     $credentials = $request->only('employeeNum', 'password');
 
-    // Find user (plain-text password as you requested)
+    // 🆕 COMPLETELY CUSTOM LOGIN - No Auth::attempt()
     $user = \App\Models\User::where('employeeNum', $credentials['employeeNum'])
-             ->where('password', $credentials['password'])
              ->where('status', 'Active')
              ->first();
 
-    if (! $user) {
-        // Log for debugging without halting execution
-        Log::info('Login failed', ['employeeNum' => $credentials['employeeNum']]);
-        return back()->with('error', 'Invalid credentials.');
+    if ($user) {
+        // Check if password matches plain text
+        $passwordMatches = false;
+        
+        // Check plain text password
+        if ($user->password === $credentials['password']) {
+            $passwordMatches = true;
+        }
+        // Check if it's a bcrypt hash (starts with $2y$)
+        else if (password_verify($credentials['password'], $user->password)) {
+            $passwordMatches = true;
+        }
+        // Check if it's MD5 (optional)
+        else if (md5($credentials['password']) === $user->password) {
+            $passwordMatches = true;
+        }
+
+        if ($passwordMatches) {
+            // Manually log in the user
+            Auth::login($user);
+            $request->session()->regenerate();
+
+            // 🆕 If password was plain text, hash it for future use
+            if ($user->password === $credentials['password'] || md5($credentials['password']) === $user->password) {
+                $user->update(['password' => bcrypt($credentials['password'])]);
+            }
+
+            return $this->redirectToDashboard($user);
+        }
     }
 
-    // Log success for debugging (non-blocking)
-    Log::info('Login success', ['user_id' => $user->id, 'role' => $user->role]);
-
-    // Perform login
-    Auth::login($user);
-    $request->session()->regenerate();
-
-    // Redirect depending on role (case-insensitive)
-    $role = strtolower($user->role ?? '');
-
-    if ($role === 'admin') return redirect('/admin');
-    if ($role === 'hr') return redirect('/hr');
-
-    return redirect('/employee');
+    return back()->with('error', 'Invalid credentials.');
 }
 
+    // 🆕 Helper method for redirects
+    private function redirectToDashboard($user)
+    {
+        $role = strtolower($user->role ?? '');
+        
+        if ($role === 'admin') return redirect('/admin/dashboard');
+        if ($role === 'hr') return redirect('/hr/dashboard');
+        return redirect('/employee/dashboard');
+    }
 
     public function logout()
     {
