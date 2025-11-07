@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Query;
 use App\Models\HrInbox;
 use App\Models\GuidedQuestion;
+use App\Models\Conversation;
+use App\Models\ChatMessage;
 use Illuminate\Support\Str;
 use App\Services\DialogflowService;
 use Illuminate\Support\Facades\Auth;
@@ -25,6 +27,58 @@ class DialogflowController extends Controller
             // 🆕 FIXED: Handle multiple input formats
             $queryText = $this->extractQueryText($request);
             $employeeNum = Auth::check() ? Auth::user()->employeeNum : 0;
+
+            // Track user and session for conversation history
+            $userId = Auth::id();
+            $sessionId = $request->input('sessionId') ?? session()->getId();
+            $conversation = null;
+
+            // If we have a non-empty incoming message, create/find conversation and store the user message
+            if (!empty($queryText)) {
+                try {
+                    // Prefer matching by session_id so messages attach to the conversation
+                    // created by the frontend when the user clicked "New" (which sets session_id).
+                    $conversation = Conversation::where('session_id', $sessionId)
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+
+                    // If we found a conversation but it isn't linked to the authenticated
+                    // user yet, and we have a user id, attach it.
+                    if ($conversation && empty($conversation->user_id) && $userId) {
+                        $conversation->user_id = $userId;
+                        $conversation->save();
+                    }
+
+                    // If no conversation exists for this session, create one.
+                    if (!$conversation) {
+                        $conversation = Conversation::create([
+                            'user_id' => $userId,
+                            'session_id' => $sessionId,
+                            'first_message' => $queryText,
+                            'title' => null,
+                        ]);
+                    } else {
+                        // If the conversation exists but has no first_message, set it now
+                        if (empty($conversation->first_message) && !empty($queryText)) {
+                            $conversation->first_message = $queryText;
+                            if (empty($conversation->title)) {
+                                $conversation->title = now()->toDateString() . ' - ' . Str::limit($queryText, 80);
+                            }
+                            $conversation->save();
+                        }
+                    }
+
+                    ChatMessage::create([
+                        'ticket_no' => null,
+                        'sender' => 'employee',
+                        'message' => $queryText,
+                        'conversation_id' => $conversation->id
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to persist conversation or incoming message: ' . $e->getMessage());
+                    // Continue without blocking chatbot response
+                }
+            }
 
             if (empty($queryText)) {
                 Log::warning('Empty query text received');
@@ -47,9 +101,31 @@ class DialogflowController extends Controller
                 Log::info('Greeting detected, starting guided flow');
                 // 🆕 Reset retry counter for new conversation
                 $this->resetRetryCount();
+
+                $reply = "👋 Hello! I'm here to help with HR questions. Let me guide you to the right information.";
+
+                // Save bot reply into conversation if available
+                if (!empty($conversation)) {
+                    try {
+                        ChatMessage::create([
+                            'ticket_no' => null,
+                            'sender' => 'bot',
+                            'message' => $reply,
+                            'conversation_id' => $conversation->id
+                        ]);
+
+                        if (empty($conversation->title)) {
+                            $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+                            $conversation->save();
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to save bot greeting message: ' . $e->getMessage());
+                    }
+                }
+
                 return response()->json([
                     'status' => 'guided_flow',
-                    'fulfillmentText' => "👋 Hello! I'm here to help with HR questions. Let me guide you to the right information.",
+                    'fulfillmentText' => $reply,
                     'guided_flow' => true
                 ]);
             }
@@ -58,13 +134,60 @@ class DialogflowController extends Controller
             if ($this->isEscalationRequest($queryText)) {
                 Log::info('Escalation request detected', ['query' => $queryText]);
                 $this->resetRetryCount();
-                return $this->escalateToHR($queryText, $employeeNum, 'User requested human assistance');
+
+                $escalationResponse = $this->escalateToHR($queryText, $employeeNum, 'User requested human assistance');
+
+                // Persist bot escalation reply into conversation
+                if (!empty($conversation)) {
+                    try {
+                        $payload = $escalationResponse->getData(true);
+                        $botText = $payload['fulfillmentText'] ?? ($payload['message'] ?? 'Your request was escalated to HR.');
+                        ChatMessage::create([
+                            'ticket_no' => $payload['ticket_no'] ?? null,
+                            'sender' => 'bot',
+                            'message' => $botText,
+                            'conversation_id' => $conversation->id
+                        ]);
+
+                        if (empty($conversation->title)) {
+                            $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+                            $conversation->save();
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to save escalation bot message: ' . $e->getMessage());
+                    }
+                }
+
+                return $escalationResponse;
             }
 
             // 💬 Handle simple conversational responses
             $conversationalResponse = $this->handleConversationalQueries($queryText);
             if ($conversationalResponse) {
                 $this->resetRetryCount();
+
+                if (!empty($conversation)) {
+                    try {
+                        $payload = $conversationalResponse->getData(true);
+                        $botText = $payload['fulfillmentText'] ?? null;
+                        if ($botText) {
+                            ChatMessage::create([
+                                'ticket_no' => null,
+                                'sender' => 'bot',
+                                'message' => $botText,
+                                'conversation_id' => $conversation->id
+                            ]);
+
+                            if (empty($conversation->title)) {
+                                $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+                                $conversation->save();
+                            }
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to save conversational bot message: ' . $e->getMessage());
+                    }
+                }
+
                 return $conversationalResponse;
             }
 
@@ -121,9 +244,29 @@ class DialogflowController extends Controller
                     return $this->offerHREscalation($queryText, $employeeNum);
                 }
 
+                $retryText = $this->getRetryMessage($retryCount);
+
+                if (!empty($conversation)) {
+                    try {
+                        ChatMessage::create([
+                            'ticket_no' => null,
+                            'sender' => 'bot',
+                            'message' => $retryText,
+                            'conversation_id' => $conversation->id
+                        ]);
+
+                        if (empty($conversation->title)) {
+                            $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+                            $conversation->save();
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to save retry bot message: ' . $e->getMessage());
+                    }
+                }
+
                 return response()->json([
                     'status' => 'retry',
-                    'fulfillmentText' => $this->getRetryMessage($retryCount),
+                    'fulfillmentText' => $retryText,
                     'retryCount' => $retryCount,
                     'needs_clarification' => true
                 ]);
@@ -147,6 +290,25 @@ class DialogflowController extends Controller
                     'handledBy' => 'Bot',
                 ]);
 
+                // Save bot response to conversation history if available
+                if (!empty($conversation) && !empty($fulfillmentText)) {
+                    try {
+                        ChatMessage::create([
+                            'ticket_no' => null,
+                            'sender' => 'bot',
+                            'message' => $fulfillmentText,
+                            'conversation_id' => $conversation->id
+                        ]);
+
+                        if (empty($conversation->title)) {
+                            $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+                            $conversation->save();
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to save dialogflow bot message: ' . $e->getMessage());
+                    }
+                }
+
                 return response()->json([
                     'status' => 'success',
                     'fulfillmentText' => $fulfillmentText,
@@ -158,9 +320,29 @@ class DialogflowController extends Controller
             // 🔄 Low confidence - start guided flow
             Log::info('Low confidence, starting guided flow', ['confidence' => $confidence]);
             $this->resetRetryCount();
+            $reply = "I want to make sure I give you the right information. Let me guide you through our HR topics.";
+
+            if (!empty($conversation)) {
+                try {
+                    ChatMessage::create([
+                        'ticket_no' => null,
+                        'sender' => 'bot',
+                        'message' => $reply,
+                        'conversation_id' => $conversation->id
+                    ]);
+
+                    if (empty($conversation->title)) {
+                        $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+                        $conversation->save();
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to save guided flow bot message: ' . $e->getMessage());
+                }
+            }
+
             return response()->json([
                 'status' => 'guided_flow',
-                'fulfillmentText' => "I want to make sure I give you the right information. Let me guide you through our HR topics.",
+                'fulfillmentText' => $reply,
                 'guided_flow' => true
             ]);
 
@@ -171,9 +353,57 @@ class DialogflowController extends Controller
             ]);
 
             // 🆕 FIXED: Better error response that doesn't break the frontend
+            $fallbackReply = "I'm having trouble processing your request right now. Let me guide you through our HR topics instead.";
+            // Ensure a conversation exists for this session so replies are persisted
+            try {
+                $sessionId = $request->input('sessionId') ?? session()->getId();
+                $userId = Auth::id();
+
+                $conv = null;
+                if (class_exists(Conversation::class)) {
+                    $conv = Conversation::where('session_id', $sessionId)
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+
+                    if ($conv && empty($conv->user_id) && $userId) {
+                        $conv->user_id = $userId;
+                        $conv->save();
+                    }
+
+                    if (!$conv) {
+                        $conv = Conversation::create([
+                            'user_id' => $userId,
+                            'session_id' => $sessionId,
+                            'first_message' => $queryText ?? null,
+                            'title' => null,
+                        ]);
+                    }
+                }
+
+                if ($conv) {
+                    try {
+                        ChatMessage::create([
+                            'ticket_no' => null,
+                            'sender' => 'bot',
+                            'message' => $fallbackReply,
+                            'conversation_id' => $conv->id
+                        ]);
+
+                        if (empty($conv->title)) {
+                            $conv->title = now()->toDateString() . ' - ' . Str::limit($conv->first_message ?? $queryText, 80);
+                            $conv->save();
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to save fallback bot message: ' . $e->getMessage());
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Failed to ensure conversation for fallback message: ' . $e->getMessage());
+            }
+
             return response()->json([
                 'status' => 'success', // Use success to prevent frontend errors
-                'fulfillmentText' => "I'm having trouble processing your request right now. Let me guide you through our HR topics instead.",
+                'fulfillmentText' => $fallbackReply,
                 'fallback' => true
             ]);
         }

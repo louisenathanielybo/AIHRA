@@ -456,6 +456,24 @@
         transition: background 0.3s ease;
     }
 
+    /* New Conversation Button */
+    #newConversationBtn {
+        position: absolute;
+        top: 10px;
+        right: 140px; /* move further left to avoid overlap with restart */
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 12px;
+        z-index: 1000;
+        transition: background 0.3s ease;
+    }
+
+    #newConversationBtn:hover { background: #5a6268; }
+
     #restartChatBtn:hover {
         background: #5a6268;
     }
@@ -541,7 +559,8 @@
         <!-- Chat Tabs -->
         <div class="chat-tabs">
             <button class="tab-button active" onclick="showChatTab('new-chat')">💬 New Chat</button>
-            <button class="tab-button" onclick="showChatTab('chat-history')">📋 Support Tickets</button>
+            <button class="tab-button" onclick="showChatTab('chat-history')">� Chat History</button>
+            <button class="tab-button" onclick="showChatTab('support-tickets')">�📋 Support Tickets</button>
         </div>
 
         <!-- New Chat Tab -->
@@ -564,9 +583,30 @@
                 </div>
             </div>
         </div>
+        <!-- Chat History Tab -->
+        <div id="chat-history" class="chat-tab">
+            <div class="history-container">
+                <div class="ticket-list">
+                    <h4 style="margin: 0 0 10px 0;">💬 Chat Conversations</h4>
+                    <div id="conversationList">
+                        <p class="loading">Loading your conversations</p>
+                    </div>
+                </div>
+
+                <div class="ticket-chat">
+                    <div id="selectedTicketInfo">
+                        <p style="text-align: center; color: #666; margin: 0;">Select a conversation to view messages</p>
+                    </div>
+                    
+                    <div id="ticketChatBox" class="chat-box">
+                        <!-- Conversation messages will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Support Tickets Tab -->
-        <div id="chat-history" class="chat-tab">
+        <div id="support-tickets" class="chat-tab">
             <div class="history-container">
                 <div class="ticket-list">
                     <h4 style="margin: 0 0 15px 0;">🎫 Your Support Tickets</h4>
@@ -574,7 +614,7 @@
                         <p class="loading">Loading your tickets</p>
                     </div>
                 </div>
-                
+
                 <div class="ticket-chat">
                     <div id="selectedTicketInfo">
                         <p style="text-align: center; color: #666; margin: 0;">Select a ticket to view conversation</p>
@@ -643,6 +683,8 @@
 let currentLevel = 0;
 let conversationPath = [];
 let currentSelectedTicket = null;
+let currentSessionId = '{{ session()->getId() }}';
+let currentConversationId = null;
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -689,6 +731,8 @@ function showChatTab(tabName) {
     
     // Load data when switching to history tab
     if (tabName === 'chat-history') {
+        // Load both conversations and tickets
+        loadConversations();
         loadEmployeeTickets();
     }
 }
@@ -728,6 +772,15 @@ function initializeChat() {
         restartBtn.onclick = restartChat;
         chatContainer.style.position = 'relative';
         chatContainer.appendChild(restartBtn);
+
+        // New conversation button next to restart
+        if (!document.getElementById('newConversationBtn')) {
+            const newBtn = document.createElement('button');
+            newBtn.id = 'newConversationBtn';
+            newBtn.innerHTML = '➕ New';
+            newBtn.onclick = async function() { await startNewConversation(); };
+            chatContainer.appendChild(newBtn);
+        }
     }
 
     // Enter key support
@@ -771,9 +824,9 @@ async function sendMessage() {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
-            body: JSON.stringify({ 
+                body: JSON.stringify({ 
                 message: msg, // 🆕 FIXED: Use correct parameter name
-                sessionId: '{{ session()->getId() }}'
+                sessionId: currentSessionId
             })
         });
 
@@ -917,7 +970,7 @@ async function escalateToHR(originalMessage) {
             },
             body: JSON.stringify({ 
                 message: originalMessage,
-                sessionId: '{{ session()->getId() }}'
+                sessionId: currentSessionId
             })
         });
 
@@ -995,42 +1048,33 @@ async function loadTicketMessages(ticketNo) {
             return;
         }
         
-        // 🎯 FIXED: Better message type detection
+        // 🎯 Render ticket messages: include employee and HR messages (skip guided/button-only entries)
         messages.forEach(msg => {
-            const messageDiv = document.createElement('div');
+            if (!msg || msg.is_button) return; // skip guided/button-only records
+
             const isEmployee = msg.sender === 'employee';
-            
+            const isHR = msg.sender === 'hr';
+
+            const messageDiv = document.createElement('div');
             messageDiv.className = `chat-row ${isEmployee ? 'user' : 'bot'}`;
-            
-            // 🆕 IMPROVED: Detect message types accurately
+
             let bubbleClass = 'chat-bubble';
-            let senderLabel = isEmployee ? 'You' : 'AI';
-            
-            if (!isEmployee) {
-                if (msg.sender === 'hr' || msg.message.includes('HR') || msg.message_type === 'hr_reply') {
-                    bubbleClass += ' hr-reply';
-                    senderLabel = 'HR';
-                }
-            } else {
-                if (msg.message.includes('Employee Follow-up') || msg.is_followup) {
-                    bubbleClass += ' employee-followup';
-                    senderLabel = 'You (Follow-up)';
-                }
+            if (isHR) bubbleClass += ' hr-reply';
+            if (isEmployee && (msg.message && (msg.message.includes('Employee Follow-up') || msg.is_followup))) {
+                bubbleClass += ' employee-followup';
             }
-            
-            const displayMessage = isEmployee && msg.message.includes('Employee Follow-up:') ? 
-                msg.message.replace('Employee Follow-up: ', '') : msg.message;
-            
+
+            const displayMessage = msg.message || '';
+
             messageDiv.innerHTML = `
                 <div class="${bubbleClass}">
                     ${displayMessage}
                     <div class="message-time">
-                        ${new Date(msg.created_at).toLocaleString()}
-                        (${senderLabel})
+                        ${new Date(msg.created_at).toLocaleString()}${isEmployee ? ' (You)' : (isHR ? ' (HR)' : '')}
                     </div>
                 </div>
             `;
-            
+
             chatBox.appendChild(messageDiv);
         });
         
@@ -1262,7 +1306,62 @@ async function handleQuestionClick(id, text) {
     const chatBox = document.getElementById('chatBox');
     addMessageToChat(chatBox, 'user', text);
     conversationPath.push({ type: 'user', message: text });
-    await loadGuidedQuestions(id);
+
+    try {
+        // First query the guided endpoint to see if this selection has children
+        const guidedRes = await fetch(`{{ url('guided') }}/${id}`, { headers: { 'Accept': 'application/json' } });
+        if (!guidedRes.ok) throw new Error('Failed to load guided question');
+        const guidedData = await guidedRes.json();
+
+        // If there are children (type like 'level2'/'level1'), render them
+        if (guidedData.type && guidedData.type.startsWith('level') && guidedData.type !== 'final') {
+            // Reuse existing renderer to show next-level options
+            await loadGuidedQuestions(id);
+            return;
+        }
+
+        // If this is a final node (LEVEL 3) or an escalate/final response, send the selected text
+        // to the dialogflow webhook so the backend will persist both the user's selection and the bot reply.
+        const dfRes = await fetch('{{ url("dialogflow-webhook") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ message: text, sessionId: currentSessionId })
+        });
+
+        if (!dfRes.ok) {
+            // Fallback: show the answer from guidedData if provided
+            if (guidedData.type === 'final' && guidedData.data && guidedData.data[0] && guidedData.data[0].answer) {
+                addMessageToChat(chatBox, 'bot', guidedData.data[0].answer);
+                conversationPath.push({ type: 'bot', message: guidedData.data[0].answer });
+            }
+            return;
+        }
+
+        const dfData = await dfRes.json();
+
+        // Display Dialogflow/backend reply (DialogflowController persists messages server-side)
+        if (dfData.fulfillmentText) {
+            addMessageToChat(chatBox, 'bot', dfData.fulfillmentText);
+            conversationPath.push({ type: 'bot', message: dfData.fulfillmentText });
+        } else if (dfData.response) {
+            handleCustomResponse(dfData.response, chatBox);
+        } else if (dfData.message) {
+            addMessageToChat(chatBox, 'bot', dfData.message);
+            conversationPath.push({ type: 'bot', message: dfData.message });
+        } else if (guidedData.type === 'final' && guidedData.data && guidedData.data[0] && guidedData.data[0].answer) {
+            // Last-resort: show guided answer
+            addMessageToChat(chatBox, 'bot', guidedData.data[0].answer);
+            conversationPath.push({ type: 'bot', message: guidedData.data[0].answer });
+        }
+
+    } catch (err) {
+        console.error('Error handling question click:', err);
+        // Fallback: still try to load guided children/UI
+        await loadGuidedQuestions(id);
+    }
 }
 
 // Load Employee Tickets
@@ -1306,6 +1405,137 @@ async function loadEmployeeTickets() {
     }
 }
 
+// Load Chat Conversations
+async function loadConversations() {
+    try {
+        const list = document.getElementById('conversationList');
+        list.innerHTML = '<p class="loading">Loading your conversations</p>';
+
+        const response = await fetch('{{ route("employee.conversations") }}');
+        const convos = await response.json();
+
+        if (!convos || convos.length === 0) {
+            list.innerHTML = '<p style="text-align: center; color: #666;">No conversations found.</p>';
+            return;
+        }
+
+        let html = '';
+        convos.forEach(c => {
+            const title = c.title ? c.title : (c.first_message ? (new Date(c.created_at).toLocaleDateString() + ' - ' + c.first_message.substring(0,60) + '...') : 'Conversation');
+                html += `
+                    <div class="ticket-item-history" id="history-convo-${c.id}">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="flex:1; cursor:pointer;" onclick="viewConversation('${c.id}')">
+                                <strong>💬 ${escapeHtml(title)}</strong>
+                                <div class="ticket-meta-history">
+                                    <span>${new Date(c.created_at).toLocaleDateString()}</span>
+                                    <div style="margin-top: 5px; font-size: 13px; color: #555;">${escapeHtml(c.first_message ? (c.first_message.length > 80 ? c.first_message.substring(0,80) + '...' : c.first_message) : 'No message')}</div>
+                                </div>
+                            </div>
+                            <div style="margin-left:10px;">
+                                <button class="close-ticket-btn" onclick="event.stopPropagation(); deleteConversation('${c.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+        });
+
+        list.innerHTML = html;
+    } catch (err) {
+        console.error('Error loading conversations:', err);
+        document.getElementById('conversationList').innerHTML = '<p style="color: red; text-align: center;">Error loading conversations</p>';
+    }
+}
+
+// View specific conversation messages
+async function viewConversation(convoId) {
+    try {
+        // mark active UI
+        document.querySelectorAll('#conversationList .ticket-item-history').forEach(item => item.classList.remove('active'));
+        const el = document.getElementById(`history-convo-${convoId}`);
+        if (el) el.classList.add('active');
+
+        document.getElementById('selectedTicketInfo').innerHTML = `<strong>💬 Conversation</strong> - <span id="ticketStatus"></span> <button class="close-ticket-btn" onclick="closeTicket()">✕ Close</button>`;
+        document.getElementById('ticketReplySection').style.display = 'none';
+
+        const chatBox = document.getElementById('ticketChatBox');
+        chatBox.innerHTML = '<p class="loading">Loading conversation...</p>';
+
+        const response = await fetch(`{{ url('employee/conversations') }}/${convoId}/messages`);
+        const messages = await response.json();
+
+        if (!messages || messages.length === 0) {
+            chatBox.innerHTML = '<p style="text-align: center; color: #666; margin-top: 50px;">No messages in this conversation</p>';
+            return;
+        }
+
+        chatBox.innerHTML = '';
+        messages.forEach(msg => {
+            if (!msg || msg.is_button) return; // skip guided/button-only entries
+
+            const isEmployee = msg.sender === 'employee';
+            const isHR = msg.sender === 'hr';
+            const isBot = msg.sender === 'bot' || (!isEmployee && !isHR);
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-row ${isEmployee ? 'user' : 'bot'}`;
+
+            let bubbleClass = 'chat-bubble';
+            if (isHR) bubbleClass += ' hr-reply';
+            if (isEmployee && msg.message && msg.message.includes('Employee Follow-up')) bubbleClass += ' employee-followup';
+
+            const senderLabel = isEmployee ? ' (You)' : (isHR ? ' (HR)' : '');
+
+            messageDiv.innerHTML = `
+                <div class="${bubbleClass}">
+                    ${msg.message}
+                    <div class="message-time">${new Date(msg.created_at).toLocaleString()}${senderLabel}</div>
+                </div>
+            `;
+            chatBox.appendChild(messageDiv);
+        });
+
+        scrollChat('ticketChatBox');
+
+    } catch (err) {
+        console.error('Error loading conversation messages:', err);
+        document.getElementById('ticketChatBox').innerHTML = '<p style="color: red; text-align: center;">Error loading conversation messages</p>';
+    }
+}
+
+// Delete a conversation
+async function deleteConversation(convoId) {
+    if (!confirm('Are you sure you want to remove this conversation from history? This cannot be undone.')) return;
+
+    try {
+        const res = await fetch(`{{ url('employee/conversations') }}/${convoId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showNotification('🗑️ Conversation removed');
+            // Refresh list
+            await loadConversations();
+
+            // If the deleted conversation is currently displayed, clear it
+            const chatBox = document.getElementById('ticketChatBox');
+            if (chatBox && document.getElementById(`history-convo-${convoId}`) === null) {
+                chatBox.innerHTML = '<p style="text-align: center; color: #666; margin-top: 50px;">Conversation removed.</p>';
+            }
+        } else {
+            alert('Failed to delete conversation: ' + (data.message || 'Unknown error'));
+        }
+    } catch (err) {
+        console.error('Error deleting conversation:', err);
+        alert('Failed to delete conversation');
+    }
+}
+
 // Load Ticket Conversation
 async function loadTicketConversation(ticketNo) {
     try {
@@ -1335,26 +1565,28 @@ async function loadTicketConversation(ticketNo) {
             return;
         }
         
-        // Display messages
+        // Display messages (tickets include employee and HR replies)
         messages.forEach(msg => {
+            if (!msg || msg.is_button) return; // skip guided/button-only entries
+
+            const isEmployee = msg.sender === 'employee';
+            const isHR = msg.sender === 'hr';
+
             const messageDiv = document.createElement('div');
-            const isUser = msg.sender === 'employee';
-            messageDiv.className = `chat-row ${isUser ? 'user' : 'bot'}`;
-            
+            messageDiv.className = `chat-row ${isEmployee ? 'user' : 'bot'}`;
+
             let bubbleClass = 'chat-bubble';
-            if (!isUser && msg.sender === 'hr') bubbleClass += ' hr-reply';
-            else if (isUser && msg.message.includes('Employee Follow-up')) bubbleClass += ' employee-followup';
-            
-            const displayMessage = isUser && msg.message.includes('Employee Follow-up:') ? 
-                msg.message.replace('Employee Follow-up: ', '') : msg.message;
-            
+            if (isHR) bubbleClass += ' hr-reply';
+            else if (isEmployee && msg.message && msg.message.includes('Employee Follow-up')) bubbleClass += ' employee-followup';
+
+            const displayMessage = isEmployee && msg.message.includes('Employee Follow-up:') ? msg.message.replace('Employee Follow-up: ', '') : msg.message;
+
             messageDiv.innerHTML = `
                 <div class="${bubbleClass}">
                     ${displayMessage}
                     <div class="message-time">
-                        ${new Date(msg.created_at).toLocaleString()}
-                        ${isUser ? ' (You)' : ' (HR)'}
-                        ${msg.message.includes('Employee Follow-up') ? ' (Follow-up)' : ''}
+                        ${new Date(msg.created_at).toLocaleString()}${isEmployee ? ' (You)' : (isHR ? ' (HR)' : '')}
+                        ${msg.message && msg.message.includes('Employee Follow-up') ? ' (Follow-up)' : ''}
                     </div>
                 </div>
             `;
@@ -1499,6 +1731,41 @@ function restartChat() {
         chatBox.innerHTML = '';
         conversationPath = [];
         startGuidedFlow();
+    }
+}
+
+// Start a brand new conversation (server creates a new conversation/session)
+async function startNewConversation() {
+    try {
+        const res = await fetch('{{ route("employee.conversations.start") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({})
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+            currentSessionId = data.session_id;
+            currentConversationId = data.id;
+
+            // Clear the chat and start guided flow
+            const chatBox = document.getElementById('chatBox');
+            if (chatBox) {
+                chatBox.innerHTML = '';
+                conversationPath = [];
+                addMessageToChat(chatBox, 'bot', '🔄 Started a new conversation. How can I help you?', 'info');
+                // Load guided questions immediately for the new conversation
+                await loadGuidedQuestions();
+            }
+        } else {
+            alert('Failed to start a new conversation');
+        }
+    } catch (err) {
+        console.error('Error starting conversation:', err);
+        alert('Failed to start a new conversation');
     }
 }
 

@@ -129,6 +129,60 @@ class GuidedQuestionController extends Controller
             // 🧾 Save to query log for analytics
             $this->saveGuidedQuery($questionText, $fulfillmentText, $confidence, $employeeNum);
 
+            // --- Persist guided user selection and bot reply into chat_messages so they appear in history ---
+            try {
+                // Try to find an existing conversation by session_id or create one for this user/session
+                $conversation = null;
+                if (class_exists('\App\\Models\\Conversation')) {
+                    $conversation = \App\Models\Conversation::where('session_id', $sessionId)
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                    $userId = Auth::id();
+
+                    if ($conversation && empty($conversation->user_id) && $userId) {
+                        $conversation->user_id = $userId;
+                        $conversation->save();
+                    }
+
+                    if (!$conversation) {
+                        $conversation = \App\Models\Conversation::create([
+                            'user_id' => $userId,
+                            'session_id' => $sessionId,
+                            'first_message' => $questionText,
+                            'title' => null,
+                        ]);
+                    } else {
+                        if (empty($conversation->first_message)) {
+                            $conversation->first_message = $questionText;
+                            if (empty($conversation->title)) {
+                                $conversation->title = now()->toDateString() . ' - ' . Str::limit($questionText, 80);
+                            }
+                            $conversation->save();
+                        }
+                    }
+
+                    // Save the user's guided selection as an employee message
+                    if (class_exists('\App\\Models\\ChatMessage')) {
+                        \App\Models\ChatMessage::create([
+                            'ticket_no' => null,
+                            'sender' => 'employee',
+                            'message' => $questionText,
+                            'conversation_id' => $conversation->id,
+                        ]);
+
+                        // Save the bot reply
+                        \App\Models\ChatMessage::create([
+                            'ticket_no' => null,
+                            'sender' => 'bot',
+                            'message' => $fulfillmentText,
+                            'conversation_id' => $conversation->id,
+                        ]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Failed to persist guided conversation messages: ' . $e->getMessage());
+            }
+
             // ✅ Return Dialogflow's answer
             return response()->json([
                 'type' => 'final',
