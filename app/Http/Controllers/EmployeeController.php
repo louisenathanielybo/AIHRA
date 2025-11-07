@@ -6,8 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\HrInbox;
 use App\Models\ChatMessage;
+use App\Models\Conversation;
 use App\Models\HrReply;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class EmployeeController extends Controller
 {
@@ -136,6 +138,49 @@ public function getTickets()
     }
 }
 
+    /**
+     * Get chat conversations for the authenticated employee
+     */
+    public function getConversations()
+    {
+        try {
+            $userId = Auth::id();
+
+            $conversations = Conversation::where('user_id', $userId)
+                ->orderBy('created_at', 'desc')
+                ->get(['id', 'title', 'first_message', 'created_at']);
+
+            return response()->json($conversations);
+        } catch (\Exception $e) {
+            \Log::error('Get conversations error: ' . $e->getMessage());
+            return response()->json([], 500);
+        }
+    }
+
+    /**
+     * Get messages for a specific conversation
+     */
+    public function getConversationMessages($id)
+    {
+        try {
+            $userId = Auth::id();
+
+            $conversation = Conversation::where('id', $id)->where('user_id', $userId)->first();
+            if (!$conversation) {
+                return response()->json([], 403);
+            }
+
+            $messages = ChatMessage::where('conversation_id', $conversation->id)
+                ->orderBy('created_at', 'asc')
+                ->get(['sender', 'message', 'created_at']);
+
+            return response()->json($messages);
+        } catch (\Exception $e) {
+            \Log::error('Get conversation messages error: ' . $e->getMessage());
+            return response()->json([], 500);
+        }
+    }
+
 /**
  * 🆕 Get ticket status
  */
@@ -210,5 +255,61 @@ public function replyToTicket(Request $request)
             'message' => 'Failed to send reply: ' . $e->getMessage()
         ], 500);
     }
-}
+
+    }
+
+    /**
+     * Start a new conversation for the authenticated user (creates a new session_id)
+     */
+    public function startConversation(Request $request)
+    {
+        try {
+            $userId = Auth::id();
+
+            $sessionId = Str::random(40) . '-' . time();
+
+            $conversation = Conversation::create([
+                'user_id' => $userId,
+                'session_id' => $sessionId,
+                'first_message' => null,
+                'title' => null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'id' => $conversation->id,
+                'session_id' => $sessionId
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Start conversation error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to start conversation'], 500);
+        }
+    }
+
+    /**
+     * Delete a conversation and its messages (only for the owning user)
+     */
+    public function deleteConversation($id)
+    {
+        try {
+            $userId = Auth::id();
+
+            $conversation = Conversation::where('id', $id)->where('user_id', $userId)->first();
+            if (!$conversation) {
+                return response()->json(['success' => false, 'message' => 'Not found or access denied'], 403);
+            }
+
+            // Delete related chat messages
+            ChatMessage::where('conversation_id', $conversation->id)->delete();
+
+            // Delete the conversation
+            $conversation->delete();
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Log::error('Delete conversation error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to delete conversation'], 500);
+        }
+    }
 }

@@ -63,6 +63,12 @@ Route::prefix('employee')->group(function () {
     Route::get('/get-latest-ticket', [EmployeeController::class, 'getLatestTicket'])->name('employee.latestTicket');
     Route::get('/messages/{ticket_no}', [EmployeeController::class, 'getMessages'])->name('employee.messages');
     Route::get('/tickets', [EmployeeController::class, 'getTickets'])->name('employee.tickets');
+    // Chat conversation history
+    Route::get('/conversations', [EmployeeController::class, 'getConversations'])->name('employee.conversations');
+    Route::get('/conversations/{id}/messages', [EmployeeController::class, 'getConversationMessages'])->name('employee.conversation.messages');
+    Route::post('/conversations', [EmployeeController::class, 'startConversation'])->name('employee.conversations.start');
+    // Delete conversation
+    Route::delete('/conversations/{id}', [EmployeeController::class, 'deleteConversation'])->name('employee.conversations.delete');
     Route::get('/ticket-status/{ticket_no}', [EmployeeController::class, 'getTicketStatus'])->name('employee.ticket-status');
     // 🆕 NEW: Employee replies to existing ticket
     Route::post('/reply-to-ticket', [EmployeeController::class, 'replyToTicket'])->name('employee.reply-to-ticket');
