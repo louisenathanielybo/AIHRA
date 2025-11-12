@@ -647,6 +647,7 @@
 let currentLevel = 0;
 let conversationPath = [];
 let currentSelectedTicket = null;
+let sendingTicket = false;
 let currentSessionId = '{{ session()->getId() }}';
 let currentConversationId = null;
 
@@ -1214,7 +1215,7 @@ async function loadGuidedQuestions(parentId = null) {
     const guidedContainer = document.getElementById('guidedContainer');
     
     try {
-        const url = parentId ? `{{ url('guided') }}/${parentId}` : `{{ url('guided') }}`;
+    const url = parentId ? `{{ url('guided') }}/${parentId}` : `{{ url('guided') }}`;
         const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
 
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -1222,8 +1223,21 @@ async function loadGuidedQuestions(parentId = null) {
 
         if (data.type === 'error') throw new Error(data.message);
         if (data.type === 'final' || data.type === 'escalate') {
+            // Final answer: render into the main messages area (not the guided box),
+            // then offer the user an explicit "Ask another question" button to start a new guided session.
             const answer = data.data?.[0]?.answer || data.answer || "Thank you for your question!";
-            addMessageToChat(guidedContainer, 'bot', answer);
+            const messagesEl = document.getElementById('messagesContainer');
+            if (messagesEl) addMessageToChat(messagesEl, 'bot', answer);
+
+            guidedContainer.innerHTML = `
+                <div class="chat-row bot">
+                    <div class="chat-bubble">
+                        <div class="suggestion-box">
+                            <div class="suggestion" onclick="startGuidedFlow()">🔁 Ask another question</div>
+                        </div>
+                    </div>
+                </div>`;
+            guidedContainer.style.display = 'block';
             return;
         }
 
@@ -1325,14 +1339,20 @@ async function handleQuestionClick(id, text) {
             addMessageToChat(messagesEl, 'bot', dfData.message);
             conversationPath.push({ type: 'bot', message: dfData.message });
         } else if (guidedData.type === 'final' && guidedData.data && guidedData.data[0] && guidedData.data[0].answer) {
-            // Last-resort: show guided answer
-            // For final guided answers, display in the messages area, but clear/hide previous suggestions
+            // Last-resort: show guided answer in messages and offer explicit restart
             addMessageToChat(messagesEl, 'bot', guidedData.data[0].answer);
             conversationPath.push({ type: 'bot', message: guidedData.data[0].answer });
             const guidedContainer = document.getElementById('guidedContainer');
             if (guidedContainer) {
-                guidedContainer.innerHTML = '';
-                guidedContainer.style.display = 'none';
+                guidedContainer.innerHTML = `
+                    <div class="chat-row bot">
+                        <div class="chat-bubble">
+                            <div class="suggestion-box">
+                                <div class="suggestion" onclick="startGuidedFlow()">🔁 Ask another question</div>
+                            </div>
+                        </div>
+                    </div>`;
+                guidedContainer.style.display = 'block';
             }
         }
 
@@ -1402,14 +1422,17 @@ async function loadConversations() {
         convos.forEach(c => {
             const title = c.title ? c.title : (c.first_message ? (new Date(c.created_at).toLocaleDateString() + ' - ' + c.first_message.substring(0,60) + '...') : 'Conversation');
                 html += `
-                    <div class="ticket-item-history" id="history-convo-${c.id}" data-session="${c.session_id || ''}" onclick="viewConversation('${c.id}')">
+                    <div class="ticket-item-history" id="history-convo-${c.id}" data-session="${c.session_id || ''}">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="flex:1; cursor:pointer;">
+                            <div style="flex:1; cursor:pointer;" onclick="viewConversation('${c.id}')">
                                 <strong>💬 ${escapeHtml(title)}</strong>
                                 <div class="ticket-meta-history">
                                     <span>${new Date(c.created_at).toLocaleDateString()}</span>
                                     <div style="margin-top: 5px; font-size: 13px; color: #555;">${escapeHtml(c.first_message ? (c.first_message.length > 80 ? c.first_message.substring(0,80) + '...' : c.first_message) : 'No message')}</div>
                                 </div>
+                            </div>
+                            <div style="margin-left:10px;">
+                                <button class="convo-delete" onclick="deleteConversation('${c.id}'); event.stopPropagation();" title="Delete conversation" style="background:transparent;border:none;color:#d9534f;cursor:pointer;font-size:16px;">🗑️</button>
                             </div>
                         </div>
                     </div>
@@ -1639,6 +1662,12 @@ async function sendTicketReply(fromSendMessage = false, passedMessage = null) {
         return;
     }
 
+    // Prevent duplicate sends
+    if (sendingTicket) {
+        console.warn('sendTicketReply called while a send is already in progress');
+        return;
+    }
+
     // Determine message source: passedMessage (priority), ticketReplyMessage (legacy), or main input
     let message = '';
     if (fromSendMessage && passedMessage) {
@@ -1661,6 +1690,8 @@ async function sendTicketReply(fromSendMessage = false, passedMessage = null) {
     }
 
     try {
+        sendingTicket = true;
+
         const response = await fetch('{{ route("employee.reply-to-ticket") }}', {
             method: 'POST',
             headers: {
@@ -1682,24 +1713,9 @@ async function sendTicketReply(fromSendMessage = false, passedMessage = null) {
             const main = document.getElementById('userMessage');
             if (main) main.value = '';
 
-            // Add message to unified messages container
-            const messagesEl = document.getElementById('messagesContainer');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'chat-row user';
-            messageDiv.innerHTML = `
-                <div class="chat-bubble employee-followup">
-                    ${escapeHtml(message)}
-                    <div class="message-time">
-                        ${new Date().toLocaleString()} (Follow-up)
-                    </div>
-                </div>
-            `;
-            messagesEl.appendChild(messageDiv);
-
+            // After successful send, refresh ticket UI from server (no optimistic append to avoid duplicates)
             document.getElementById('ticketStatus').innerHTML = 
                 '<span class="ticket-badge replied">Waiting for HR</span>';
-
-            scrollChat('messagesContainer');
             showNotification('✅ Your reply has been sent to HR!');
 
         } else {
@@ -1709,6 +1725,14 @@ async function sendTicketReply(fromSendMessage = false, passedMessage = null) {
     } catch (error) {
         console.error('Error sending reply:', error);
         alert('Failed to send reply. Please try again.');
+    } finally {
+        sendingTicket = false;
+        // Refresh the ticket conversation from the server to ensure the UI matches persisted state
+        try {
+            if (currentSelectedTicket) await loadTicketConversation(currentSelectedTicket);
+        } catch (e) {
+            console.warn('Could not reload ticket after send', e);
+        }
     }
 }
 
@@ -1777,11 +1801,13 @@ function restartChat() {
 // even if some older markup slips into the list.
 function sanitizeConversationButtons() {
     try {
-        // Common selectors used in older versions — remove them if present
-        document.querySelectorAll('.conversation-close, .convo-close, .delete-btn, .close-btn, [data-action="delete-convo"]').forEach(el => el.remove());
+        // Common selectors used in older versions — remove them if present.
+        // NOTE: preserve our conversation delete buttons which use class 'convo-delete'.
+        document.querySelectorAll('.conversation-close, .convo-close, .delete-btn, .close-btn').forEach(el => el.remove());
 
-        // Also hide any inline buttons that have obvious labels
+        // Also hide any inline buttons/links that have obvious labels, but skip our convo-delete controls
         document.querySelectorAll('#conversationList button, #conversationList a').forEach(el => {
+            if (el.classList && el.classList.contains('convo-delete')) return; // keep our delete control
             const txt = (el.textContent || '').toLowerCase();
             if (txt.includes('delete') || txt.includes('close') || txt.includes('remove')) el.remove();
         });
@@ -1829,7 +1855,7 @@ async function startNewConversation() {
                 if (list) {
                     const title = data.title ? escapeHtml(data.title) : (data.first_message ? escapeHtml((data.first_message.length > 80 ? data.first_message.substring(0,80) + '...' : data.first_message)) : 'Conversation');
                     const firstMsg = data.first_message ? escapeHtml(data.first_message) : '';
-                    const newHtml = `\n                        <div class="ticket-item-history" id="history-convo-${data.id}" data-session="${data.session_id || ''}" onclick="viewConversation('${data.id}')">\n                            <div style="display:flex; justify-content:space-between; align-items:center;">\n                                <div style="flex:1; cursor:pointer;">\n                                    <strong>💬 ${title}</strong>\n                                    <div class="ticket-meta-history">\n                                        <span>${new Date().toLocaleDateString()}</span>\n                                        <div style="margin-top: 5px; font-size: 13px; color: #555;">${firstMsg}</div>\n                                    </div>\n                                </div>\n                            </div>\n                        </div>`;
+                    const newHtml = `\n                        <div class="ticket-item-history" id="history-convo-${data.id}" data-session="${data.session_id || ''}">\n                            <div style="display:flex; justify-content:space-between; align-items:center;">\n                                <div style="flex:1; cursor:pointer;" onclick="viewConversation('${data.id}')">\n                                    <strong>💬 ${title}</strong>\n                                    <div class="ticket-meta-history">\n                                        <span>${new Date().toLocaleDateString()}</span>\n                                        <div style="margin-top: 5px; font-size: 13px; color: #555;">${firstMsg}</div>\n                                    </div>\n                                </div>\n                                <div style="margin-left:10px;">\n                                    <button class=\"convo-delete\" onclick=\"deleteConversation('${data.id}'); event.stopPropagation();\" title=\"Delete conversation\" style=\"background:transparent;border:none;color:#d9534f;cursor:pointer;font-size:16px;\">🗑️</button>\n                                </div>\n                            </div>\n                        </div>`;
 
                     // prepend new convo so users see it at the top
                     list.insertAdjacentHTML('afterbegin', newHtml);
