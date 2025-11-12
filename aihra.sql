@@ -14,13 +14,74 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
+
+-- Dumping database structure for aihra
+CREATE DATABASE IF NOT EXISTS `aihra` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+USE `aihra`;
+
+-- Dumping structure for table aihra.announcements
+CREATE TABLE IF NOT EXISTS `announcements` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `employeeNum` varchar(50) DEFAULT NULL,
+  `title` varchar(50) DEFAULT NULL,
+  `description` text,
+  `image` blob,
+  `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
+  `isActive` tinyint(1) DEFAULT '1',
+  PRIMARY KEY (`id`),
+  KEY `employeeNum` (`employeeNum`),
+  CONSTRAINT `announcements_ibfk_1` FOREIGN KEY (`employeeNum`) REFERENCES `users` (`employeeNum`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Dumping data for table aihra.announcements: ~0 rows (approximately)
+
+-- Dumping structure for table aihra.assigned_items
+CREATE TABLE IF NOT EXISTS `assigned_items` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `item_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `assigned_to` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `quantity` int NOT NULL,
+  `date_assigned` date NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dumping data for table aihra.assigned_items: ~0 rows (approximately)
 
+-- Dumping structure for table aihra.category
+CREATE TABLE IF NOT EXISTS `category` (
+  `categoryID` varchar(50) NOT NULL,
+  `categoryName` enum('Employment','Benefits','Promotion','Employee Development') DEFAULT NULL,
+  PRIMARY KEY (`categoryID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Dumping data for table aihra.category: ~0 rows (approximately)
 
+-- Dumping structure for table aihra.chathistory
+CREATE TABLE IF NOT EXISTS `chathistory` (
+  `historyID` varchar(50) NOT NULL,
+  `employeeNum` varchar(50) DEFAULT NULL,
+  `title` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`historyID`),
+  KEY `employeeNum` (`employeeNum`),
+  CONSTRAINT `chathistory_ibfk_1` FOREIGN KEY (`employeeNum`) REFERENCES `users` (`employeeNum`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Dumping data for table aihra.chathistory: ~0 rows (approximately)
+
+-- Dumping structure for table aihra.chat_messages
+CREATE TABLE IF NOT EXISTS `chat_messages` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `ticket_no` varchar(20) DEFAULT NULL,
+  `conversation_id` bigint unsigned DEFAULT NULL,
+  `sender` enum('employee','hr','bot') DEFAULT NULL,
+  `message` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `chat_messages_conversation_id_index` (`conversation_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Dumping data for table aihra.chat_messages: ~4 rows (approximately)
 INSERT IGNORE INTO `chat_messages` (`id`, `ticket_no`, `conversation_id`, `sender`, `message`, `created_at`, `updated_at`) VALUES
@@ -29,17 +90,89 @@ INSERT IGNORE INTO `chat_messages` (`id`, `ticket_no`, `conversation_id`, `sende
 	(44, NULL, 40, 'employee', 'What are the regular working hours?', '2025-11-12 15:11:40', '2025-11-12 15:11:40'),
 	(45, NULL, 40, 'bot', 'I\'m having trouble processing your request right now. Let me guide you through our HR topics instead.', '2025-11-12 15:11:40', '2025-11-12 15:11:40');
 
+-- Dumping structure for table aihra.conversations
+CREATE TABLE IF NOT EXISTS `conversations` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `session_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `first_message` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `conversations_user_id_index` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Dumping data for table aihra.conversations: ~1 rows (approximately)
 INSERT IGNORE INTO `conversations` (`id`, `user_id`, `session_id`, `title`, `first_message`, `created_at`, `updated_at`) VALUES
 	(40, 'EMP001', 'vVK8Zl4f1lgilyvJ3cLT7icWGTEjAzSm9NwfAuND-1762989094', '2025-11-12 - What are the regular working hours?', 'What are the regular working hours?', '2025-11-12 15:11:34', '2025-11-12 15:11:40');
 
+-- Dumping structure for table aihra.failed_jobs
+CREATE TABLE IF NOT EXISTS `failed_jobs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `connection` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `queue` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `exception` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Dumping data for table aihra.failed_jobs: ~0 rows (approximately)
+
+-- Dumping structure for table aihra.feedback
+CREATE TABLE IF NOT EXISTS `feedback` (
+  `feedbackID` varchar(50) NOT NULL,
+  `employeeNum` varchar(50) DEFAULT NULL,
+  `queryID` varchar(50) DEFAULT NULL,
+  `rating` int DEFAULT NULL,
+  `suggestion` text,
+  `timeStamp` datetime DEFAULT NULL,
+  PRIMARY KEY (`feedbackID`),
+  KEY `employeeNum` (`employeeNum`),
+  KEY `queryID` (`queryID`),
+  CONSTRAINT `feedback_ibfk_1` FOREIGN KEY (`employeeNum`) REFERENCES `users` (`employeeNum`),
+  CONSTRAINT `feedback_ibfk_2` FOREIGN KEY (`queryID`) REFERENCES `queries` (`queryID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Dumping data for table aihra.feedback: ~1 rows (approximately)
 INSERT IGNORE INTO `feedback` (`feedbackID`, `employeeNum`, `queryID`, `rating`, `suggestion`, `timeStamp`) VALUES
 	('b0c2e171-46a0-484e-b015-7cf389eb301c', 'EMP001', NULL, 3, 'testing', '2025-11-05 13:32:39');
 
+-- Dumping structure for table aihra.flaggedresponse
+CREATE TABLE IF NOT EXISTS `flaggedresponse` (
+  `flaggedID` varchar(50) NOT NULL,
+  `queryID` varchar(50) DEFAULT NULL,
+  `employeeNum` varchar(50) DEFAULT NULL,
+  `reasonID` varchar(50) DEFAULT NULL,
+  `timeStamp` datetime DEFAULT NULL,
+  `status` enum('Pending','Reviewed','Resolved') DEFAULT NULL,
+  PRIMARY KEY (`flaggedID`),
+  KEY `queryID` (`queryID`),
+  KEY `employeeNum` (`employeeNum`),
+  CONSTRAINT `flaggedresponse_ibfk_1` FOREIGN KEY (`queryID`) REFERENCES `queries` (`queryID`),
+  CONSTRAINT `flaggedresponse_ibfk_2` FOREIGN KEY (`employeeNum`) REFERENCES `users` (`employeeNum`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Dumping data for table aihra.flaggedresponse: ~0 rows (approximately)
+
+-- Dumping structure for table aihra.guidedquery
+CREATE TABLE IF NOT EXISTS `guidedquery` (
+  `gq_id` int NOT NULL AUTO_INCREMENT,
+  `knowledgeID` varchar(50) DEFAULT NULL,
+  `categoryID` varchar(50) DEFAULT NULL,
+  `parent_id` int DEFAULT NULL,
+  `question_text` varchar(255) DEFAULT NULL,
+  `answer_text` text,
+  `LEVEL` int DEFAULT '1',
+  PRIMARY KEY (`gq_id`),
+  KEY `knowledgeID` (`knowledgeID`),
+  KEY `categoryID` (`categoryID`),
+  CONSTRAINT `guidedquery_ibfk_1` FOREIGN KEY (`knowledgeID`) REFERENCES `knowledgebase` (`knowledgeID`),
+  CONSTRAINT `guidedquery_ibfk_2` FOREIGN KEY (`categoryID`) REFERENCES `category` (`categoryID`)
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Dumping data for table aihra.guidedquery: ~40 rows (approximately)
 INSERT IGNORE INTO `guidedquery` (`gq_id`, `knowledgeID`, `categoryID`, `parent_id`, `question_text`, `answer_text`, `LEVEL`) VALUES
@@ -84,6 +217,24 @@ INSERT IGNORE INTO `guidedquery` (`gq_id`, `knowledgeID`, `categoryID`, `parent_
 	(40, NULL, NULL, 14, 'What is the discount percentage?', NULL, 3),
 	(41, NULL, NULL, 14, 'How to apply for tuition discount?', NULL, 3);
 
+-- Dumping structure for table aihra.hr_inbox
+CREATE TABLE IF NOT EXISTS `hr_inbox` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `ticket_no` varchar(50) NOT NULL,
+  `from_user` varchar(100) NOT NULL,
+  `message` text NOT NULL,
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `priority` enum('low','medium','high') DEFAULT 'medium',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `category` varchar(50) DEFAULT NULL,
+  `intent` varchar(50) DEFAULT NULL,
+  `confidence` float DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ticket_no` (`ticket_no`)
+) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Dumping data for table aihra.hr_inbox: ~16 rows (approximately)
 INSERT IGNORE INTO `hr_inbox` (`id`, `ticket_no`, `from_user`, `message`, `status`, `is_active`, `priority`, `created_at`, `updated_at`, `category`, `intent`, `confidence`) VALUES
 	(45, 'TKT-SMC2QODA-1761598747', 'EMP001', '"I want to talk to a real person', 'Resolved', 1, 'medium', '2025-10-27 12:59:07', '2025-10-27 15:10:20', 'General', 'Escalated from Chatbot', 0),
@@ -102,6 +253,18 @@ INSERT IGNORE INTO `hr_inbox` (`id`, `ticket_no`, `from_user`, `message`, `statu
 	(58, 'TKT-8ZQPTPG7-1761612408', 'EMP001', '<?php  namespace App\\Http\\Controllers;  use Illuminate\\Http\\Request; use App\\Models\\Query; use App\\Models\\HrInbox; use App\\Models\\GuidedQuestion; use Illuminate\\Support\\Str; use App\\Services\\DialogflowService; use Illuminate\\Support\\Facades\\Auth; use Illuminate\\Support\\Facades\\Log; use Illuminate\\Support\\Facades\\Session; use Illuminate\\Support\\Facades\\DB;  class DialogflowController extends Controller {     private $maxRetries = 3;      public function webhook(Request $request)     {         try {             Log::info(\'🔍 Dialogflow Webhook Called\', [\'input\' => $request->all()]);              // 🆕 FIXED: Handle multiple input formats             $queryText = $this->extractQueryText($request);             $employeeNum = Auth::check() ? Auth::user()->employeeNum : 0;              if (empty($queryText)) {                 Log::warning(\'Empty query text received\');                 return response()->json([                     \'status\' => \'success\',                     \'fulfillmentText\' => "I didn\'t receive your message. Could you please try again?"                 ]);             }              Log::info(\'Processing query:\', [\'query\' => $queryText, \'employee\' => $employeeNum]);              // 🆕 NEW: Check if this is a retry after multiple failed attempts             $retryResponse = $this->handleRetryScenario($queryText, $employeeNum);             if ($retryResponse) {                 return $retryResponse;             }              // 💬 Handle greetings - start guided flow immediately             if ($this->isGreeting($queryText)) {                 Log::info(\'Greeting detected, starting guided flow\');                 // 🆕 Reset retry counter for new conversation                 $this->resetRetryCount();                 return response()->json([                     \'status\' => \'guided_flow\',                     \'fulfillmentText\' => "👋 Hello! I\'m here to help with HR questions. Let me guide you to the right information.",                     \'guided_flow\' => true                 ]);             }              // 🔥 IMPROVED: Handle explicit escalation requests             if ($this->isEscalationRequest($queryText)) {                 Log::info(\'Escalation request detected\', [\'query\' => $queryText]);                 $this->resetRetryCount();                 return $this->escalateToHR($queryText, $employeeNum, \'User requested human assistance\');             }              // 💬 Handle simple conversational responses             $conversationalResponse = $this->handleConversationalQueries($queryText);             if ($conversationalResponse) {                 $this->resetRetryCount();                 return $conversationalResponse;             }              // 🎯 Try Dialogflow for direct questions             $sessionId = session()->getId() ?? Str::random(10);             $dialogflow = new DialogflowService();                          Log::info(\'Calling Dialogflow service\', [\'sessionId\' => $sessionId]);             $result = $dialogflow->detectIntent($queryText, $sessionId);             $dialogflow->close();              $confidence = $result->getIntentDetectionConfidence() ?? 0.0;             $fulfillmentText = $result->getFulfillmentText() ?? "I want to make sure I give you accurate information. Let me guide you through our topics.";             $intentName = $result->getIntent() ? $result->getIntent()->getDisplayName() : \'Default Fallback Intent\';              Log::info(\'Dialogflow Response\', [                 \'confidence\' => $confidence,                 \'intent\' => $intentName,                 \'fulfillmentText\' => $fulfillmentText             ]);              // 🆕 NEW: Check if this is HR-related but bot can\'t answer properly             $isHRRelated = $this->isHRRelatedQuestion($queryText);             $cantAnswer = $this->cantAnswerQuestion($confidence, $intentName, $fulfillmentText);              if ($isHRRelated && $cantAnswer) {                 Log::info(\'HR-related question detected but bot cannot answer\', [                     \'confidence\' => $confidence,                     \'intent\' => $intentName                 ]);                 return $this->suggestHREscalation($queryText, $employeeNum, "HR-related question with low confidence");             }              // 🔥 IMPROVED: Auto-escalate based on multiple factors             if ($this->shouldEscalate($queryText, $confidence, $intentName)) {                 Log::info(\'Auto-escalating query\', [                     \'reason\' => \'Low confidence or urgent content\',                     \'confidence\' => $confidence,                     \'intent\' => $intentName                 ]);                 $this->resetRetryCount();                 return $this->escalateToHR($queryText, $employeeNum, "Auto-escalated: Confidence {$confidence}, Intent: {$intentName}");             }              // 🆕 NEW: Handle retry logic for unclear questions             if ($this->shouldRetry($confidence, $intentName)) {                 $retryCount = $this->incrementRetryCount();                 Log::info(\'Low confidence response, prompting retry\', [                     \'retryCount\' => $retryCount,                     \'confidence\' => $confidence                 ]);                  if ($retryCount >= $this->maxRetries) {                     return $this->offerHREscalation($queryText, $employeeNum);                 }                  return response()->json([                     \'status\' => \'retry\',                     \'fulfillmentText\' => $this->getRetryMessage($retryCount),                     \'retryCount\' => $retryCount,                     \'needs_clarification\' => true                 ]);             }              // 🤖 If reasonable confidence, return direct answer             if ($confidence > 0.6 || $intentName !== \'Default Fallback Intent\') {                 Log::info(\'Returning direct answer\', [\'confidence\' => $confidence, \'intent\' => $intentName]);                 $this->resetRetryCount();                  Query::create([                     \'queryID\' => Str::uuid(),                     \'employeeNum\' => $employeeNum,                     \'question\' => $queryText,                     \'response\' => $fulfillmentText,                     \'confidenceScore\' => $confidence,                     \'queryType\' => \'Dialogflow\',                     \'questionTime\' => now(),                     \'responseTime\' => now(),                     \'isEscalated\' => false,                     \'handledBy\' => \'Bot\',                 ]);                  return response()->json([                     \'status\' => \'success\',                     \'fulfillmentText\' => $fulfillmentText,                     \'confidence\' => $confidence,                     \'intent\' => $intentName                 ]);             }              // 🔄 Low confidence - start guided flow             Log::info(\'Low confidence, starting guided flow\', [\'confidence\' => $confidence]);             $this->resetRetryCount();             return response()->json([                 \'status\' => \'guided_flow\',                 \'fulfillmentText\' => "I want to make sure I give you the right information. Let me guide you through our HR topics.",                 \'guided_flow\' => true             ]);          } catch (\\Throwable $e) {             Log::error(\'❌ Dialogflow error: \' . $e->getMessage(), [                 \'trace\' => $e->getTraceAsString(),                 \'request\' => $request->all()             ]);              // 🆕 FIXED: Better error response that doesn\'t break the frontend             return response()->json([                 \'status\' => \'success\', // Use success to prevent frontend errors                 \'fulfillmentText\' => "I\'m having trouble processing your request right now. Let me guide you through our HR topics instead.",                 \'fallback\' => true             ]);         }     }      /**      * 🆕 NEW: Check if question is HR-related      */     private function isHRRelatedQuestion(string $queryText): bool     {         $hrKeywords = [             // Employment             \'hire\', \'hiring\', \'recruitment\', \'recruit\', \'job\', \'position\', \'role\',             \'interview\', \'application\', \'resume\', \'cv\', \'candidate\',             \'onboarding\', \'orientation\', \'probation\', \'contract\',                          // Compensation & Benefits             \'salary\', \'pay\', \'wage\', \'compensation\', \'benefit\', \'insurance\',             \'health insurance\', \'dental\', \'vision\', \'retirement\', \'pension\',             \'401k\', \'bonus\', \'commission\', \'raise\', \'increase\', \'promotion\',                          // Time Off             \'vacation\', \'holiday\', \'leave\', \'sick\', \'time off\', \'pto\',             \'personal day\', \'maternity\', \'paternity\', \'fmla\',                          // Policies             \'policy\', \'procedure\', \'handbook\', \'rule\', \'regulation\',             \'code of conduct\', \'dress code\', \'attendance\', \'punctuality\',                          // Performance             \'performance\', \'review\', \'appraisal\', \'evaluation\', \'kpi\',             \'goal\', \'objective\', \'feedback\', \'development\', \'training\',                          // Employee Relations             \'grievance\', \'complaint\', \'concern\', \'issue\', \'problem\',             \'dispute\', \'conflict\', \'mediation\', \'disciplinary\', \'warning\',                          // Workplace             \'workplace\', \'environment\', \'safety\', \'harassment\', \'discrimination\',             \'diversity\', \'inclusion\', \'accommodation\', \'remote\', \'hybrid\',                          // Separation             \'termination\', \'fired\', \'dismissal\', \'resignation\', \'quit\',             \'exit\', \'severance\', \'layoff\', \'redundancy\'         ];          foreach ($hrKeywords as $keyword) {             if (stripos($queryText, $keyword) !== false) {                 return true;             }         }          return false;     }      /**      * 🆕 NEW: Check if bot cannot answer the question properly      */     private function cantAnswerQuestion(float $confidence, string $intentName, string $fulfillmentText): bool     {         // Low confidence         if ($confidence < 0.4) {             return true;         }          // Default fallback intent         if ($intentName === \'Default Fallback Intent\') {             return true;         }          // Generic or unclear responses         $unclearResponses = [             \'i didn\\\'t understand\',             \'can you rephrase\',             \'could you clarify\',             \'i\\\'m not sure\',             \'can you try asking\',             \'please rephrase\',             \'not clear\'         ];          foreach ($unclearResponses as $unclear) {             if (stripos($fulfillmentText, $unclear) !== false) {                 return true;             }         }          return false;     }      /**      * 🆕 NEW: Suggest HR escalation for HR-related questions bot can\'t answer      */     private function suggestHREscalation(string $queryText, $employeeNum, string $reason): \\Illuminate\\Http\\JsonResponse     {         Log::info(\'Suggesting HR escalation\', [\'reason\' => $reason]);          return response()->json([             \'status\' => \'suggest_escalation\',             \'fulfillmentText\' => "I understand this is an HR-related question, but I want to make sure you get the most accurate information. Would you like me to escalate this to our HR team for proper assistance?",             \'suggest_hr\' => true,             \'pending_escalation\' => [                 \'query\' => $queryText,                 \'employeeNum\' => $employeeNum,                 \'reason\' => $reason             ],             \'options\' => [                 [\'text\' => \'✅ Yes, please escalate to HR\', \'action\' => \'escalate\'],                 [\'text\' => \'🔄 No, let me rephrase my question\', \'action\' => \'rephrase\']             ]         ]);     }      /**      * 🆕 NEW: Handle retry scenario (when user responds to retry prompt)      */     private function handleRetryScenario(string $queryText, $employeeNum): ?\\Illuminate\\Http\\JsonResponse     {         $retryCount = Session::get(\'retry_count\', 0);                  if ($retryCount > 0) {             // Check if user wants to escalate             if ($this->wantsEscalation($queryText)) {                 $this->resetRetryCount();                 return $this->escalateToHR($queryText, $employeeNum, "User chose escalation after {$retryCount} retries");             }              // Check if user wants to rephrase             if ($this->wantsToRephrase($queryText)) {                 $this->resetRetryCount();                 return response()->json([                     \'status\' => \'retry_reset\',                     \'fulfillmentText\' => "Okay, please ask your question in a different way and I\'ll do my best to help!"                 ]);             }         }          return null;     }      /**      * 🆕 NEW: Check if user wants escalation      */     private function wantsEscalation(string $queryText): bool     {         $escalationPatterns = [             \'/\\b(yes|yeah|sure|okay|please|escalate|hr)\\b/i\',             \'/\\bgo ahead\\b/i\',             \'/\\bcontact hr\\b/i\',             \'/\\bsend to hr\\b/i\',             \'/\\bhuman help\\b/i\'         ];          foreach ($escalationPatterns as $pattern) {             if (preg_match($pattern, $queryText)) {                 return true;             }         }          return false;     }      /**      * 🆕 NEW: Check if user wants to rephrase      */     private function wantsToRephrase(string $queryText): bool     {         $rephrasePatterns = [             \'/\\b(no|nope|nevermind)\\b/i\',             \'/\\brephrase\\b/i\',             \'/\\bdifferent\\b/i\',             \'/\\btry again\\b/i\',             \'/\\bnew question\\b/i\',             \'/\\bstart over\\b/i\'         ];          foreach ($rephrasePatterns as $pattern) {             if (preg_match($pattern, $queryText)) {                 return true;             }         }          return false;     }      /**      * 🆕 NEW: Check if we should retry (low confidence responses)      */     private function shouldRetry(float $confidence, string $intentName): bool     {         if ($confidence < 0.5) {             return true;         }          if ($intentName === \'Default Fallback Intent\') {             return true;         }          return false;     }      /**      * 🆕 NEW: Get appropriate retry message based on retry count      */     private function getRetryMessage(int $retryCount): string     {         $messages = [             1 => "I\'m not sure I understand. Could you please rephrase your question?",             2 => "I\'m still having trouble understanding. Could you try asking in a different way?",             3 => "I want to make sure I help you properly. Could you provide more details or context?"         ];          return $messages[$retryCount] ?? $messages[1];     }      /**      * 🆕 NEW: Offer HR escalation after max retries      */     private function offerHREscalation(string $queryText, $employeeNum): \\Illuminate\\Http\\JsonResponse     {         Log::info(\'Offering HR escalation after max retries\');          return response()->json([             \'status\' => \'offer_escalation\',             \'fulfillmentText\' => "I\'m having difficulty understanding your question after several attempts. Would you like me to escalate this to our HR team who can provide better assistance?",             \'max_retries_reached\' => true,             \'pending_escalation\' => [                 \'query\' => $queryText,                 \'employeeNum\' => $employeeNum,                 \'reason\' => \'Max retries reached\'             ],             \'options\' => [                 [\'text\' => \'✅ Yes, please connect me with HR\', \'action\' => \'escalate\'],                 [\'text\' => \'🔄 Let me try asking differently\', \'action\' => \'rephrase\'],                 [\'text\' => \'❌ Cancel and start over\', \'action\' => \'cancel\']             ]         ]);     }      /**      * 🆕 NEW: Increment retry count      */     private function incrementRetryCount(): int     {         $count = Session::get(\'retry_count\', 0) + 1;         Session::put(\'retry_count\', $count);         Session::put(\'last_retry_time\', now());         return $count;     }      /**      * 🆕 NEW: Reset retry count      */     private function resetRetryCount(): void     {         Session::forget(\'retry_count\');         Session::forget(\'last_retry_time\');     }      /**      * 🆕 FIXED: Extract query text from multiple possible input formats      */     private function extractQueryText(Request $request): string     {         // Format 1: Direct message parameter (from our frontend)         if ($request->has(\'message\')) {             return trim($request->input(\'message\'));         }          // Format 2: Dialogflow webhook format         if ($request->has(\'queryResult.queryText\')) {             return trim($request->input(\'queryResult.queryText\'));         }          // Format 3: Alternative Dialogflow format         if ($request->has(\'queryResult.parameters.message\')) {             return trim($request->input(\'queryResult.parameters.message\'));         }          // Format 4: Raw text in request         $text = $request->input(\'text\') ?? $request->input(\'query\') ?? \'\';         return trim($text);     }      /**      * 🆕 IMPROVED: Better greeting detection      */     private function isGreeting(string $queryText): bool     {         $greetingPatterns = [             \'/^(hi|hello|hey|greetings|good morning|good afternoon|good evening)[\\s\\.,!]*$/i\',             \'/^start$/i\',             \'/^help$/i\',             \'/^\\?$/\',             \'/^hello there$/i\',             \'/^hi there$/i\'         ];          foreach ($greetingPatterns as $pattern) {             if (preg_match($pattern, $queryText)) {                 return true;             }         }          return false;     }      /**      * 🔥 IMPROVED: Better detection for escalation requests      */     private function isEscalationRequest(string $queryText): bool     {         $escalationPatterns = [             \'/\\b(escalate|human|real person|live agent|representative|manager)\\b/i\',             \'/\\btalk to (hr|human|person|someone|agent|manager)\\b/i\',             \'/\\bspeak with (hr|human|person|someone|agent|manager)\\b/i\',             \'/\\bconnect with (hr|human|person|someone|agent)\\b/i\',             \'/\\bI want to talk to\\b/i\',             \'/\\bI need to speak with\\b/i\',             \'/\\bcan I speak with\\b/i\',             \'/\\bcontact hr\\b/i\',             \'/\\bget me hr\\b/i\',             \'/\\bnot a bot\\b/i\',             \'/\\bnot chatbot\\b/i\',             \'/\\breal human\\b/i\',             \'/\\blive person\\b/i\',             \'/\\bhuman help\\b/i\'         ];          foreach ($escalationPatterns as $pattern) {             if (preg_match($pattern, $queryText)) {                 return true;             }         }          return false;     }      /**      * 🆕 NEW: Handle simple conversational queries without Dialogflow      */     private function handleConversationalQueries(string $queryText): ?\\Illuminate\\Http\\JsonResponse     {         $conversationalMap = [             \'thanks\' => ["You\'re very welcome! 😊 Is there anything else I can help you with?", "Happy to help! Let me know if you need anything else."],             \'thank you\' => ["You\'re very welcome! 😊 Is there anything else I can help you with?", "My pleasure! Feel free to ask if you have more questions."],             \'bye\' => ["👋 Goodbye! Feel free to ask if you have more HR questions.", "Have a great day! 👋"],             \'goodbye\' => ["👋 Goodbye! Feel free to ask if you have more HR questions.", "Take care! 👋"],             \'how are you\' => ["I\'m doing great, thanks for asking! Ready to help with your HR questions. 😊", "I\'m functioning well! How can I assist you with HR matters today?"],             \'who are you\' => ["I\'m Aihra, your AI HR Assistant! I\'m here to help with HR questions and guide you to the right information. 🤖", "I\'m Aihra, an AI assistant specialized in HR topics. How can I help you today?"],         ];          foreach ($conversationalMap as $pattern => $responses) {             if (stripos($queryText, $pattern) !== false) {                 $response = $responses[array_rand($responses)];                 return response()->json([                     \'status\' => \'success\',                     \'fulfillmentText\' => $response                 ]);             }         }          return null;     }      /**      * 🔥 IMPROVED: Better escalation logic      */     private function shouldEscalate(string $queryText, float $confidence, string $intentName): bool     {         // Always escalate if it\'s the default fallback intent with low confidence         if ($intentName === \'Default Fallback Intent\' && $confidence < 0.4) {             return true;         }          // Escalate if confidence is very low         if ($confidence < 0.3) {             return true;         }          // Escalate for urgent/emotional keywords         $urgentKeywords = [             \'urgent\', \'emergency\', \'complaint\', \'issue\', \'problem\', \'error\',             \'not working\', \'help me\', \'now\', \'asap\', \'immediately\', \'right now\',             \'serious\', \'critical\', \'angry\', \'frustrated\', \'disappointed\', \'upset\',             \'unhappy\', \'wrong\', \'broken\', \'fix\', \'resolve\', \'complaint\',             \'harassment\', \'discrimination\', \'bullying\', \'unsafe\', \'danger\'         ];          foreach ($urgentKeywords as $keyword) {             if (stripos($queryText, $keyword) !== false) {                 return true;             }         }          // Escalate complex personal issues         $personalIssues = [             \'salary\', \'pay\', \'raise\', \'promotion\', \'disciplinary\', \'warning\',             \'termination\', \'fired\', \'resign\', \'quit\', \'legal\', \'lawyer\',             \'contract\', \'agreement\', \'confidential\', \'private\', \'personal\'         ];          $personalCount = 0;         foreach ($personalIssues as $issue) {             if (stripos($queryText, $issue) !== false) {                 $personalCount++;             }         }          // If multiple personal issues mentioned, escalate         if ($personalCount >= 2) {             return true;         }          return false;     }      /**      * 🔥 FIXED: Escalate query to HR inbox - ALWAYS creates real ticket      */     private function escalateToHR(string $queryText, $employeeNum, string $reason = \'User requested\'): \\Illuminate\\Http\\JsonResponse     {         $ticketNo = null;                  try {             Log::info("🎯 Starting escalation process...", [                 \'reason\' => $reason,                 \'employee\' => $employeeNum,                 \'query\' => substr($queryText, 0, 100)             ]);              // Generate unique ticket number FIRST             $ticketNo = \'TKT-\' . strtoupper(Str::random(8)) . \'-\' . time();             Log::info("🎯 Generated ticket: " . $ticketNo);              // Determine priority based on content             $priority = $this->determinePriority($queryText);             $category = $this->determineCategory($queryText);              // 🆕 CRITICAL FIX: Create HR inbox ticket with multiple fallback attempts             $inbox = null;             $maxAttempts = 3;                          for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {                 try {                     $inbox = HrInbox::create([                         \'ticket_no\' => $ticketNo,                         \'from_user\' => $employeeNum ?: \'GUEST\',                         \'message\' => $queryText,                         \'status\' => \'Open\',                         \'priority\' => $priority,                         \'category\' => $category,                         \'intent\' => \'Escalated from Chatbot: \' . $reason,                         \'confidence\' => 0.0,                         \'created_at\' => now(),                         \'updated_at\' => now(),                     ]);                     Log::info("✅ HR Inbox created successfully on attempt {$attempt}", [\'ticket_no\' => $ticketNo]);                     break; // Success, break out of retry loop                                      } catch (\\Exception $createError) {                     Log::warning("❌ HR Inbox creation failed on attempt {$attempt}: " . $createError->getMessage());                                          if ($attempt === $maxAttempts) {                         // Last attempt failed, try alternative creation method                         $inbox = $this->createTicketAlternativeMethod($ticketNo, $employeeNum, $queryText, $priority, $category, $reason);                         if ($inbox) {                             Log::info("✅ HR Inbox created via alternative method", [\'ticket_no\' => $ticketNo]);                             break;                         }                         throw new \\Exception("Failed to create HR ticket after {$maxAttempts} attempts: " . $createError->getMessage());                     }                                          // Wait briefly before retry                     usleep(500000); // 0.5 seconds                 }             }              // Create query record with proper error handling             try {                 Query::create([                     \'queryID\' => Str::uuid(),                     \'employeeNum\' => $employeeNum,                     \'question\' => $queryText,                     \'response\' => \'Escalated to HR - \' . $ticketNo,                     \'confidenceScore\' => 0.0,                     \'queryType\' => \'Escalated\',                     \'questionTime\' => now(),                     \'responseTime\' => now(),                     \'isEscalated\' => true,                     \'handledBy\' => \'HR\',                 ]);                 Log::info("✅ Query record created successfully");             } catch (\\Exception $queryError) {                 Log::warning(\'Query record creation failed, but HR ticket was created\', [                     \'error\' => $queryError->getMessage(),                     \'ticket_no\' => $ticketNo                 ]);                 // Continue even if query record fails - the main ticket is what matters             }              Log::info("✅ Escalation completed successfully", [\'ticket_no\' => $ticketNo]);              return response()->json([                 \'status\' => \'escalated\',                 \'fulfillmentText\' => "✅ I\'ve escalated your query to our HR team. They\'ll get back to you soon. Your ticket number is: **{$ticketNo}**",                 \'ticket_no\' => $ticketNo,                 \'escalated\' => true,                 \'priority\' => $priority             ]);          } catch (\\Exception $e) {             Log::error(\'❌ Escalation failed: \' . $e->getMessage(), [                 \'trace\' => $e->getTraceAsString(),                 \'query\' => $queryText             ]);              // 🆕 CRITICAL FIX: ALWAYS create a ticket, even if basic methods fail             $finalTicketNo = $this->ensureTicketCreation($ticketNo, $employeeNum, $queryText, $reason);                          return response()->json([                 \'status\' => \'escalated\',                 \'fulfillmentText\' => "✅ I\'ve created a support ticket for you. Our HR team will contact you soon. Your ticket number is: **{$finalTicketNo}**",                 \'ticket_no\' => $finalTicketNo,                 \'escalated\' => true,                 \'fallback_created\' => true             ]);         }     }      /**      * 🆕 NEW: Determine ticket priority based on content      */     private function determinePriority(string $queryText): string     {         $highPriorityKeywords = [             \'emergency\', \'urgent\', \'critical\', \'asap\', \'immediately\', \'now\',             \'harassment\', \'discrimination\', \'bullying\', \'unsafe\', \'danger\',             \'fired\', \'termination\', \'legal\', \'lawyer\', \'police\'         ];          $mediumPriorityKeywords = [             \'complaint\', \'issue\', \'problem\', \'error\', \'not working\', \'broken\',             \'salary\', \'pay\', \'raise\', \'promotion\', \'disciplinary\', \'warning\'         ];          foreach ($highPriorityKeywords as $keyword) {             if (stripos($queryText, $keyword) !== false) {                 return \'High\';             }         }          foreach ($mediumPriorityKeywords as $keyword) {             if (stripos($queryText, $keyword) !== false) {                 return \'Medium\';             }         }          return \'Low\';     }      /**      * 🆕 NEW: Determine ticket category based on content      */     private function determineCategory(string $queryText): string     {         $categories = [             \'Benefits\' => [\'benefit\', \'insurance\', \'health\', \'dental\', \'vacation\', \'time off\', \'leave\'],             \'Payroll\' => [\'salary\', \'pay\', \'paycheck\', \'wage\', \'bonus\', \'tax\'],             \'Employment\' => [\'hire\', \'hiring\', \'promotion\', \'raise\', \'position\', \'job\'],             \'Complaint\' => [\'complaint\', \'issue\', \'problem\', \'harassment\', \'discrimination\'],             \'Technical\' => [\'system\', \'login\', \'password\', \'access\', \'technical\', \'error\'],             \'Policy\' => [\'policy\', \'rule\', \'regulation\', \'procedure\', \'guideline\'],             \'General\' => [] // Default         ];          foreach ($categories as $category => $keywords) {             foreach ($keywords as $keyword) {                 if (stripos($queryText, $keyword) !== false) {                     return $category;                 }             }         }          return \'General\';     }      /**      * 🆕 NEW: Alternative ticket creation method using DB facade      */     private function createTicketAlternativeMethod(string $ticketNo, $employeeNum, string $queryText, string $priority, string $category, string $reason)     {         try {             Log::info("🔄 Trying alternative ticket creation method", [\'ticket_no\' => $ticketNo]);                          // Use DB facade for direct insertion             $now = now();             $result = DB::table(\'hr_inboxes\')->insert([                 \'ticket_no\' => $ticketNo,                 \'from_user\' => $employeeNum ?: \'GUEST\',                 \'message\' => $queryText,                 \'status\' => \'Open\',                 \'priority\' => $priority,                 \'category\' => $category,                 \'intent\' => \'Escalated from Chatbot: \' . $reason,                 \'confidence\' => 0.0,                 \'created_at\' => $now,                 \'updated_at\' => $now,             ]);              if ($result) {                 return DB::table(\'hr_inboxes\')->where(\'ticket_no\', $ticketNo)->first();             }                          return null;                      } catch (\\Exception $e) {             Log::error(\'Alternative ticket creation failed: \' . $e->getMessage());             return null;         }     }      /**      * 🆕 NEW: Ensure ticket creation no matter what - final fallback      */     private function ensureTicketCreation(?string $originalTicketNo, $employeeNum, string $queryText, string $reason): string     {         $ticketNo = $originalTicketNo ?: \'TKT-EMERGENCY-\' . time();                  try {             Log::info("🚨 EMERGENCY: Ensuring ticket creation with final fallback", [\'ticket_no\' => $ticketNo]);              // Try multiple creation methods             $methods = [                 \'eloquent_create\' => function() use ($ticketNo, $employeeNum, $queryText, $reason) {                     return HrInbox::create([                         \'ticket_no\' => $ticketNo,                         \'from_user\' => $employeeNum ?: \'GUEST\',                         \'message\' => $queryText,                         \'status\' => \'Open\',                         \'priority\' => \'Medium\',                         \'category\' => \'General\',                         \'intent\' => \'EMERGENCY: \' . $reason,                         \'confidence\' => 0.0,                         \'created_at\' => now(),                         \'updated_at\' => now(),                     ]);                 },                 \'db_insert\' => function() use ($ticketNo, $employeeNum, $queryText, $reason) {                     return DB::table(\'hr_inboxes\')->insert([                         \'ticket_no\' => $ticketNo,                         \'from_user\' => $employeeNum ?: \'GUEST\',                         \'message\' => $queryText,                         \'status\' => \'Open\',                         \'priority\' => \'Medium\',                         \'category\' => \'General\',                         \'intent\' => \'EMERGENCY: \' . $reason,                         \'confidence\' => 0.0,                         \'created_at\' => now(),                         \'updated_at\' => now(),                     ]);                 },                 \'raw_sql\' => function() use ($ticketNo, $employeeNum, $queryText, $reason) {                     $sql = "INSERT INTO hr_inboxes (ticket_no, from_user, message, status, priority, category, intent, confidence, created_at, updated_at)                              VALUES (?, ?, ?, \'Open\', \'Medium\', \'General\', ?, 0.0, NOW(), NOW())";                     return DB::insert($sql, [$ticketNo, $employeeNum ?: \'GUEST\', $queryText, \'EMERGENCY: \' . $reason]);                 }             ];              foreach ($methods as $methodName => $method) {                 try {                     $result = $method();                     if ($result) {                         Log::info("✅ Emergency ticket created via {$methodName}", [\'ticket_no\' => $ticketNo]);                                                  // Also create query record if possible                         try {                             Query::create([                                 \'queryID\' => Str::uuid(),                                 \'employeeNum\' => $employeeNum,                                 \'question\' => $queryText,                                 \'response\' => \'EMERGENCY Escalated to HR - \' . $ticketNo,                                 \'confidenceScore\' => 0.0,                                 \'queryType\' => \'Escalated\',                                 \'questionTime\' => now(),                                 \'responseTime\' => now(),                                 \'isEscalated\' => true,                                 \'handledBy\' => \'HR\',                             ]);                         } catch (\\Exception $e) {                             // Ignore query creation errors in emergency mode                         }                                                  return $ticketNo;                     }                 } catch (\\Exception $e) {                     Log::warning("Emergency method {$methodName} failed: " . $e->getMessage());                     continue;                 }             }              // 🆕 FINAL FALLBACK: Log to file if database is completely down             $this->logTicketToFile($ticketNo, $employeeNum, $queryText, $reason);             return $ticketNo;          } catch (\\Exception $e) {             Log::error(\'🚨 CRITICAL: All ticket creation methods failed: \' . $e->getMessage());                          // Ultimate fallback - log to file and return ticket number anyway             $this->logTicketToFile($ticketNo, $employeeNum, $queryText, $reason);             return $ticketNo;         }     }      /**      * 🆕 NEW: Log ticket to file as final emergency backup      */     private function logTicketToFile(string $ticketNo, $employeeNum, string $queryText, string $reason): void     {         try {             $logEntry = [                 \'timestamp\' => now()->toISOString(),                 \'ticket_no\' => $ticketNo,                 \'employeeNum\' => $employeeNum,                 \'query\' => $queryText,                 \'reason\' => $reason,                 \'emergency\' => true             ];              $logPath = storage_path(\'logs/emergency_tickets.log\');             file_put_contents($logPath, json_encode($logEntry) . PHP_EOL, FILE_APPEND | LOCK_EX);                          Log::warning("🚨 Ticket logged to emergency file: {$ticketNo}");                      } catch (\\Exception $e) {             // If even file logging fails, there\'s nothing more we can do             Log::error(\'🚨 CRITICAL: Emergency file logging failed: \' . $e->getMessage());         }     } }', 'Resolved', 1, 'medium', '2025-10-27 16:46:49', '2025-11-05 05:33:01', 'General', 'EMERGENCY: User requested human assistance', 0),
 	(59, 'TKT-YXNS8UVD-1761612607', 'Emp002', 'yes', 'Replied', 1, 'medium', '2025-10-27 16:50:08', '2025-10-27 16:51:36', 'General', 'EMERGENCY: User chose escalation after 1 retries', 0),
 	(60, 'TKT-U4FX9FIK-1762398657', 'EMP001', 'I want to talk to a real person', 'Waiting for HR', 1, 'medium', '2025-11-05 19:10:58', '2025-11-12 15:17:19', 'General', 'EMERGENCY: User requested human assistance', 0);
+
+-- Dumping structure for table aihra.hr_replies
+CREATE TABLE IF NOT EXISTS `hr_replies` (
+  `replyID` char(36) NOT NULL,
+  `ticket_no` varchar(50) NOT NULL,
+  `hr_message` text NOT NULL,
+  `replied_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `replied_by` varchar(50) DEFAULT 'HR',
+  PRIMARY KEY (`replyID`),
+  KEY `ticket_no` (`ticket_no`),
+  CONSTRAINT `hr_replies_ibfk_1` FOREIGN KEY (`ticket_no`) REFERENCES `hr_inbox` (`ticket_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Dumping data for table aihra.hr_replies: ~35 rows (approximately)
 INSERT IGNORE INTO `hr_replies` (`replyID`, `ticket_no`, `hr_message`, `replied_at`, `replied_by`) VALUES
@@ -141,11 +304,58 @@ INSERT IGNORE INTO `hr_replies` (`replyID`, `ticket_no`, `hr_message`, `replied_
 	('d7e6c827-ced8-46f8-adb8-dc1296105036', 'TKT-JC3HBJGB-1761605142', '🔁 Employee Follow-up: yes pplease', '2025-10-27 14:56:47', 'HR001'),
 	('e0d0ea54-546f-4bd8-8205-190ced98ee50', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: sup', '2025-11-12 15:07:47', 'EMP001');
 
+-- Dumping structure for table aihra.interactionlog
+CREATE TABLE IF NOT EXISTS `interactionlog` (
+  `interactionID` varchar(50) NOT NULL,
+  `employeeNum` varchar(50) DEFAULT NULL,
+  `historyID` varchar(50) DEFAULT NULL,
+  `queryID` varchar(50) DEFAULT NULL,
+  `interactionType` varchar(50) DEFAULT NULL,
+  `timeStamp` datetime DEFAULT NULL,
+  PRIMARY KEY (`interactionID`),
+  KEY `employeeNum` (`employeeNum`),
+  KEY `historyID` (`historyID`),
+  KEY `queryID` (`queryID`),
+  CONSTRAINT `interactionlog_ibfk_1` FOREIGN KEY (`employeeNum`) REFERENCES `users` (`employeeNum`),
+  CONSTRAINT `interactionlog_ibfk_2` FOREIGN KEY (`historyID`) REFERENCES `chathistory` (`historyID`),
+  CONSTRAINT `interactionlog_ibfk_3` FOREIGN KEY (`queryID`) REFERENCES `queries` (`queryID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Dumping data for table aihra.interactionlog: ~0 rows (approximately)
+
+-- Dumping structure for table aihra.kblog
+CREATE TABLE IF NOT EXISTS `kblog` (
+  `logID` varchar(50) NOT NULL,
+  `knowledgeID` varchar(50) DEFAULT NULL,
+  `action` enum('Add','Edit','Delete','Import','Export') DEFAULT NULL,
+  `employeeNum` varchar(50) DEFAULT NULL,
+  `timeStamp` datetime DEFAULT NULL,
+  PRIMARY KEY (`logID`),
+  KEY `knowledgeID` (`knowledgeID`),
+  KEY `employeeNum` (`employeeNum`),
+  CONSTRAINT `kblog_ibfk_1` FOREIGN KEY (`knowledgeID`) REFERENCES `knowledgebase` (`knowledgeID`),
+  CONSTRAINT `kblog_ibfk_2` FOREIGN KEY (`employeeNum`) REFERENCES `users` (`employeeNum`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Dumping data for table aihra.kblog: ~0 rows (approximately)
 
+-- Dumping structure for table aihra.knowledge_base
+CREATE TABLE IF NOT EXISTS `knowledge_base` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `question` varchar(255) DEFAULT NULL,
+  `answer` text,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Dumping data for table aihra.knowledge_base: ~0 rows (approximately)
+
+-- Dumping structure for table aihra.migrations
+CREATE TABLE IF NOT EXISTS `migrations` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `migration` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `batch` int NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dumping data for table aihra.migrations: ~13 rows (approximately)
 INSERT IGNORE INTO `migrations` (`id`, `migration`, `batch`) VALUES
@@ -163,9 +373,51 @@ INSERT IGNORE INTO `migrations` (`id`, `migration`, `batch`) VALUES
 	(13, '2025_11_07_000001_add_updated_at_to_chat_messages', 10),
 	(14, '2025_11_07_000002_fix_chat_messages_schema', 11);
 
+-- Dumping structure for table aihra.password_reset_tokens
+CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Dumping data for table aihra.password_reset_tokens: ~0 rows (approximately)
 
+-- Dumping structure for table aihra.personal_access_tokens
+CREATE TABLE IF NOT EXISTS `personal_access_tokens` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tokenable_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tokenable_id` bigint unsigned NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `token` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `abilities` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `last_used_at` timestamp NULL DEFAULT NULL,
+  `expires_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `personal_access_tokens_token_unique` (`token`),
+  KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Dumping data for table aihra.personal_access_tokens: ~0 rows (approximately)
+
+-- Dumping structure for table aihra.queries
+CREATE TABLE IF NOT EXISTS `queries` (
+  `queryID` varchar(50) NOT NULL,
+  `employeeNum` varchar(50) DEFAULT NULL,
+  `question` text,
+  `response` text,
+  `confidenceScore` float DEFAULT NULL,
+  `queryType` enum('Employment','Benefits','Promotion','Employee Development','Dialogflow') NOT NULL,
+  `questionTime` datetime DEFAULT NULL,
+  `responseTime` datetime DEFAULT NULL,
+  `isEscalated` tinyint(1) DEFAULT '0',
+  `handledBy` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`queryID`),
+  KEY `employeeNum` (`employeeNum`),
+  CONSTRAINT `queries_ibfk_1` FOREIGN KEY (`employeeNum`) REFERENCES `users` (`employeeNum`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Dumping data for table aihra.queries: ~21 rows (approximately)
 INSERT IGNORE INTO `queries` (`queryID`, `employeeNum`, `question`, `response`, `confidenceScore`, `queryType`, `questionTime`, `responseTime`, `isEscalated`, `handledBy`) VALUES
@@ -191,9 +443,53 @@ INSERT IGNORE INTO `queries` (`queryID`, `employeeNum`, `question`, `response`, 
 	('e5529190-4bbd-43e7-bef5-eec9d2c4d13f', 'Emp002', 'hiasd', 'One more time?', 1, 'Dialogflow', '2025-10-28 00:33:45', '2025-10-28 00:33:45', 0, 'Bot'),
 	('ee59f4ea-3b2c-483c-a2dd-7b8a962e832d', 'HR001', 'what example of complex hr related question you cant ansewer?', 'Sorry, what was that?', 1, 'Dialogflow', '2025-10-27 23:37:00', '2025-10-27 23:37:00', 0, 'Bot');
 
+-- Dumping structure for table aihra.reasoncatalog
+CREATE TABLE IF NOT EXISTS `reasoncatalog` (
+  `reasonID` varchar(50) NOT NULL,
+  `description` enum('Incorrect response','Unclear response','Outdated info','Policy changed') DEFAULT NULL,
+  PRIMARY KEY (`reasonID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Dumping data for table aihra.reasoncatalog: ~0 rows (approximately)
 
+-- Dumping structure for table aihra.tickets
+CREATE TABLE IF NOT EXISTS `tickets` (
+  `ticketID` varchar(50) NOT NULL,
+  `queryID` varchar(50) DEFAULT NULL,
+  `employeeNum` varchar(50) DEFAULT NULL,
+  `priority` varchar(10) DEFAULT NULL,
+  `status` enum('Pending','Resolved','Expired') DEFAULT NULL,
+  `initialResponseTime` datetime DEFAULT NULL,
+  `resolutionTime` datetime DEFAULT NULL,
+  `expiry` datetime DEFAULT NULL,
+  `hrResponse` text,
+  PRIMARY KEY (`ticketID`),
+  KEY `queryID` (`queryID`),
+  KEY `employeeNum` (`employeeNum`),
+  CONSTRAINT `tickets_ibfk_1` FOREIGN KEY (`queryID`) REFERENCES `queries` (`queryID`),
+  CONSTRAINT `tickets_ibfk_2` FOREIGN KEY (`employeeNum`) REFERENCES `users` (`employeeNum`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Dumping data for table aihra.tickets: ~0 rows (approximately)
+
+-- Dumping structure for table aihra.users
+CREATE TABLE IF NOT EXISTS `users` (
+  `employeeNum` varchar(50) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `firstName` varchar(50) DEFAULT NULL,
+  `lastName` varchar(50) DEFAULT NULL,
+  `middleName` varchar(50) DEFAULT NULL,
+  `role` enum('Employee','HR','Admin') DEFAULT NULL,
+  `sex` enum('Male','Female') DEFAULT NULL,
+  `age` int DEFAULT NULL,
+  `profile_picture` blob,
+  `about` text,
+  `status` enum('Active','Deactivated') DEFAULT NULL,
+  PRIMARY KEY (`employeeNum`),
+  UNIQUE KEY `email` (`email`),
+  CONSTRAINT `users_chk_1` CHECK (((`age` >= 18) and (`age` <= 65)))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Dumping data for table aihra.users: ~4 rows (approximately)
 INSERT IGNORE INTO `users` (`employeeNum`, `email`, `password`, `firstName`, `lastName`, `middleName`, `role`, `sex`, `age`, `profile_picture`, `about`, `status`) VALUES
