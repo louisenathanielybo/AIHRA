@@ -501,6 +501,19 @@ class DialogflowController extends Controller
     {
         Log::info('Suggesting HR escalation', ['reason' => $reason]);
 
+        // Persist pending escalation so an affirmative reply ("yes") from the user
+        // will escalate the original query text instead of the short affirmation.
+        try {
+            Session::put('pending_escalation', [
+                'query' => $queryText,
+                'employeeNum' => $employeeNum,
+                'reason' => $reason,
+                'created_at' => now()
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Could not store pending_escalation in session: ' . $e->getMessage());
+        }
+
         return response()->json([
             'status' => 'suggest_escalation',
             'fulfillmentText' => "I understand this is an HR-related question, but I want to make sure you get the most accurate information. Would you like me to escalate this to our HR team for proper assistance?",
@@ -528,6 +541,17 @@ class DialogflowController extends Controller
             // Check if user wants to escalate
             if ($this->wantsEscalation($queryText)) {
                 $this->resetRetryCount();
+
+                // If the user simply replied with an affirmation (eg. "yes"),
+                // prefer the pending escalation query saved in session (if any).
+                $pending = Session::get('pending_escalation');
+                if (!empty($pending) && !empty($pending['query'])) {
+                    Log::info('Using pending escalation from session instead of user affirmation', ['pending' => $pending]);
+                    // Consume and clear pending escalation
+                    Session::forget('pending_escalation');
+                    return $this->escalateToHR($pending['query'], $pending['employeeNum'] ?? $employeeNum, "User confirmed escalation after {$retryCount} retries");
+                }
+
                 return $this->escalateToHR($queryText, $employeeNum, "User chose escalation after {$retryCount} retries");
             }
 
@@ -625,6 +649,19 @@ class DialogflowController extends Controller
     private function offerHREscalation(string $queryText, $employeeNum): \Illuminate\Http\JsonResponse
     {
         Log::info('Offering HR escalation after max retries');
+
+        // Persist pending escalation so an affirmative reply ("yes") will use
+        // this original query when escalating.
+        try {
+            Session::put('pending_escalation', [
+                'query' => $queryText,
+                'employeeNum' => $employeeNum,
+                'reason' => 'Max retries reached',
+                'created_at' => now()
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Could not store pending_escalation in session: ' . $e->getMessage());
+        }
 
         return response()->json([
             'status' => 'offer_escalation',
