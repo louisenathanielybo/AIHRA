@@ -1064,12 +1064,12 @@ async function loadTicketMessages(ticketNo) {
 
             let bubbleClass = 'chat-bubble';
             if (isHR) bubbleClass += ' hr-reply';
-            if (isEmployee && (msg.message && (msg.message.includes('Employee Follow-up') || msg.is_followup))) {
+            if (isEmployee && (msg.message && (/Employee\s*-?\s*Follow-?up/i.test(msg.message) || msg.is_followup))) {
                 bubbleClass += ' employee-followup';
             }
 
-            // Strip any stored prefix for employee follow-ups so UI shows only the user's text
-            const displayMessage = (msg.message || '').replace(/^Employee Follow-up:\s*/i, '');
+            // Normalize employee messages so UI shows only the user's text
+            const displayMessage = normalizeEmployeeMessage(msg.message || '');
 
             messageDiv.innerHTML = `
                 <div class="${bubbleClass}">
@@ -1190,7 +1190,7 @@ function addMessageToChat(chatBox, sender, message, type = 'normal') {
 }
 
 // Start Guided Flow
-function startGuidedFlow() {
+async function startGuidedFlow() {
     const guidedContainer = document.getElementById('guidedContainer');
     if (conversationPath.length === 0) {
         guidedContainer.innerHTML = `
@@ -1202,7 +1202,11 @@ function startGuidedFlow() {
             </div>`;
     }
     conversationPath = [];
-    loadGuidedQuestions();
+    if (guidedContainer) {
+        guidedContainer.style.display = 'block';
+        guidedContainer.innerHTML = '';
+    }
+    await loadGuidedQuestions();
 }
 
 // Load Guided Questions
@@ -1233,7 +1237,8 @@ async function loadGuidedQuestions(parentId = null) {
                 ${q.question_text}
             </div>`).join('');
 
-        guidedContainer.innerHTML += `
+        // Replace guided options (do not append) so older questions are not shown during the flow
+        guidedContainer.innerHTML = `
             <div class="chat-row bot">
                 <div class="chat-bubble">
                     <strong>${data.message || 'Please choose a topic:'}</strong>
@@ -1252,7 +1257,8 @@ async function loadGuidedQuestions(parentId = null) {
         );
         
         if (!parentId) {
-            guidedContainer.innerHTML += `
+            // Replace fallback options as well
+            guidedContainer.innerHTML = `
                 <div class="chat-row bot">
                     <div class="chat-bubble">
                         <div class="suggestion-box">
@@ -1320,8 +1326,14 @@ async function handleQuestionClick(id, text) {
             conversationPath.push({ type: 'bot', message: dfData.message });
         } else if (guidedData.type === 'final' && guidedData.data && guidedData.data[0] && guidedData.data[0].answer) {
             // Last-resort: show guided answer
+            // For final guided answers, display in the messages area, but clear/hide previous suggestions
             addMessageToChat(messagesEl, 'bot', guidedData.data[0].answer);
             conversationPath.push({ type: 'bot', message: guidedData.data[0].answer });
+            const guidedContainer = document.getElementById('guidedContainer');
+            if (guidedContainer) {
+                guidedContainer.innerHTML = '';
+                guidedContainer.style.display = 'none';
+            }
         }
 
     } catch (err) {
@@ -1450,27 +1462,40 @@ async function viewConversation(convoId) {
         messages.forEach(msg => {
             if (!msg || msg.is_button) return; // skip guided/button-only entries
 
-            const isEmployee = msg.sender === 'employee';
-            const isHR = msg.sender === 'hr';
+                const isEmployee = msg.sender === 'employee';
+                const isHR = msg.sender === 'hr';
 
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-row ${isEmployee ? 'user' : 'bot'}`;
+                // If this message represents guided options (stored as is_button), render into guidedContainer
+                if (msg.is_button) {
+                    const guidedContainer = document.getElementById('guidedContainer');
+                    if (guidedContainer) {
+                        guidedContainer.style.display = 'block';
+                        // Render the guided entry (user choices or bot suggestions) into guided area
+                        const who = isEmployee ? 'user' : 'bot';
+                        const display = normalizeEmployeeMessage(msg.message || '');
+                        addMessageToChat(guidedContainer, who, display);
+                    }
+                    return; // skip adding to main messages area
+                }
 
-            let bubbleClass = 'chat-bubble';
-            if (isHR) bubbleClass += ' hr-reply';
-            if (isEmployee && msg.message && msg.message.includes('Employee Follow-up')) bubbleClass += ' employee-followup';
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-row ${isEmployee ? 'user' : 'bot'}`;
 
-            // Strip any stored prefix for employee follow-ups
-            const displayMessage = (msg.message || '').replace(/^Employee Follow-up:\s*/i, '');
-            const senderLabel = isEmployee ? ' (You)' : (isHR ? ' (HR)' : '');
+                let bubbleClass = 'chat-bubble';
+                if (isHR) bubbleClass += ' hr-reply';
+                if (isEmployee && msg.message && /Employee\s*-?\s*Follow-?up/i.test(msg.message)) bubbleClass += ' employee-followup';
 
-            messageDiv.innerHTML = `
-                <div class="${bubbleClass}">
-                    ${displayMessage}
-                    <div class="message-time">${new Date(msg.created_at).toLocaleString()}${senderLabel}</div>
-                </div>
-            `;
-            messagesEl.appendChild(messageDiv);
+                // Strip any stored prefix for employee follow-ups
+                const displayMessage = normalizeEmployeeMessage(msg.message || '');
+                const senderLabel = isEmployee ? ' (You)' : (isHR ? ' (HR)' : '');
+
+                messageDiv.innerHTML = `
+                    <div class="${bubbleClass}">
+                        ${displayMessage}
+                        <div class="message-time">${new Date(msg.created_at).toLocaleString()}${senderLabel}</div>
+                    </div>
+                `;
+                messagesEl.appendChild(messageDiv);
         });
 
         scrollChat('messagesContainer');
@@ -1529,6 +1554,13 @@ async function loadTicketConversation(ticketNo) {
             - <span id="ticketStatus">Loading...</span>
         `;
 
+        // hide guided suggestions for ticket view — tickets are for HR/employee back-and-forth only
+        const guidedContainer = document.getElementById('guidedContainer');
+        if (guidedContainer) {
+            guidedContainer.innerHTML = '';
+            guidedContainer.style.display = 'none';
+        }
+
         // set main input placeholder to indicate ticket reply
         const userInput = document.getElementById('userMessage');
         if (userInput) {
@@ -1559,16 +1591,16 @@ async function loadTicketConversation(ticketNo) {
 
             let bubbleClass = 'chat-bubble';
             if (isHR) bubbleClass += ' hr-reply';
-            else if (isEmployee && msg.message && msg.message.includes('Employee Follow-up')) bubbleClass += ' employee-followup';
+            else if (isEmployee && msg.message && /Employee\s*-?\s*Follow-?up/i.test(msg.message)) bubbleClass += ' employee-followup';
 
-            const displayMessage = isEmployee && msg.message && msg.message.includes('Employee Follow-up:') ? msg.message.replace('Employee Follow-up: ', '') : (msg.message || '');
+            const displayMessage = normalizeEmployeeMessage(msg.message || '');
 
             messageDiv.innerHTML = `
                 <div class="${bubbleClass}">
                     ${displayMessage}
                     <div class="message-time">
                         ${new Date(msg.created_at).toLocaleString()}${isEmployee ? ' (You)' : (isHR ? ' (HR)' : '')}
-                        ${msg.message && msg.message.includes('Employee Follow-up') ? ' (Follow-up)' : ''}
+                        ${msg.message && /Employee\s*-?\s*Follow-?up/i.test(msg.message) ? ' (Follow-up)' : ''}
                     </div>
                 </div>
             `;
@@ -1718,6 +1750,12 @@ function escapeHtml(unsafe) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+// Normalize employee messages by stripping any stored "Employee Follow-up" prefixes
+function normalizeEmployeeMessage(text) {
+    if (!text) return '';
+    return text.replace(/^Employee\s*-?\s*Follow-?up:?:?\s*/i, '');
 }
 
 function sendQuick(message) {
