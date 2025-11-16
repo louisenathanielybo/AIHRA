@@ -1047,7 +1047,7 @@ class DialogflowController extends Controller
                         'priority' => 'Medium',
                         'category' => 'General',
                         'intent' => 'EMERGENCY: ' . $reason,
-                        'confidence' => 0.0,
+                        'confidence' => 0.3,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
