@@ -25,6 +25,10 @@ use Illuminate\Support\Facades\DB;
 |
 */
 
+// Redirect root to login
+Route::get('/', function () {
+    return redirect('/login');
+});
 
 // 🆕 FIXED: Login routes (should be outside auth middleware)
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');

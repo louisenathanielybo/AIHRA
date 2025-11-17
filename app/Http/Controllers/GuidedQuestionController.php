@@ -59,19 +59,27 @@ class GuidedQuestionController extends Controller
             $children = GuidedQuestion::where('parent_id', $id)
                 ->get(['gq_id', 'question_text', 'answer_text', 'LEVEL']);
 
-            // 🆕 FIXED: If no children and this is Level 3, send to Dialogflow
+            // 🆕 FIXED: If no children, return the answer directly from database
             if ($children->isEmpty()) {
-                if ($currentQuestion->LEVEL == 3) {
-                    Log::info('Level 3 question reached, sending to Dialogflow: ' . $currentQuestion->question_text);
-                    return $this->handleLevel3Question($currentQuestion);
-                }
-                
-                // If it's not Level 3 but has an answer, return the answer
+                // If it has an answer in the database, use that
                 if ($currentQuestion->answer_text) {
                     return response()->json([
                         'type' => 'final',
                         'data' => [['answer' => $currentQuestion->answer_text]],
                         'level' => $currentQuestion->LEVEL
+                    ]);
+                }
+                
+                // If Level 3 but no answer, return a helpful default message
+                if ($currentQuestion->LEVEL == 3) {
+                    Log::info('Level 3 question with no answer: ' . $currentQuestion->question_text);
+                    return response()->json([
+                        'type' => 'final',
+                        'data' => [[
+                            'answer' => "I don't have detailed information about '{$currentQuestion->question_text}' in my knowledge base yet. Would you like me to create a support ticket for HR to provide you with specific information about this topic?"
+                        ]],
+                        'level' => $currentQuestion->LEVEL,
+                        'suggest_escalation' => true
                     ]);
                 }
                 
@@ -124,7 +132,16 @@ class GuidedQuestionController extends Controller
 
             // Extract Dialogflow results
             $confidence = $result->getIntentDetectionConfidence();
-            $fulfillmentText = $result->getFulfillmentText() ?? "I understand you're asking about '{$questionText}'. For detailed information about this, please contact the HR department.";
+            $fulfillmentText = $result->getFulfillmentText();
+            
+            // If Dialogflow returns a generic fallback response, provide a better message
+            if (empty($fulfillmentText) || 
+                stripos($fulfillmentText, 'having trouble') !== false || 
+                stripos($fulfillmentText, "I'm having trouble") !== false ||
+                stripos($fulfillmentText, 'guide you through') !== false ||
+                $confidence < 0.5) {
+                $fulfillmentText = "I don't have specific information about '{$questionText}' right now. Would you like me to escalate this to HR so they can provide you with detailed information?";
+            }
 
             // 🧾 Save to query log for analytics
             $this->saveGuidedQuery($questionText, $fulfillmentText, $confidence, $employeeNum);
@@ -199,10 +216,11 @@ class GuidedQuestionController extends Controller
             return response()->json([
                 'type' => 'final',
                 'data' => [[
-                    'answer' => "I'm having trouble retrieving information about '{$question->question_text}' right now. Please try asking this question directly in the chat."
+                    'answer' => "I don't have detailed information about '{$question->question_text}' in my knowledge base yet. Would you like me to create a support ticket so our HR team can provide you with accurate information?"
                 ]],
                 'level' => 3,
-                'handled_by' => 'Fallback'
+                'handled_by' => 'Fallback',
+                'suggest_escalation' => true
             ]);
         }
     }
