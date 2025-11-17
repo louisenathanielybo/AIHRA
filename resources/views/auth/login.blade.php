@@ -26,7 +26,7 @@
     </div>
 
     <div class="login-right">
-        <img src="{{ asset('assets/logo.png') }}" alt="AIHRA">
+        <img src="{{ asset('img/AIHRA_Logo.png') }}" alt="AIHRA">
         <h1>AIHRA</h1>
         <p>Your AI Human Resource Assistant</p>
     </div>
