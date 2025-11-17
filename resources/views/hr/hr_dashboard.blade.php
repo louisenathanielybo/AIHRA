@@ -249,16 +249,16 @@
 <body>
     <!-- Sidebar -->
     <div class="sidebar">
-        <h1>AIHRA</h1>
+        <img src="{{ asset('img/AIHRA_Logo.png') }}" alt="AIHRA Logo" class="sidebar-logo"><h1>AIHRA</h1>
         <ul>
+            <li><a href="#announcements" onclick="showSection('announcements')">🏠 Home</a></li>
             <li class="active"><a href="#inbox" onclick="showSection('inbox')">📨 Inbox</a></li>
-            <li><a href="#announcements" onclick="showSection('announcements')">📢 Announcements</a></li>
             <li><a href="#account" onclick="showSection('account')">👤 Account</a></li>
         </ul>
         <div class="account">
             <img src="{{ isset($user) && $user->profile_picture ? asset('uploads/'.$user->profile_picture) : asset('admin/assets/default-profile.png') }}" 
                  alt="HR" 
-                 style="width:80px;height:80px;border-radius:50%;object-fit:cover;background:#fff;">
+                 style="margin-left:18px;width:80px;height:80px;border-radius:50%;object-fit:cover;background:#fff;">
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="logout">Log Out</button>
@@ -270,8 +270,13 @@
     <div class="main">
         <!-- Inbox Section -->
         <div id="inbox" class="section active">
-            <h2>HR Inbox</h2>
+            <h2 class="text-xl font-semibold mb-3 text-green-800">📨 Inbox</h2>
             
+            <div class="bg-white p-4 rounded-lg shadow mb-4">
+                <h1 class="text-lg font-semibold text-green-800">Hello!</h1>
+                <p class="text-gray-700">Welcome to your HR Inbox.</p>
+            </div>
+
             <!-- Dashboard Cards -->
             <div class="dashboard-cards">
                 <div class="card">
@@ -347,63 +352,83 @@
         </div>
 
         {{-- ANNOUNCEMENTS SECTION --}}
-        <section id="announcements" class="section mt-6">
-            <h2 class="text-xl font-semibold mb-3 text-green-800">📢 Announcements</h2>
+    <section id="announcements" class="section mt-6">
+    <h2 class="text-xl font-semibold mb-3 text-green-800">🏠 Home</h2>
 
-            {{-- Form for posting new announcements --}}
-            <form action="{{ route('hr.announcements.store') }}" method="POST" enctype="multipart/form-data" class="bg-white shadow-md rounded-lg p-4 mb-4">
-                @csrf
-                <div class="mb-3">
-                    <label class="block font-medium">Title</label>
-                    <input type="text" name="title" class="w-full border rounded p-2" required>
-                </div>
+    <div class="bg-white p-4 rounded-lg shadow mb-4">
+        <h1 class="text-lg font-semibold text-green-800">Hello!</h1>
+        <p class="text-gray-700">Welcome to your HR Dashboard.</p>
+    </div>
 
-                <div class="mb-3">
-                    <label class="block font-medium">Description</label>
-                    <textarea name="description" rows="4" class="w-full border rounded p-2" required></textarea>
-                </div>
+    {{-- Toggle Button --}}
+    <button id="toggleAnnouncementForm" class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800 mb-3">
+        + Add an Announcement
+    </button>
 
-                <div class="mb-3">
-                    <label class="block font-medium">Image (optional)</label>
-                    <input type="file" name="image" class="w-full border rounded p-2">
-                </div>
+    {{-- Announcement Form (hidden by default) --}}
+    <form id="announcementForm" action="{{ route('hr.announcements.store') }}" method="POST" enctype="multipart/form-data" class="bg-white shadow-md rounded-lg p-4 mb-4" style="display:none;">
+        @csrf
+        <div class="mb-3">
+            <label class="block font-medium">Title</label>
+            <input type="text" name="title" class="w-full border rounded p-2" required>
+        </div>
 
-                <button type="submit" class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800">
-                    Post Announcement
-                </button>
-            </form>
+        <div class="mb-3">
+            <label class="block font-medium">Description</label>
+            <textarea name="description" rows="4" class="w-full border rounded p-2" required></textarea>
+        </div>
 
-            {{-- Display announcements --}}
-            <div class="space-y-3">
-                @php
-                    $announcements = DB::table('announcements')
-                        ->where('isActive', 1)
-                        ->orderBy('createdAt', 'desc')
-                        ->get();
-                @endphp
+        <div class="mb-3">
+            <label class="block font-medium">Image (optional)</label>
+            <input type="file" name="image" class="w-full border rounded p-2">
+        </div>
 
-                @forelse ($announcements as $a)
-                    <div class="bg-white p-4 rounded-lg shadow">
-                        <h3 class="text-lg font-semibold text-green-800">{{ $a->title }}</h3>
-                        <p class="text-gray-700 mb-2">{{ $a->description }}</p>
-                        @if ($a->image)
-                            <img src="data:image/jpeg;base64,{{ base64_encode($a->image) }}" class="rounded w-48">
-                        @endif
-                        <small class="text-gray-500">{{ $a->createdAt }}</small>
-                    </div>
-                @empty
-                    <p class="text-gray-500">No announcements yet.</p>
-                @endforelse
+        <div class="flex gap-2">
+            <button type="submit" class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800">
+                Proceed
+            </button>
+            <button type="button" id="cancelAnnouncement" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+                Cancel
+            </button>
+        </div>
+    </form>
+
+    {{-- Display announcements --}}
+    <div class="space-y-3">
+        @php
+            $announcements = DB::table('announcements')
+                ->where('isActive', 1)
+                ->orderBy('createdAt', 'desc')
+                ->get();
+        @endphp
+
+        @forelse ($announcements as $a)
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-green-800">{{ $a->title }}</h3>
+                <p class="text-gray-700 mb-2">{{ $a->description }}</p>
+                @if ($a->image)
+                    <img src="data:image/jpeg;base64,{{ base64_encode($a->image) }}" 
+                        class="rounded announcement-img" 
+                        style="max-width: 100%; height: auto;">
+                @endif
+                <small class="text-gray-500">
+                    {{ \Carbon\Carbon::parse($a->createdAt)->timezone('Asia/Manila')->format('M d, Y \a\t h:i A') }}
+                </small>
             </div>
-        </section>
+        @empty
+            <p class="text-gray-500">No announcements yet.</p>
+        @endforelse
+    </div>
+</section>
 
-        {{-- ACCOUNT SECTION --}}
-        <section id="account" class="section mt-6">
-            <h2 class="text-xl font-semibold mb-3 text-green-800">👤 Account Settings</h2>
+{{-- ACCOUNT SECTION (separate) --}}
+<section id="account" class="section mt-6">
+    <h2 class="text-xl font-semibold mb-3 text-green-800">👤 Account Settings</h2>
 
-            {{-- Include your existing hr_profile.blade.php --}}
-            @include('hr.hr_profile')
-        </section>
+    {{-- Include your existing hr_profile.blade.php --}}
+    @include('hr.hr_profile')
+</section>
+
     </div>
 
     <script>
@@ -512,7 +537,22 @@
         });
 
         document.addEventListener('DOMContentLoaded', function() {
-            showSection('inbox');
+            showSection('announcements');
+        });
+
+        // Toggle announcement form
+        const toggleBtn = document.getElementById('toggleAnnouncementForm');
+        const form = document.getElementById('announcementForm');
+        const cancelBtn = document.getElementById('cancelAnnouncement');
+
+        toggleBtn.addEventListener('click', () => {
+            form.style.display = 'block';
+            toggleBtn.style.display = 'none';
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            form.style.display = 'none';
+            toggleBtn.style.display = 'inline-block';
         });
     </script>
 </body>
