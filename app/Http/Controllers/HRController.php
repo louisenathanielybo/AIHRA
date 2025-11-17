@@ -134,9 +134,24 @@ class HRController extends Controller
         }
 
         foreach ($replies as $reply) {
+            // Determine sender: some entries in hr_replies may actually be
+            // employee follow-ups (they were saved there by older flows).
+            // Use replied_by compared to the original ticket's from_user to
+            // infer the correct sender for rendering.
+            $sender = 'hr';
+            if ($inbox && isset($inbox->from_user) && $reply->replied_by == $inbox->from_user) {
+                $sender = 'employee';
+            }
+
+            $text = $reply->hr_message;
+            // Strip legacy stored prefixes like "Employee Follow-up: ..."
+            if (preg_match('/Employee\s*-?\s*Follow-?up/i', $text)) {
+                $text = preg_replace('/^.*?Employee\s*-?\s*Follow-?up:?\s*/i', '', $text);
+            }
+
             $messages->push([
-                'sender' => 'hr',
-                'message' => $reply->hr_message,
+                'sender' => $sender,
+                'message' => $text,
                 'created_at' => $reply->replied_at,
             ]);
         }

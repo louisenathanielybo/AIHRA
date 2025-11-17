@@ -176,6 +176,19 @@
         border-radius: 0 0 10px 10px;
     }
 
+    /* Combined message + guided containers */
+    #messagesContainer {
+        padding: 20px;
+        background: #f8f9fa;
+        overflow-y: auto;
+        max-height: 440px;
+    }
+
+    #guidedContainer {
+        padding: 0 20px 20px 20px;
+        background: transparent;
+    }
+
     .chat-input {
         display: flex;
         gap: 10px;
@@ -440,43 +453,7 @@
         background: #218838;
     }
 
-    /* Restart Button */
-    #restartChatBtn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: #6c757d;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 15px;
-        cursor: pointer;
-        font-size: 12px;
-        z-index: 1000;
-        transition: background 0.3s ease;
-    }
-
-    /* New Conversation Button */
-    #newConversationBtn {
-        position: absolute;
-        top: 10px;
-        right: 140px; /* move further left to avoid overlap with restart */
-        background: #6c757d;
-        color: white;
-        border: none;
-        padding: 6px 10px;
-        border-radius: 12px;
-        cursor: pointer;
-        font-size: 12px;
-        z-index: 1000;
-        transition: background 0.3s ease;
-    }
-
-    #newConversationBtn:hover { background: #5a6268; }
-
-    #restartChatBtn:hover {
-        background: #5a6268;
-    }
+    /* Inline chat-area New/Restart buttons removed — use the top-left '➕ New Chat' button in the left panel */
 
     /* Close Ticket Button */
     .close-ticket-btn {
@@ -556,85 +533,72 @@
     <div id="chat" class="table-container section" style="display:none;">
         <h2>🤖 AI HR Assistant</h2>
         
-        <!-- Chat Tabs -->
-        <div class="chat-tabs">
-            <button class="tab-button active" onclick="showChatTab('new-chat')">💬 New Chat</button>
-            <button class="tab-button" onclick="showChatTab('chat-history')">� Chat History</button>
-            <button class="tab-button" onclick="showChatTab('support-tickets')">�📋 Support Tickets</button>
-        </div>
+        <!-- Chat Layout: Left = Conversations & Tickets, Right = Viewer -->
+        <style>
+            .chat-layout { display: flex; gap: 20px; align-items: flex-start; }
+            .left-panel { width: 320px; }
+            .left-panel .panel-box { background: white; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; }
+            .left-panel .panel-box h4 { margin: 0 0 8px 0; }
+            .left-panel .new-chat-btn { display: inline-block; width: 100%; margin-bottom: 10px; padding: 10px; text-align: center; background: #007bff; color: white; border-radius: 8px; cursor: pointer; border: none; }
+            .left-panel .new-chat-btn:hover { background: #0056b3; }
+            .right-panel { flex: 1; }
+            /* Make chat-container full height inside right-panel */
+            .right-panel .chat-container { height: 620px; }
+        </style>
 
-        <!-- New Chat Tab -->
-        <div id="new-chat" class="chat-tab active">
-            <div class="chat-container">
-                <div id="chatBox" class="chat-box">
-                    <div class="chat-row bot">
-                        <div class="chat-bubble">
-                            👋 Hello! I'm Aihra - Your AI Human Resource Assistant. 
-                            <div class="message-time">How can I help you today?</div>
-                        </div>
-                    </div>
+        <div class="chat-layout">
+            <div class="left-panel">
+                <button id="leftNewConversationBtn" class="new-chat-btn" onclick="startNewConversation()">➕ New Chat</button>
+                <div style="display:flex; gap:8px; margin:10px 0 6px 0;">
+                    <button id="chatsTabBtn" class="tab-button active" style="flex:1;" onclick="showChats()">💬 Chats</button>
+                    <button id="ticketsTabBtn" class="tab-button" style="flex:1;" onclick="showTickets()">🎫 Tickets</button>
                 </div>
-                
-                <div class="chat-input-container">
-                    <div class="chat-input">
-                        <input type="text" id="userMessage" placeholder="Type your message here..." />
-                        <button onclick="sendMessage()">📤 Send</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Chat History Tab -->
-        <div id="chat-history" class="chat-tab">
-            <div class="history-container">
-                <div class="ticket-list">
-                    <h4 style="margin: 0 0 10px 0;">💬 Chat Conversations</h4>
+                <div id="convoPanel" class="panel-box">
                     <div id="conversationList">
                         <p class="loading">Loading your conversations</p>
                     </div>
                 </div>
 
-                <div class="ticket-chat">
-                    <div id="selectedTicketInfo">
-                        <p style="text-align: center; color: #666; margin: 0;">Select a conversation to view messages</p>
-                    </div>
-                    
-                    <div id="ticketChatBox" class="chat-box">
-                        <!-- Conversation messages will appear here -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Support Tickets Tab -->
-        <div id="support-tickets" class="chat-tab">
-            <div class="history-container">
-                <div class="ticket-list">
-                    <h4 style="margin: 0 0 15px 0;">🎫 Your Support Tickets</h4>
+                <div id="ticketsPanel" class="panel-box">
+                    <h4 style="margin-top:0;">🎫 Your Support Tickets</h4>
                     <div id="ticketList">
                         <p class="loading">Loading your tickets</p>
                     </div>
                 </div>
+            </div>
 
-                <div class="ticket-chat">
-                    <div id="selectedTicketInfo">
-                        <p style="text-align: center; color: #666; margin: 0;">Select a ticket to view conversation</p>
-                    </div>
-                    
-                    <div id="ticketChatBox" class="chat-box">
-                        <!-- Ticket messages will appear here -->
-                    </div>
-                    
-                    <!-- Reply Section -->
-                    <div id="ticketReplySection" style="display: none; padding: 15px; background: white; border-top: 1px solid #ddd;">
-                        <div class="chat-input">
-                            <input type="text" id="ticketReplyMessage" placeholder="Type your reply to HR..." />
-                            <button onclick="sendTicketReply()">📤 Send Reply</button>
+            <div class="right-panel">
+                <!-- Viewer Header / Info -->
+                <div id="selectedTicketInfo" style="margin-bottom:12px; background: white; padding: 12px; border: 1px solid #ddd; border-radius:8px;">
+                    <p style="text-align: center; color: #666; margin: 0;">Select a conversation or ticket from the left to view messages</p>
+                </div>
+
+                <!-- Chat Container -->
+                <div class="chat-container">
+                    <div id="chatBox" class="chat-box">
+                            <div id="messagesContainer"></div>
+                            <div id="guidedContainer">
+                                <div class="chat-row bot">
+                                    <div class="chat-bubble">
+                                        👋 Hello! I'm Aihra - Your AI Human Resource Assistant. 
+                                        <div class="message-time">How can I help you today?</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <p style="font-size: 12px; color: #666; margin-top: 8px; text-align: center;">
-                            💡 Your reply will be sent to HR and added to this support ticket.
-                        </p>
+
+                    <div class="chat-input-container">
+                        <div class="chat-input">
+                            <input type="text" id="userMessage" placeholder="Type your message here..." />
+                            <button onclick="sendMessage()">📤 Send</button>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Ticket Chat Box (reused for viewing conversations & tickets) -->
+                <!-- Legacy ticket viewer elements remain for backward compatibility but are not used when viewing chats/tickets.
+                     Messages now render into #messagesContainer and guided suggestions into #guidedContainer so both
+                     message history and guided questions can be shown together in a single section. -->
             </div>
         </div>
     </div>
@@ -683,6 +647,7 @@
 let currentLevel = 0;
 let conversationPath = [];
 let currentSelectedTicket = null;
+let sendingTicket = false;
 let currentSessionId = '{{ session()->getId() }}';
 let currentConversationId = null;
 
@@ -690,8 +655,51 @@ let currentConversationId = null;
 document.addEventListener('DOMContentLoaded', function() {
     initializeStarRating();
     initializeChat();
+    // Load existing conversations and tickets into the left panel
+    loadConversations();
+    loadEmployeeTickets();
+    // Default to chats view and main chat visible
+    showChats();
     requestNotificationPermission();
 });
+
+// Toggle between Conversations and Tickets in left panel
+function showChats() {
+    // Ensure left tabs and conversation list are visible
+    document.getElementById('convoPanel').style.display = 'block';
+    const convList = document.getElementById('conversationList');
+    if (convList) convList.style.display = 'block';
+    document.getElementById('ticketsPanel').style.display = 'none';
+    document.getElementById('chatsTabBtn').classList.add('active');
+    document.getElementById('ticketsTabBtn').classList.remove('active');
+    // show main chat area
+    showMainChat();
+}
+
+function showTickets() {
+    // Keep tabs visible but hide the conversation list and show tickets
+    document.getElementById('convoPanel').style.display = 'block';
+    const convList2 = document.getElementById('conversationList');
+    if (convList2) convList2.style.display = 'none';
+    document.getElementById('ticketsPanel').style.display = 'block';
+    document.getElementById('chatsTabBtn').classList.remove('active');
+    document.getElementById('ticketsTabBtn').classList.add('active');
+    // ensure tickets list is refreshed
+    loadEmployeeTickets();
+}
+
+function showMainChat() {
+    // Show the main chat container and hide the ticket/conversation viewer
+    const chatContainer = document.querySelector('.chat-container');
+    const ticketBox = document.getElementById('ticketChatBox');
+    const replySection = document.getElementById('ticketReplySection');
+    if (chatContainer) chatContainer.style.display = 'block';
+    if (ticketBox) ticketBox.style.display = 'none';
+    if (replySection) replySection.style.display = 'none';
+    // reset selected info header
+    const sel = document.getElementById('selectedTicketInfo');
+    if (sel) sel.innerHTML = '<p style="text-align: center; color: #666; margin: 0;">Select a conversation or ticket from the left to view messages</p>';
+}
 
 // Section Navigation
 function showSection(id) {
@@ -765,23 +773,8 @@ function initializeStarRating() {
 // Initialize Chat
 function initializeChat() {
     const chatContainer = document.querySelector('.chat-container');
-    if (chatContainer && !document.getElementById('restartChatBtn')) {
-        const restartBtn = document.createElement('button');
-        restartBtn.id = 'restartChatBtn';
-        restartBtn.innerHTML = '🔄 Restart Chat';
-        restartBtn.onclick = restartChat;
-        chatContainer.style.position = 'relative';
-        chatContainer.appendChild(restartBtn);
-
-        // New conversation button next to restart
-        if (!document.getElementById('newConversationBtn')) {
-            const newBtn = document.createElement('button');
-            newBtn.id = 'newConversationBtn';
-            newBtn.innerHTML = '➕ New';
-            newBtn.onclick = async function() { await startNewConversation(); };
-            chatContainer.appendChild(newBtn);
-        }
-    }
+    // Note: top-left '➕ New Chat' button lives in the left panel now.
+    // We intentionally do not create inline New/Restart buttons inside the chat area.
 
     // Enter key support
     document.getElementById('userMessage')?.addEventListener('keypress', function(e) {
@@ -808,10 +801,22 @@ async function sendMessage() {
     const msg = msgInput.value.trim();
     if (!msg) return;
 
-    const chatBox = document.getElementById('chatBox');
-    
-    // Add user message
-    addMessageToChat(chatBox, 'user', msg);
+    // Use messagesContainer for all runtime messages (keeps guidedContainer intact)
+    const messagesEl = document.getElementById('messagesContainer');
+
+    // If a ticket is selected, route the message as a ticket reply
+    if (currentSelectedTicket) {
+        // Add user message locally
+        addMessageToChat(messagesEl, 'user', msg);
+        msgInput.value = '';
+        conversationPath.push({ type: 'user', message: msg });
+        // Send to ticket reply endpoint using unified path
+        await sendTicketReply(true, msg);
+        return;
+    }
+
+    // Add user message for normal conversations
+    addMessageToChat(messagesEl, 'user', msg);
     msgInput.value = '';
     conversationPath.push({ type: 'user', message: msg });
 
@@ -834,22 +839,22 @@ async function sendMessage() {
             throw new Error(`HTTP error! status: ${res.status}`);
         }
 
-        const data = await res.json();
+    const data = await res.json();
         console.log('🔍 Dialogflow RAW Response:', data);
 
-        // 🆕 FIXED: Handle different response formats
+        // 🆕 FIXED: Handle different response formats (render into messagesContainer)
         if (data.fulfillmentText) {
             // Standard Dialogflow response
-            addMessageToChat(chatBox, 'bot', data.fulfillmentText);
+            addMessageToChat(messagesEl, 'bot', data.fulfillmentText);
             conversationPath.push({ type: 'bot', message: data.fulfillmentText });
         } 
         else if (data.response) {
             // Custom backend response format
-            handleCustomResponse(data.response, chatBox);
+            handleCustomResponse(data.response, messagesEl);
         }
         else if (data.message) {
             // Alternative response format
-            addMessageToChat(chatBox, 'bot', data.message);
+            addMessageToChat(messagesEl, 'bot', data.message);
             conversationPath.push({ type: 'bot', message: data.message });
         }
         else {
@@ -1060,11 +1065,12 @@ async function loadTicketMessages(ticketNo) {
 
             let bubbleClass = 'chat-bubble';
             if (isHR) bubbleClass += ' hr-reply';
-            if (isEmployee && (msg.message && (msg.message.includes('Employee Follow-up') || msg.is_followup))) {
+            if (isEmployee && (msg.message && (/Employee\s*-?\s*Follow-?up/i.test(msg.message) || msg.is_followup))) {
                 bubbleClass += ' employee-followup';
             }
 
-            const displayMessage = msg.message || '';
+            // Normalize employee messages so UI shows only the user's text
+            const displayMessage = normalizeEmployeeMessage(msg.message || '');
 
             messageDiv.innerHTML = `
                 <div class="${bubbleClass}">
@@ -1156,48 +1162,7 @@ async function testNLPIntegration() {
     console.groupEnd();
 }
 
-// Update the existing loadTicketConversation to use the improved function
-async function loadTicketConversation(ticketNo) {
-    try {
-        currentSelectedTicket = ticketNo;
-        
-        // Update UI
-        document.querySelectorAll('.ticket-item-history').forEach(item => item.classList.remove('active'));
-        const ticketElement = document.getElementById(`history-ticket-${ticketNo}`);
-        if (ticketElement) ticketElement.classList.add('active');
-        
-        document.getElementById('selectedTicketInfo').innerHTML = `
-            <strong>🎫 Ticket: ${ticketNo}</strong> 
-            - <span id="ticketStatus">Loading...</span>
-            <button class="close-ticket-btn" onclick="closeTicket()">✕ Close</button>
-        `;
-        
-        document.getElementById('ticketReplySection').style.display = 'block';
-        
-        // 🆕 Use improved message loading
-        await loadTicketMessages(ticketNo);
-        
-        // Load ticket status
-        try {
-            const statusResponse = await fetch(`{{ url('employee/ticket-status') }}/${ticketNo}`);
-            if (statusResponse.ok) {
-                const statusData = await statusResponse.json();
-                document.getElementById('ticketStatus').innerHTML = 
-                    `<span class="ticket-badge ${statusData.status.toLowerCase()}">${statusData.status}</span>`;
-            }
-        } catch (statusError) {
-            console.error('Error loading status:', statusError);
-        }
-        
-    } catch (error) {
-        console.error('Error loading ticket conversation:', error);
-        document.getElementById('ticketChatBox').innerHTML = `
-            <div style="text-align: center; color: red; margin-top: 50px;">
-                <p>Error loading conversation: ${error.message}</p>
-            </div>
-        `;
-    }
-}
+// loadTicketConversation is implemented later in the file to render into the single messages container
 
 // Replace the existing sendMessage function with the fixed version above
 
@@ -1220,14 +1185,16 @@ function addMessageToChat(chatBox, sender, message, type = 'normal') {
     `;
     
     chatBox.appendChild(messageDiv);
-    scrollChat(chatBox.id);
+    // scroll the messages container (fallback to messagesContainer if caller passed an element without id)
+    const targetId = (chatBox && chatBox.id) ? chatBox.id : 'messagesContainer';
+    scrollChat(targetId);
 }
 
 // Start Guided Flow
-function startGuidedFlow() {
-    const chatBox = document.getElementById('chatBox');
+async function startGuidedFlow() {
+    const guidedContainer = document.getElementById('guidedContainer');
     if (conversationPath.length === 0) {
-        chatBox.innerHTML = `
+        guidedContainer.innerHTML = `
             <div class="chat-row bot">
                 <div class="chat-bubble">
                     👋 Hello! I'm Aihra - Your AI Human Resource Assistant. 
@@ -1236,15 +1203,19 @@ function startGuidedFlow() {
             </div>`;
     }
     conversationPath = [];
-    loadGuidedQuestions();
+    if (guidedContainer) {
+        guidedContainer.style.display = 'block';
+        guidedContainer.innerHTML = '';
+    }
+    await loadGuidedQuestions();
 }
 
 // Load Guided Questions
 async function loadGuidedQuestions(parentId = null) {
-    const chatBox = document.getElementById('chatBox');
+    const guidedContainer = document.getElementById('guidedContainer');
     
     try {
-        const url = parentId ? `{{ url('guided') }}/${parentId}` : `{{ url('guided') }}`;
+    const url = parentId ? `{{ url('guided') }}/${parentId}` : `{{ url('guided') }}`;
         const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
 
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -1252,13 +1223,26 @@ async function loadGuidedQuestions(parentId = null) {
 
         if (data.type === 'error') throw new Error(data.message);
         if (data.type === 'final' || data.type === 'escalate') {
+            // Final answer: render into the main messages area (not the guided box),
+            // then offer the user an explicit "Ask another question" button to start a new guided session.
             const answer = data.data?.[0]?.answer || data.answer || "Thank you for your question!";
-            addMessageToChat(chatBox, 'bot', answer);
+            const messagesEl = document.getElementById('messagesContainer');
+            if (messagesEl) addMessageToChat(messagesEl, 'bot', answer);
+
+            guidedContainer.innerHTML = `
+                <div class="chat-row bot">
+                    <div class="chat-bubble">
+                        <div class="suggestion-box">
+                            <div class="suggestion" onclick="startGuidedFlow()">🔁 Ask another question</div>
+                        </div>
+                    </div>
+                </div>`;
+            guidedContainer.style.display = 'block';
             return;
         }
 
         if (!data.data || data.data.length === 0) {
-            addMessageToChat(chatBox, 'bot', "No questions available. Please try rephrasing your question.");
+            addMessageToChat(guidedContainer, 'bot', "No questions available. Please try rephrasing your question.");
             return;
         }
 
@@ -1267,7 +1251,8 @@ async function loadGuidedQuestions(parentId = null) {
                 ${q.question_text}
             </div>`).join('');
 
-        chatBox.innerHTML += `
+        // Replace guided options (do not append) so older questions are not shown during the flow
+        guidedContainer.innerHTML = `
             <div class="chat-row bot">
                 <div class="chat-bubble">
                     <strong>${data.message || 'Please choose a topic:'}</strong>
@@ -1275,17 +1260,19 @@ async function loadGuidedQuestions(parentId = null) {
                 </div>
             </div>`;
         
-        scrollChat();
+        // keep messages scrolled to bottom
+        scrollChat('messagesContainer');
         
     } catch (error) {
         console.error('Error loading questions:', error);
-        addMessageToChat(chatBox, 'bot', 
+        addMessageToChat(guidedContainer, 'bot', 
             "Sorry, I cannot load the questions right now. Here are some common topics:", 
             'error'
         );
         
         if (!parentId) {
-            chatBox.innerHTML += `
+            // Replace fallback options as well
+            guidedContainer.innerHTML = `
                 <div class="chat-row bot">
                     <div class="chat-bubble">
                         <div class="suggestion-box">
@@ -1297,14 +1284,14 @@ async function loadGuidedQuestions(parentId = null) {
                     </div>
                 </div>`;
         }
-        scrollChat();
+        scrollChat('messagesContainer');
     }
 }
 
 // Handle Question Click
 async function handleQuestionClick(id, text) {
-    const chatBox = document.getElementById('chatBox');
-    addMessageToChat(chatBox, 'user', text);
+    const messagesEl = document.getElementById('messagesContainer');
+    addMessageToChat(messagesEl, 'user', text);
     conversationPath.push({ type: 'user', message: text });
 
     try {
@@ -1344,17 +1331,29 @@ async function handleQuestionClick(id, text) {
 
         // Display Dialogflow/backend reply (DialogflowController persists messages server-side)
         if (dfData.fulfillmentText) {
-            addMessageToChat(chatBox, 'bot', dfData.fulfillmentText);
+            addMessageToChat(messagesEl, 'bot', dfData.fulfillmentText);
             conversationPath.push({ type: 'bot', message: dfData.fulfillmentText });
         } else if (dfData.response) {
-            handleCustomResponse(dfData.response, chatBox);
+            handleCustomResponse(dfData.response, messagesEl);
         } else if (dfData.message) {
-            addMessageToChat(chatBox, 'bot', dfData.message);
+            addMessageToChat(messagesEl, 'bot', dfData.message);
             conversationPath.push({ type: 'bot', message: dfData.message });
         } else if (guidedData.type === 'final' && guidedData.data && guidedData.data[0] && guidedData.data[0].answer) {
-            // Last-resort: show guided answer
-            addMessageToChat(chatBox, 'bot', guidedData.data[0].answer);
+            // Last-resort: show guided answer in messages and offer explicit restart
+            addMessageToChat(messagesEl, 'bot', guidedData.data[0].answer);
             conversationPath.push({ type: 'bot', message: guidedData.data[0].answer });
+            const guidedContainer = document.getElementById('guidedContainer');
+            if (guidedContainer) {
+                guidedContainer.innerHTML = `
+                    <div class="chat-row bot">
+                        <div class="chat-bubble">
+                            <div class="suggestion-box">
+                                <div class="suggestion" onclick="startGuidedFlow()">🔁 Ask another question</div>
+                            </div>
+                        </div>
+                    </div>`;
+                guidedContainer.style.display = 'block';
+            }
         }
 
     } catch (err) {
@@ -1386,7 +1385,7 @@ async function loadEmployeeTickets() {
                 'No message';
                 
             ticketsHtml += `
-                <div class="ticket-item-history" onclick="loadTicketConversation('${ticket.ticket_no}')" id="history-ticket-${ticket.ticket_no}">
+                <div class="ticket-item-history" id="history-ticket-${ticket.ticket_no}" onclick="loadTicketConversation('${ticket.ticket_no}')">
                     <strong>🎫 ${ticket.ticket_no}</strong>
                     <div class="ticket-meta-history">
                         <span class="ticket-badge ${statusClass}">${ticket.status || 'Open'}</span>
@@ -1423,7 +1422,7 @@ async function loadConversations() {
         convos.forEach(c => {
             const title = c.title ? c.title : (c.first_message ? (new Date(c.created_at).toLocaleDateString() + ' - ' + c.first_message.substring(0,60) + '...') : 'Conversation');
                 html += `
-                    <div class="ticket-item-history" id="history-convo-${c.id}">
+                    <div class="ticket-item-history" id="history-convo-${c.id}" data-session="${c.session_id || ''}">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div style="flex:1; cursor:pointer;" onclick="viewConversation('${c.id}')">
                                 <strong>💬 ${escapeHtml(title)}</strong>
@@ -1433,7 +1432,7 @@ async function loadConversations() {
                                 </div>
                             </div>
                             <div style="margin-left:10px;">
-                                <button class="close-ticket-btn" onclick="event.stopPropagation(); deleteConversation('${c.id}')">🗑️</button>
+                                <button class="convo-delete" onclick="deleteConversation('${c.id}'); event.stopPropagation();" title="Delete conversation" style="background:transparent;border:none;color:#d9534f;cursor:pointer;font-size:16px;">🗑️</button>
                             </div>
                         </div>
                     </div>
@@ -1441,6 +1440,8 @@ async function loadConversations() {
         });
 
         list.innerHTML = html;
+        // Remove any stray close/delete buttons that may remain from older UI versions
+        if (typeof sanitizeConversationButtons === 'function') sanitizeConversationButtons();
     } catch (err) {
         console.error('Error loading conversations:', err);
         document.getElementById('conversationList').innerHTML = '<p style="color: red; text-align: center;">Error loading conversations</p>';
@@ -1450,52 +1451,77 @@ async function loadConversations() {
 // View specific conversation messages
 async function viewConversation(convoId) {
     try {
+        // Keep main chat visible and render conversation messages into messagesContainer
+        const chatContainer = document.querySelector('.chat-container');
+        if (chatContainer) chatContainer.style.display = 'block';
+
         // mark active UI
         document.querySelectorAll('#conversationList .ticket-item-history').forEach(item => item.classList.remove('active'));
         const el = document.getElementById(`history-convo-${convoId}`);
         if (el) el.classList.add('active');
 
-        document.getElementById('selectedTicketInfo').innerHTML = `<strong>💬 Conversation</strong> - <span id="ticketStatus"></span> <button class="close-ticket-btn" onclick="closeTicket()">✕ Close</button>`;
-        document.getElementById('ticketReplySection').style.display = 'none';
+        // If this conversation DOM element contains a data-session attribute, use it so
+        // messages sent now will be attached to the same conversation/session server-side.
+        if (el && el.dataset && el.dataset.session) {
+            currentSessionId = el.dataset.session;
+        }
+        console.debug('viewConversation', { convoId: convoId, session: currentSessionId });
+        currentConversationId = convoId;
 
-        const chatBox = document.getElementById('ticketChatBox');
-        chatBox.innerHTML = '<p class="loading">Loading conversation...</p>';
+        document.getElementById('selectedTicketInfo').innerHTML = `<strong>💬 Conversation</strong> - <span id="ticketStatus"></span>`;
+
+        const messagesEl = document.getElementById('messagesContainer');
+        messagesEl.innerHTML = '<p class="loading">Loading conversation...</p>';
 
         const response = await fetch(`{{ url('employee/conversations') }}/${convoId}/messages`);
         const messages = await response.json();
 
         if (!messages || messages.length === 0) {
-            chatBox.innerHTML = '<p style="text-align: center; color: #666; margin-top: 50px;">No messages in this conversation</p>';
+            messagesEl.innerHTML = '<p style="text-align: center; color: #666; margin-top: 50px;">No messages in this conversation</p>';
             return;
         }
 
-        chatBox.innerHTML = '';
+        messagesEl.innerHTML = '';
         messages.forEach(msg => {
             if (!msg || msg.is_button) return; // skip guided/button-only entries
 
-            const isEmployee = msg.sender === 'employee';
-            const isHR = msg.sender === 'hr';
-            const isBot = msg.sender === 'bot' || (!isEmployee && !isHR);
+                const isEmployee = msg.sender === 'employee';
+                const isHR = msg.sender === 'hr';
 
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-row ${isEmployee ? 'user' : 'bot'}`;
+                // If this message represents guided options (stored as is_button), render into guidedContainer
+                if (msg.is_button) {
+                    const guidedContainer = document.getElementById('guidedContainer');
+                    if (guidedContainer) {
+                        guidedContainer.style.display = 'block';
+                        // Render the guided entry (user choices or bot suggestions) into guided area
+                        const who = isEmployee ? 'user' : 'bot';
+                        const display = normalizeEmployeeMessage(msg.message || '');
+                        addMessageToChat(guidedContainer, who, display);
+                    }
+                    return; // skip adding to main messages area
+                }
 
-            let bubbleClass = 'chat-bubble';
-            if (isHR) bubbleClass += ' hr-reply';
-            if (isEmployee && msg.message && msg.message.includes('Employee Follow-up')) bubbleClass += ' employee-followup';
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-row ${isEmployee ? 'user' : 'bot'}`;
 
-            const senderLabel = isEmployee ? ' (You)' : (isHR ? ' (HR)' : '');
+                let bubbleClass = 'chat-bubble';
+                if (isHR) bubbleClass += ' hr-reply';
+                if (isEmployee && msg.message && /Employee\s*-?\s*Follow-?up/i.test(msg.message)) bubbleClass += ' employee-followup';
 
-            messageDiv.innerHTML = `
-                <div class="${bubbleClass}">
-                    ${msg.message}
-                    <div class="message-time">${new Date(msg.created_at).toLocaleString()}${senderLabel}</div>
-                </div>
-            `;
-            chatBox.appendChild(messageDiv);
+                // Strip any stored prefix for employee follow-ups
+                const displayMessage = normalizeEmployeeMessage(msg.message || '');
+                const senderLabel = isEmployee ? ' (You)' : (isHR ? ' (HR)' : '');
+
+                messageDiv.innerHTML = `
+                    <div class="${bubbleClass}">
+                        ${displayMessage}
+                        <div class="message-time">${new Date(msg.created_at).toLocaleString()}${senderLabel}</div>
+                    </div>
+                `;
+                messagesEl.appendChild(messageDiv);
         });
 
-        scrollChat('ticketChatBox');
+        scrollChat('messagesContainer');
 
     } catch (err) {
         console.error('Error loading conversation messages:', err);
@@ -1536,35 +1562,46 @@ async function deleteConversation(convoId) {
     }
 }
 
-// Load Ticket Conversation
+// Load Ticket Conversation (renders into messagesContainer so guided questions remain visible)
 async function loadTicketConversation(ticketNo) {
     try {
         currentSelectedTicket = ticketNo;
-        
-        // Update UI
+
+        // Update UI quickly (don't hide main chat). Show loading immediately in messages container
         document.querySelectorAll('.ticket-item-history').forEach(item => item.classList.remove('active'));
         const ticketElement = document.getElementById(`history-ticket-${ticketNo}`);
         if (ticketElement) ticketElement.classList.add('active');
-        
+
         document.getElementById('selectedTicketInfo').innerHTML = `
             <strong>🎫 Ticket: ${ticketNo}</strong> 
             - <span id="ticketStatus">Loading...</span>
-            <button class="close-ticket-btn" onclick="closeTicket()">✕ Close</button>
         `;
-        
-        document.getElementById('ticketReplySection').style.display = 'block';
-        
-        // Load messages
+
+        // hide guided suggestions for ticket view — tickets are for HR/employee back-and-forth only
+        const guidedContainer = document.getElementById('guidedContainer');
+        if (guidedContainer) {
+            guidedContainer.innerHTML = '';
+            guidedContainer.style.display = 'none';
+        }
+
+        // set main input placeholder to indicate ticket reply
+        const userInput = document.getElementById('userMessage');
+        if (userInput) {
+            userInput.placeholder = 'Type your reply to HR...';
+            userInput.focus();
+        }
+
+        // Load messages into messagesContainer immediately
         const response = await fetch(`{{ url('employee/messages') }}/${ticketNo}`);
         const messages = await response.json();
-        const chatBox = document.getElementById('ticketChatBox');
-        chatBox.innerHTML = '';
-        
-        if (messages.length === 0) {
-            chatBox.innerHTML = '<p style="text-align: center; color: #666; margin-top: 50px;">No messages in this ticket</p>';
+        const messagesEl = document.getElementById('messagesContainer');
+        messagesEl.innerHTML = '';
+
+        if (!messages || messages.length === 0) {
+            messagesEl.innerHTML = '<p style="text-align: center; color: #666; margin-top: 50px;">No messages in this ticket</p>';
             return;
         }
-        
+
         // Display messages (tickets include employee and HR replies)
         messages.forEach(msg => {
             if (!msg || msg.is_button) return; // skip guided/button-only entries
@@ -1577,22 +1614,22 @@ async function loadTicketConversation(ticketNo) {
 
             let bubbleClass = 'chat-bubble';
             if (isHR) bubbleClass += ' hr-reply';
-            else if (isEmployee && msg.message && msg.message.includes('Employee Follow-up')) bubbleClass += ' employee-followup';
+            else if (isEmployee && msg.message && /Employee\s*-?\s*Follow-?up/i.test(msg.message)) bubbleClass += ' employee-followup';
 
-            const displayMessage = isEmployee && msg.message.includes('Employee Follow-up:') ? msg.message.replace('Employee Follow-up: ', '') : msg.message;
+            const displayMessage = normalizeEmployeeMessage(msg.message || '');
 
             messageDiv.innerHTML = `
                 <div class="${bubbleClass}">
                     ${displayMessage}
                     <div class="message-time">
                         ${new Date(msg.created_at).toLocaleString()}${isEmployee ? ' (You)' : (isHR ? ' (HR)' : '')}
-                        ${msg.message && msg.message.includes('Employee Follow-up') ? ' (Follow-up)' : ''}
+                        ${msg.message && /Employee\s*-?\s*Follow-?up/i.test(msg.message) ? ' (Follow-up)' : ''}
                     </div>
                 </div>
             `;
-            chatBox.appendChild(messageDiv);
+            messagesEl.appendChild(messageDiv);
         });
-        
+
         // Load ticket status
         try {
             const statusResponse = await fetch(`{{ url('employee/ticket-status') }}/${ticketNo}`);
@@ -1604,12 +1641,13 @@ async function loadTicketConversation(ticketNo) {
         } catch (statusError) {
             console.error('Error loading status:', statusError);
         }
-        
-        scrollChat('ticketChatBox');
-        
+
+        scrollChat('messagesContainer');
+
     } catch (error) {
         console.error('Error loading conversation:', error);
-        document.getElementById('ticketChatBox').innerHTML = `
+        const messagesEl = document.getElementById('messagesContainer');
+        messagesEl.innerHTML = `
             <div style="text-align: center; color: red; margin-top: 50px;">
                 <p>Error loading conversation</p>
             </div>
@@ -1617,22 +1655,43 @@ async function loadTicketConversation(ticketNo) {
     }
 }
 
-// Send Ticket Reply
-async function sendTicketReply() {
+// Send Ticket Reply (unified: reads from main input when used from sendMessage)
+async function sendTicketReply(fromSendMessage = false, passedMessage = null) {
     if (!currentSelectedTicket) {
         alert('Please select a ticket first');
         return;
     }
-    
-    const messageInput = document.getElementById('ticketReplyMessage');
-    const message = messageInput.value.trim();
-    
+
+    // Prevent duplicate sends
+    if (sendingTicket) {
+        console.warn('sendTicketReply called while a send is already in progress');
+        return;
+    }
+
+    // Determine message source: passedMessage (priority), ticketReplyMessage (legacy), or main input
+    let message = '';
+    if (fromSendMessage && passedMessage) {
+        message = passedMessage;
+    } else {
+        const legacy = document.getElementById('ticketReplyMessage');
+        if (legacy && legacy.value && legacy.value.trim() !== '') {
+            message = legacy.value.trim();
+        } else {
+            const main = document.getElementById('userMessage');
+            if (main && main.value && main.value.trim() !== '') {
+                message = main.value.trim();
+            }
+        }
+    }
+
     if (!message) {
         alert('Please enter a message');
         return;
     }
-    
+
     try {
+        sendingTicket = true;
+
         const response = await fetch('{{ route("employee.reply-to-ticket") }}', {
             method: 'POST',
             headers: {
@@ -1644,39 +1703,36 @@ async function sendTicketReply() {
                 message: message
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
-            messageInput.value = '';
-            
-            // Add message to chat
-            const chatBox = document.getElementById('ticketChatBox');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'chat-row user';
-            messageDiv.innerHTML = `
-                <div class="chat-bubble employee-followup">
-                    ${message}
-                    <div class="message-time">
-                        ${new Date().toLocaleString()} (Follow-up)
-                    </div>
-                </div>
-            `;
-            chatBox.appendChild(messageDiv);
-            
+            // Clear inputs
+            const legacy = document.getElementById('ticketReplyMessage');
+            if (legacy) legacy.value = '';
+            const main = document.getElementById('userMessage');
+            if (main) main.value = '';
+
+            // After successful send, refresh ticket UI from server (no optimistic append to avoid duplicates)
             document.getElementById('ticketStatus').innerHTML = 
                 '<span class="ticket-badge replied">Waiting for HR</span>';
-            
-            scrollChat('ticketChatBox');
             showNotification('✅ Your reply has been sent to HR!');
-            
+
         } else {
             alert('Failed to send reply: ' + (result.message || 'Unknown error'));
         }
-        
+
     } catch (error) {
         console.error('Error sending reply:', error);
         alert('Failed to send reply. Please try again.');
+    } finally {
+        sendingTicket = false;
+        // Refresh the ticket conversation from the server to ensure the UI matches persisted state
+        try {
+            if (currentSelectedTicket) await loadTicketConversation(currentSelectedTicket);
+        } catch (e) {
+            console.warn('Could not reload ticket after send', e);
+        }
     }
 }
 
@@ -1720,23 +1776,51 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
+// Normalize employee messages by stripping any stored "Employee Follow-up" prefixes
+function normalizeEmployeeMessage(text) {
+    if (!text) return '';
+    return text.replace(/^Employee\s*-?\s*Follow-?up:?:?\s*/i, '');
+}
+
 function sendQuick(message) {
     document.getElementById('userMessage').value = message;
     sendMessage();
 }
 
 function restartChat() {
-    const chatBox = document.getElementById('chatBox');
-    if (chatBox) {
-        chatBox.innerHTML = '';
-        conversationPath = [];
-        startGuidedFlow();
+    const messagesEl = document.getElementById('messagesContainer');
+    const guidedContainer = document.getElementById('guidedContainer');
+    if (messagesEl) messagesEl.innerHTML = '';
+    if (guidedContainer) guidedContainer.innerHTML = '';
+    conversationPath = [];
+    startGuidedFlow();
+}
+
+// Remove any close/delete controls left over from previous UI iterations.
+// This ensures the user-requested "no close button for chats" is enforced client-side
+// even if some older markup slips into the list.
+function sanitizeConversationButtons() {
+    try {
+        // Common selectors used in older versions — remove them if present.
+        // NOTE: preserve our conversation delete buttons which use class 'convo-delete'.
+        document.querySelectorAll('.conversation-close, .convo-close, .delete-btn, .close-btn').forEach(el => el.remove());
+
+        // Also hide any inline buttons/links that have obvious labels, but skip our convo-delete controls
+        document.querySelectorAll('#conversationList button, #conversationList a').forEach(el => {
+            if (el.classList && el.classList.contains('convo-delete')) return; // keep our delete control
+            const txt = (el.textContent || '').toLowerCase();
+            if (txt.includes('delete') || txt.includes('close') || txt.includes('remove')) el.remove();
+        });
+    } catch (e) {
+        console.warn('sanitizeConversationButtons failed', e);
     }
 }
 
 // Start a brand new conversation (server creates a new conversation/session)
 async function startNewConversation() {
     try {
+        // Ensure chats panel is visible when creating a new conversation
+        showChats();
         const res = await fetch('{{ route("employee.conversations.start") }}', {
             method: 'POST',
             headers: {
@@ -1747,18 +1831,50 @@ async function startNewConversation() {
         });
 
         const data = await res.json();
+        console.debug('startNewConversation response', data);
         if (res.ok && data.success) {
             currentSessionId = data.session_id;
             currentConversationId = data.id;
 
-            // Clear the chat and start guided flow
-            const chatBox = document.getElementById('chatBox');
-            if (chatBox) {
-                chatBox.innerHTML = '';
-                conversationPath = [];
-                addMessageToChat(chatBox, 'bot', '🔄 Started a new conversation. How can I help you?', 'info');
-                // Load guided questions immediately for the new conversation
-                await loadGuidedQuestions();
+            // Clear the message + guided containers and start guided flow
+            // Ensure main chat area is visible
+            showMainChat();
+            const messagesEl = document.getElementById('messagesContainer');
+            const guidedContainer = document.getElementById('guidedContainer');
+            if (messagesEl) messagesEl.innerHTML = '';
+            if (guidedContainer) guidedContainer.innerHTML = '';
+            conversationPath = [];
+            // show a quick system message and then load guided questions
+            if (messagesEl) addMessageToChat(messagesEl, 'bot', '🔄 Started a new conversation. How can I help you?', 'info');
+            await loadGuidedQuestions();
+
+            // Insert the new conversation into the list immediately (avoids timing issues
+            // where reloading the whole list may not yet include the new item).
+            try {
+                const list = document.getElementById('conversationList');
+                if (list) {
+                    const title = data.title ? escapeHtml(data.title) : (data.first_message ? escapeHtml((data.first_message.length > 80 ? data.first_message.substring(0,80) + '...' : data.first_message)) : 'Conversation');
+                    const firstMsg = data.first_message ? escapeHtml(data.first_message) : '';
+                    const newHtml = `\n                        <div class="ticket-item-history" id="history-convo-${data.id}" data-session="${data.session_id || ''}">\n                            <div style="display:flex; justify-content:space-between; align-items:center;">\n                                <div style="flex:1; cursor:pointer;" onclick="viewConversation('${data.id}')">\n                                    <strong>💬 ${title}</strong>\n                                    <div class="ticket-meta-history">\n                                        <span>${new Date().toLocaleDateString()}</span>\n                                        <div style="margin-top: 5px; font-size: 13px; color: #555;">${firstMsg}</div>\n                                    </div>\n                                </div>\n                                <div style="margin-left:10px;">\n                                    <button class=\"convo-delete\" onclick=\"deleteConversation('${data.id}'); event.stopPropagation();\" title=\"Delete conversation\" style=\"background:transparent;border:none;color:#d9534f;cursor:pointer;font-size:16px;\">🗑️</button>\n                                </div>\n                            </div>\n                        </div>`;
+
+                    // prepend new convo so users see it at the top
+                    list.insertAdjacentHTML('afterbegin', newHtml);
+
+                    // Remove active class from other conversations and trigger view
+                    document.querySelectorAll('#conversationList .ticket-item-history').forEach(item => item.classList.remove('active'));
+                    const newEl = document.getElementById(`history-convo-${data.id}`);
+                    if (newEl) {
+                        newEl.classList.add('active');
+                        // Do not auto-open the new conversation viewer (which hides main chat).
+                        // Keep main chat visible so guided questions appear for the new session.
+                        showChats();
+                        showMainChat();
+                        console.debug('Inserted new conversation element', { id: data.id, session: newEl.dataset.session || null });
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not insert/open new conversation directly', e);
+                try { await loadConversations(); } catch (err) { console.warn('Could not reload conversations', err); }
             }
         } else {
             alert('Failed to start a new conversation');
@@ -1776,6 +1892,9 @@ function closeTicket() {
         '<p style="text-align: center; color: #666; margin: 0;">Select a ticket to view conversation</p>';
     document.getElementById('ticketChatBox').innerHTML = '';
     document.querySelectorAll('.ticket-item-history').forEach(item => item.classList.remove('active'));
+    // Restore main chat container when closing ticket/conversation view
+    const chatContainer = document.querySelector('.chat-container');
+    if (chatContainer) chatContainer.style.display = 'block';
 }
 
 function showNotification(message) {

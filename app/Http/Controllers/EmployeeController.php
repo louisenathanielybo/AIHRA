@@ -99,9 +99,17 @@ public function getMessages($ticket_no)
             ->get();
             
         foreach ($hrReplies as $reply) {
+            // Determine whether this reply was from the employee or HR based on replied_by
+            $sender = ($reply->replied_by == $ticket->from_user) ? 'employee' : 'hr';
+            $text = $reply->hr_message;
+            // Strip any stored "Employee Follow-up" prefix that may be present from older data
+            if (preg_match('/Employee\s*-?\s*Follow-?up/i', $text)) {
+                $text = preg_replace('/^.*?Employee\s*-?\s*Follow-?up:?\s*/i', '', $text);
+            }
+
             $messages->push([
-                'sender' => 'hr',
-                'message' => $reply->hr_message,
+                'sender' => $sender,
+                'message' => $text,
                 'created_at' => $reply->replied_at,
             ]);
         }
@@ -227,10 +235,11 @@ public function replyToTicket(Request $request)
             ], 403);
         }
 
-        // 🆕 Save employee's additional message to hr_replies (as employee follow-up)
+        // Save employee's additional message to hr_replies. Store the raw message and
+        // use replied_by to identify the sender when rendering messages.
         \App\Models\HrReply::create([
             'ticket_no'  => $request->ticket_no,
-            'hr_message' => "🔁 Employee Follow-up: " . $request->message,
+            'hr_message' => $request->message,
             'replied_by' => $employeeNum,
             'replied_at' => now(),
         ]);
