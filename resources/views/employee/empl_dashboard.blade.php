@@ -842,6 +842,13 @@ async function sendMessage() {
     const data = await res.json();
         console.log('🔍 Dialogflow RAW Response:', data);
 
+        // Reload conversation list to update title with first message
+        try {
+            await loadConversations();
+        } catch (e) {
+            console.warn('Could not reload conversations after message', e);
+        }
+
         // 🆕 FIXED: Handle different response formats (render into messagesContainer)
         if (data.fulfillmentText) {
             // Standard Dialogflow response
@@ -1240,16 +1247,19 @@ async function loadGuidedQuestions(parentId = null) {
         if (data.type === 'error') throw new Error(data.message);
         if (data.type === 'final' || data.type === 'escalate') {
             // Final answer: render into the main messages area (not the guided box),
-            // then offer the user an explicit "Ask another question" button to start a new guided session.
+            // then ask if user needs more help
             const answer = data.data?.[0]?.answer || data.answer || "Thank you for your question!";
             const messagesEl = document.getElementById('messagesContainer');
             if (messagesEl) addMessageToChat(messagesEl, 'bot', answer);
 
+            // Ask if they need more help with Yes/No options
             guidedContainer.innerHTML = `
                 <div class="chat-row bot">
                     <div class="chat-bubble">
+                        <strong>Is there anything else I can help you with?</strong>
                         <div class="suggestion-box">
-                            <div class="suggestion" onclick="startGuidedFlow()">🔁 Ask another question</div>
+                            <div class="suggestion" onclick="handleMoreHelpResponse('yes')">✅ Yes, please</div>
+                            <div class="suggestion" onclick="handleMoreHelpResponse('no')">❌ No, thanks</div>
                         </div>
                     </div>
                 </div>`;
@@ -1311,6 +1321,38 @@ async function loadGuidedQuestions(parentId = null) {
 }
 
 // Handle Question Click
+// Handle user response to "Need more help?" after T3 answer
+function handleMoreHelpResponse(response) {
+    const messagesEl = document.getElementById('messagesContainer');
+    const guidedContainer = document.getElementById('guidedContainer');
+    
+    if (response === 'yes') {
+        // User wants more help - restart guided flow from T1
+        addMessageToChat(messagesEl, 'user', 'Yes, please');
+        conversationPath.push({ type: 'user', message: 'Yes, please' });
+        
+        addMessageToChat(messagesEl, 'bot', 'Great! Let me help you with another question.');
+        conversationPath.push({ type: 'bot', message: 'Great! Let me help you with another question.' });
+        
+        // Clear guided container and restart from Level 1
+        if (guidedContainer) guidedContainer.innerHTML = '';
+        loadGuidedQuestions(); // Load T1 questions
+    } else {
+        // User is done
+        addMessageToChat(messagesEl, 'user', 'No, thanks');
+        conversationPath.push({ type: 'user', message: 'No, thanks' });
+        
+        addMessageToChat(messagesEl, 'bot', 'Thank you for using AIHRA! Feel free to start a new chat anytime.');
+        conversationPath.push({ type: 'bot', message: 'Thank you for using AIHRA! Feel free to start a new chat anytime.' });
+        
+        // Clear guided container
+        if (guidedContainer) {
+            guidedContainer.innerHTML = '';
+            guidedContainer.style.display = 'none';
+        }
+    }
+}
+
 async function handleQuestionClick(id, text) {
     const messagesEl = document.getElementById('messagesContainer');
     addMessageToChat(messagesEl, 'user', text);
@@ -1359,17 +1401,64 @@ async function handleQuestionClick(id, text) {
 
         const dfData = await dfRes.json();
 
+        // Reload conversation list to update title with first message
+        try {
+            await loadConversations();
+        } catch (e) {
+            console.warn('Could not reload conversations after message', e);
+        }
+
         // Display Dialogflow/backend reply (DialogflowController persists messages server-side)
         if (dfData.fulfillmentText) {
             addMessageToChat(messagesEl, 'bot', dfData.fulfillmentText);
             conversationPath.push({ type: 'bot', message: dfData.fulfillmentText });
+            
+            // Only show "Need more help?" if this is a successful response (not error/retry/escalation)
+            const isErrorResponse = dfData.status === 'retry' || dfData.status === 'offer_escalation' || dfData.fallback === true || dfData.max_retries_reached === true;
+            
+            if (!isErrorResponse) {
+                const guidedContainer = document.getElementById('guidedContainer');
+                if (guidedContainer) {
+                    guidedContainer.innerHTML = `
+                        <div class="chat-row bot">
+                            <div class="chat-bubble">
+                                <strong>Is there anything else I can help you with?</strong>
+                                <div class="suggestion-box">
+                                    <div class="suggestion" onclick="handleMoreHelpResponse('yes')">✅ Yes, please</div>
+                                    <div class="suggestion" onclick="handleMoreHelpResponse('no')">❌ No, thanks</div>
+                                </div>
+                            </div>
+                        </div>`;
+                    guidedContainer.style.display = 'block';
+                }
+            }
         } else if (dfData.response) {
             handleCustomResponse(dfData.response, messagesEl);
         } else if (dfData.message) {
             addMessageToChat(messagesEl, 'bot', dfData.message);
             conversationPath.push({ type: 'bot', message: dfData.message });
+            
+            // Only show "Need more help?" if this is a successful response (not error/retry/escalation)
+            const isErrorResponse = dfData.status === 'retry' || dfData.status === 'offer_escalation' || dfData.fallback === true || dfData.max_retries_reached === true;
+            
+            if (!isErrorResponse) {
+                const guidedContainer = document.getElementById('guidedContainer');
+                if (guidedContainer) {
+                    guidedContainer.innerHTML = `
+                        <div class="chat-row bot">
+                            <div class="chat-bubble">
+                                <strong>Is there anything else I can help you with?</strong>
+                                <div class="suggestion-box">
+                                    <div class="suggestion" onclick="handleMoreHelpResponse('yes')">✅ Yes, please</div>
+                                    <div class="suggestion" onclick="handleMoreHelpResponse('no')">❌ No, thanks</div>
+                                </div>
+                            </div>
+                        </div>`;
+                    guidedContainer.style.display = 'block';
+                }
+            }
         } else if (guidedData.type === 'final' && guidedData.data && guidedData.data[0] && guidedData.data[0].answer) {
-            // Last-resort: show guided answer in messages and offer explicit restart
+            // Last-resort: show guided answer in messages and ask if they need more help
             addMessageToChat(messagesEl, 'bot', guidedData.data[0].answer);
             conversationPath.push({ type: 'bot', message: guidedData.data[0].answer });
             const guidedContainer = document.getElementById('guidedContainer');
@@ -1377,8 +1466,10 @@ async function handleQuestionClick(id, text) {
                 guidedContainer.innerHTML = `
                     <div class="chat-row bot">
                         <div class="chat-bubble">
+                            <strong>Is there anything else I can help you with?</strong>
                             <div class="suggestion-box">
-                                <div class="suggestion" onclick="startGuidedFlow()">🔁 Ask another question</div>
+                                <div class="suggestion" onclick="handleMoreHelpResponse('yes')">✅ Yes, please</div>
+                                <div class="suggestion" onclick="handleMoreHelpResponse('no')">❌ No, thanks</div>
                             </div>
                         </div>
                     </div>`;
@@ -1388,6 +1479,12 @@ async function handleQuestionClick(id, text) {
 
     } catch (err) {
         console.error('Error handling question click:', err);
+        // Don't show "Need more help?" on errors - just reload guided questions
+        // Clear any error prompts from guided container
+        const guidedContainer = document.getElementById('guidedContainer');
+        if (guidedContainer) {
+            guidedContainer.innerHTML = '';
+        }
         // Fallback: still try to load guided children/UI
         await loadGuidedQuestions(id);
     }
@@ -1451,6 +1548,7 @@ async function loadConversations() {
         let html = '';
         convos.forEach(c => {
             const title = c.title ? c.title : (c.first_message ? (new Date(c.created_at).toLocaleDateString() + ' - ' + c.first_message.substring(0,60) + '...') : 'Conversation');
+            const preview = c.latest_message ? c.latest_message : (c.first_message || 'No message');
                 html += `
                     <div class="ticket-item-history" id="history-convo-${c.id}" data-session="${c.session_id || ''}">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1458,7 +1556,7 @@ async function loadConversations() {
                                 <strong>💬 ${escapeHtml(title)}</strong>
                                 <div class="ticket-meta-history">
                                     <span>${new Date(c.created_at).toLocaleDateString()}</span>
-                                    <div style="margin-top: 5px; font-size: 13px; color: #555;">${escapeHtml(c.first_message ? (c.first_message.length > 80 ? c.first_message.substring(0,80) + '...' : c.first_message) : 'No message')}</div>
+                                    <div style="margin-top: 5px; font-size: 13px; color: #555;">${escapeHtml(preview.length > 80 ? preview.substring(0,80) + '...' : preview)}</div>
                                 </div>
                             </div>
                             <div style="margin-left:10px;">
