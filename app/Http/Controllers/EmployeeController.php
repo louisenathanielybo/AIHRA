@@ -6,8 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\HrInbox;
 use App\Models\ChatMessage;
+use App\Models\Conversation;
 use App\Models\HrReply;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class EmployeeController extends Controller
 {
@@ -97,9 +99,17 @@ public function getMessages($ticket_no)
             ->get();
             
         foreach ($hrReplies as $reply) {
+            // Determine whether this reply was from the employee or HR based on replied_by
+            $sender = ($reply->replied_by == $ticket->from_user) ? 'employee' : 'hr';
+            $text = $reply->hr_message;
+            // Strip any stored "Employee Follow-up" prefix that may be present from older data
+            if (preg_match('/Employee\s*-?\s*Follow-?up/i', $text)) {
+                $text = preg_replace('/^.*?Employee\s*-?\s*Follow-?up:?\s*/i', '', $text);
+            }
+
             $messages->push([
-                'sender' => 'hr',
-                'message' => $reply->hr_message,
+                'sender' => $sender,
+                'message' => $text,
                 'created_at' => $reply->replied_at,
             ]);
         }
@@ -135,6 +145,59 @@ public function getTickets()
         return response()->json([], 500);
     }
 }
+
+    /**
+     * Get chat conversations for the authenticated employee
+     */
+    public function getConversations()
+    {
+        try {
+            $userId = Auth::id();
+
+            $conversations = Conversation::where('user_id', $userId)
+                ->orderBy('created_at', 'desc')
+                ->get(['id', 'title', 'first_message', 'created_at'])
+                ->map(function($conversation) {
+                    // Get the latest message for preview
+                    $latestMessage = ChatMessage::where('conversation_id', $conversation->id)
+                        ->where('sender', 'employee')
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                    
+                    $conversation->latest_message = $latestMessage ? $latestMessage->message : $conversation->first_message;
+                    return $conversation;
+                });
+
+            return response()->json($conversations);
+        } catch (\Exception $e) {
+            \Log::error('Get conversations error: ' . $e->getMessage());
+            return response()->json([], 500);
+        }
+    }
+
+    /**
+     * Get messages for a specific conversation
+     */
+    public function getConversationMessages($id)
+    {
+        try {
+            $userId = Auth::id();
+
+            $conversation = Conversation::where('id', $id)->where('user_id', $userId)->first();
+            if (!$conversation) {
+                return response()->json([], 403);
+            }
+
+            $messages = ChatMessage::where('conversation_id', $conversation->id)
+                ->orderBy('created_at', 'asc')
+                ->get(['sender', 'message', 'created_at']);
+
+            return response()->json($messages);
+        } catch (\Exception $e) {
+            \Log::error('Get conversation messages error: ' . $e->getMessage());
+            return response()->json([], 500);
+        }
+    }
 
 /**
  * 🆕 Get ticket status
@@ -182,10 +245,11 @@ public function replyToTicket(Request $request)
             ], 403);
         }
 
-        // 🆕 Save employee's additional message to hr_replies (as employee follow-up)
+        // Save employee's additional message to hr_replies. Store the raw message and
+        // use replied_by to identify the sender when rendering messages.
         \App\Models\HrReply::create([
             'ticket_no'  => $request->ticket_no,
-            'hr_message' => "🔁 Employee Follow-up: " . $request->message,
+            'hr_message' => $request->message,
             'replied_by' => $employeeNum,
             'replied_at' => now(),
         ]);
@@ -210,5 +274,61 @@ public function replyToTicket(Request $request)
             'message' => 'Failed to send reply: ' . $e->getMessage()
         ], 500);
     }
-}
+
+    }
+
+    /**
+     * Start a new conversation for the authenticated user (creates a new session_id)
+     */
+    public function startConversation(Request $request)
+    {
+        try {
+            $userId = Auth::id();
+
+            $sessionId = Str::random(40) . '-' . time();
+
+            $conversation = Conversation::create([
+                'user_id' => $userId,
+                'session_id' => $sessionId,
+                'first_message' => null,
+                'title' => null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'id' => $conversation->id,
+                'session_id' => $sessionId
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Start conversation error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to start conversation'], 500);
+        }
+    }
+
+    /**
+     * Delete a conversation and its messages (only for the owning user)
+     */
+    public function deleteConversation($id)
+    {
+        try {
+            $userId = Auth::id();
+
+            $conversation = Conversation::where('id', $id)->where('user_id', $userId)->first();
+            if (!$conversation) {
+                return response()->json(['success' => false, 'message' => 'Not found or access denied'], 403);
+            }
+
+            // Delete related chat messages
+            ChatMessage::where('conversation_id', $conversation->id)->delete();
+
+            // Delete the conversation
+            $conversation->delete();
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Log::error('Delete conversation error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to delete conversation'], 500);
+        }
+    }
 }

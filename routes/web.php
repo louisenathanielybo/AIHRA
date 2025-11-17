@@ -24,7 +24,10 @@ use Illuminate\Support\Facades\DB;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
-
+  // Redirect root to login
+Route::get('/', function () {
+    return redirect('/login');
+});
 // 🆕 FIXED: Login routes (should be outside auth middleware)
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
