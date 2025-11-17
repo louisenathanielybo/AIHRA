@@ -1,4 +1,7 @@
 @extends('layouts.app')
+@php
+    $pageTitle = "Admin Dashboard";
+@endphp
 
 @section('styles')
 <link rel="stylesheet" href="{{ asset('/css/dashboard.css') }}">
@@ -493,26 +496,45 @@
 @endsection
 
 @section('content')
-<!-- Sidebar -->
-<div class="sidebar">
-    <h1>AIHRA</h1>
-    <ul>
-        <li class="active"><a href="#home" onclick="showSection('home')">🏠 Home</a></li>
-        <li><a href="#chat" onclick="showSection('chat')">💬 Chat</a></li>
-        <li><a href="#feedback" onclick="showSection('feedback')">⭐ Feedback</a></li>
-        <li><a href="#account" onclick="showSection('account')">👤 Account</a></li>
-    </ul>
-    <div class="account">
-        <img src="{{ asset('uploads/' . Auth::user()->profile_picture) }}" alt="Profile Picture">
-        <a href="{{ route('logout') }}" class="logout"
-           onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-           🚪 Log Out
-        </a>
-        <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
-            @csrf
-        </form>
+<div class="dashboard">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sb-brand">
+            <img src="{{ asset('assets/logo.png') }}" alt="AIHRA Logo" class="sb-logo">
+            <h1>AIHRA</h1>
+        </div>
+        
+        <nav class="sb-nav">
+            <a href="#kb" class="sb-link active" onclick="showSection('kb')">
+                <i>📚</i> Knowledge Base
+            </a>
+            <a href="#announcements" class="sb-link" onclick="showSection('announcements')">
+                <i>📢</i> Announcements
+            </a>
+            <a href="#create-account" class="sb-link" onclick="showSection('create-account')">
+                <i>👥</i> Create Account
+            </a>
+            <a href="#feedback" class="sb-link" onclick="showSection('feedback')">
+                <i>💬</i> Feedback & Flags
+            </a>
+            <a href="#profile" class="sb-link" onclick="showSection('profile')">
+                <i>👤</i> Profile
+            </a>
+        </nav>
+
+        <div class="sb-bottom">
+            <div class="account">
+                <img src="{{ asset('uploads/' . $admin->profile_picture) }}" alt="Admin Profile">
+                <a href="{{ route('logout') }}" class="logout"
+                   onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    Log Out
+                </a>
+                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
+                    @csrf
+                </form>
+            </div>
+        </div>
     </div>
-</div>
 
 <!-- Main Content -->
 <div class="main">
@@ -624,23 +646,25 @@
         </form>
     </div>
 
-    <!-- Account Section -->
-    <div id="account" class="table-container section" style="display:none;">
-        <h2>👤 Account Information</h2>
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="{{ asset('uploads/' . Auth::user()->profile_picture) }}" alt="Profile Picture" 
-                 style="width:120px;height:120px;border-radius:50%;object-fit:cover; border: 3px solid #007bff;">
-            <br>
-            <a href="{{ route('profile.edit') }}" style="display: inline-block; margin-top: 10px; color: #007bff; text-decoration: none;">
-                ✏️ Edit Profile
-            </a>
-        </div>
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-            <p><strong>About Me:</strong></p>
-            <p style="color: #666; line-height: 1.6;">{{ Auth::user()->about ?: 'No information provided yet.' }}</p>
-        </div>
-    </div>
-</div>
+                    <div class="form-group">
+                        <label for="password_confirmation">Confirm Password *</label>
+                        <input type="password" id="password_confirmation" name="password_confirmation" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" name="firstName" value="{{ old('firstName') }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" name="lastName" value="{{ old('lastName') }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="middleName">Middle Name</label>
+                        <input type="text" id="middleName" name="middleName" value="{{ old('middleName') }}">
+                    </div>
 
 <script>
 // Global variables
@@ -1885,13 +1909,14 @@ function handleEscalationSuccess(ticketNo, fulfillmentText) {
     
     conversationPath.push({ type: 'bot', message: message });
     
-    // Switch to history tab
-    setTimeout(() => {
-        showChatTab('chat-history');
-        loadEmployeeTickets();
-    }, 2000);
+    // Remove active class from all sidebar links
+    document.querySelectorAll('.sb-link').forEach(link => link.classList.remove('active'));
     
-    scrollChat();
+    // Show selected section
+    document.getElementById(id).classList.add('active');
+    
+    // Add active class to clicked sidebar link
+    event.target.closest('.sb-link').classList.add('active');
 }
 
 // Utility Functions
