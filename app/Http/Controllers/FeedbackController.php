@@ -25,6 +25,9 @@ class FeedbackController extends Controller
             'timeStamp' => now(),
         ]);
 
-        return back()->with('feedback_success', 'Thank you for your feedback!');
+        return response()->json([
+            'success' => true,
+            'message' => 'Thank you for your feedback!'
+        ]);
     }
 }

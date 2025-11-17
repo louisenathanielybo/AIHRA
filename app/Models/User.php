@@ -24,11 +24,14 @@ class User extends Authenticatable
         'firstName',
         'lastName',
         'middleName',
+        'name',
         'role',
         'sex',
         'age',
+        'dob',
         'profile_picture',
         'status',
+        'about',
     ];
 
     protected $hidden = [
@@ -56,5 +59,23 @@ class User extends Authenticatable
     public function getAuthPassword()
     {
         return $this->password;
+    }
+
+    // Accessor for name attribute - returns stored name or constructs from firstName/lastName
+    public function getNameAttribute($value)
+    {
+        // If name is stored in database, return it
+        if (!empty($value)) {
+            return $value;
+        }
+        
+        // Otherwise construct from firstName, middleName, lastName
+        $parts = array_filter([
+            $this->attributes['firstName'] ?? null,
+            $this->attributes['middleName'] ?? null,
+            $this->attributes['lastName'] ?? null
+        ]);
+        
+        return !empty($parts) ? implode(' ', $parts) : 'N/A';
     }
 }

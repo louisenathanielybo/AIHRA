@@ -1,0 +1,348 @@
+.forAll
+{
+    font-family: "Poppins", sans-serif;
+    margin: 0;
+}
+.facadeBG
+{
+    position: fixed; 
+    inset: 0;       
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    object-position: center;
+    z-index: -1;  
+}
+.overlay
+{
+    position: fixed;  
+    inset: 0;
+    background-color: rgba(15,165,4,0.73);
+    z-index: 0;   
+}
+.login
+{
+    position: relative; 
+    z-index: 1;   
+    display: flex;
+    min-height: 100vh;  
+    align-items: center; 
+    justify-content: center;
+}
+.loginContainer
+{
+    height: 550px;
+    width: 500px;
+    margin-right: 10%;
+    border-radius: 30px;
+    background-color: white;
+    color: rgb(15,165,4);
+    align-items: center; 
+    justify-content: center;
+}
+.logoContainer
+{
+    height: 550px;
+    width: 500px;
+    border-radius: 12px;
+    align-items: center; 
+    justify-content: center;
+    text-align: center;
+}
+.welcome
+{
+    text-align: center;
+    padding-top: 60px;
+    padding-bottom: 50px;
+}
+.login-form
+{
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 15px;
+	width: 100%;
+	max-width: 400px;
+	margin: 0 auto;
+}
+.inputBox
+{
+	position: relative;
+	width: 100%;
+}
+.icon
+{
+	position: absolute;
+	left: 18px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #00A800;
+	font-size: 18px;
+}
+.inputField
+{
+	width: 100%;
+	padding: 14px 16px 14px 45px;  
+	border: none;
+	border-radius: 10px;
+	background-color: rgb(231, 255, 229);
+	font-size: 14px;
+	outline: none;
+	box-sizing: border-box;
+	color: #000000;
+}
+.inputField:focus
+{
+	box-shadow: 0 0 0 3px rgba(0, 200, 83, 0.25);
+}
+.loginButton
+{
+	width: 100%;
+    margin-top: 40px;
+    margin-bottom: 20px;
+	padding: 14px;
+	background-color: #00A800;
+	color: #FFFFFF;
+	border: none;
+	border-radius: 10px;
+	font-size: 16px;
+	font-weight: 700;
+	cursor: pointer;
+}
+.loginButton:hover
+{
+	background-color: #008C00;
+}
+#forgotPass
+{
+    color: #656565;
+    font-size: 12px;
+    text-decoration: none;
+}
+#forgotPass:hover
+{
+    color: #00A800;
+    font-weight: 500;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.loginLogo
+{
+    margin-top: 150px;
+    height: 100px;
+    width: 100px;
+}
+.loginTitle
+{
+    margin: 0;
+    font-weight: 900;
+    font-size: 60px;
+    color: #FFFFFF;
+}
+.loginText
+{
+    color: #FFFFFF;
+    margin: 0;
+    font-size: 14px;
+}
+.pageFooter
+{
+	position: fixed;     
+	bottom: 15px;   
+	left: 50%;      
+	transform: translateX(-50%); 
+	color: #FFFFFF;  
+	font-size: 14px;   
+	text-align: center;
+	opacity: 0.9;           
+}
+
+/*                       Employee Module                           */
+
+.dashboard
+{
+	display: flex;
+	height: 100vh;
+	width: 100%;
+	overflow-y: auto; 
+}
+.sidebar
+{
+    background: linear-gradient(180deg, #0A2F2D 0%, #0F3936 40%, #1A6B61 100%);
+	box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    font-family: "Poppins", sans-serif;
+	width: 16vw;
+	color: #fff;
+	padding: 20px;
+	box-sizing: border-box;
+	position: sticky;
+	top: 0;
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+    align-items: center;
+    text-align: left;
+}
+.sb-brand
+{
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 22px 16px 12px 16px;
+}
+.sb-logo
+{
+	width: 42px;
+	height: 42px;
+    margin-bottom: 30px;
+	object-fit: contain;
+	filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
+}
+.sb-nav
+{
+	display: flex;
+	flex-direction: column;
+	padding: 8px;
+	gap: 4px;
+}
+.sb-link
+{
+	font-family: "Poppins", sans-serif;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	margin: 2px 4px;
+	border-radius: 10px;
+	text-decoration: none;
+	color: rgba(255,255,255,.92);
+	transition: background .18s ease, transform .18s ease, color .18s ease, box-shadow .18s ease;
+}
+.sb-link i
+{
+	font-size: 18px;
+	width: 20px;
+	text-align: center;
+}
+.sb-link:hover
+{
+	background: rgba(255,255,255,.10);
+	transform: translateX(2px);
+}
+.sb-link.active
+{
+	background: rgba(255,255,255,.16);
+	box-shadow: inset 3px 0 0 0 #34c759;
+}
+.sb-bottom
+{
+	margin-top: auto;
+	padding: 8px;
+	border-top: 1px solid rgba(255,255,255,.12);
+}
+.sb-btn
+{
+	background: transparent;
+	border: none;
+	width: 100%;
+	text-align: left;
+	cursor: pointer;
+}
+.main-content
+{
+	flex: 1;
+	background-color: #e6fbf5;
+	padding: 30px;
+	box-sizing: border-box;
+	min-height: 1000px; 
+}
+.page-footer
+{
+    height: 350px;
+    width: calc(100% + 60px);
+    margin-left: -30px;
+    margin-bottom: -30px;
+    background: 
+        linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+        url("../assets/footerBG.jpg") no-repeat center center;
+    background-size: cover;
+    text-align: center;
+    color: #4e4e4e;
+    padding: 25px 0 20px 0;
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+    margin-top: 40px;
+}
+.footer-line
+{
+    width: 60%;
+    margin: 0 auto 10px auto;
+    border: none;
+    border-top: 2px solid #ffffff;
+}
+.footer-text p
+{
+    margin: 3px 0;
+    font-size: 14px;
+    color: #ffffff;
+}
+.dwccLogo
+{
+    margin-top: 20px;
+    width: 70px;
+    height: 70px;
+}
+.displayicn
+{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 60px;                 
+    margin: 30px 0;
+    flex-wrap: wrap;        
+}
+.displayicn div
+{
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+.displayicn div:hover
+{
+    transform: translateY(-5px);    
+}
+.footerIcon
+{
+    font-size: 30px;      
+    color: #ffffff;     
+    background-color: rgba(255,255,255,0.1); 
+    padding: 18px;
+    border-radius: 50%;          
+    transition: all 0.3s ease;
+}
+.footerIcon:hover
+{
+    color: #baf2e9;          
+    background-color: rgba(255,255,255,0.25);
+    transform: scale(1.2);    
+}
+.displayicn p
+{
+    margin: 8px 0 0 0;
+    font-size: 14px;
+    color: #ffffff;
+    letter-spacing: 0.3px;
+}
+.welcome-message 
+{
+    font-family: "Poppins", sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    color: #0F3936;
+    margin-left: 30px;
+}
+
+.welcome-message span 
+{
+    color: #1fbf8e;
+}

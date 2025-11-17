@@ -1,27 +1,17 @@
-@php
-    $pageTitle = "Employee Dashboard";
-@endphp
+@extends('layouts.app')
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    @include('includes.header')
+@section('styles')
+<link rel="stylesheet" href="{{ asset('/css/dashboard.css') }}">
 <style>
     /* Layout */
     .sidebar {
-        background: linear-gradient(180deg, #0A2F2D 0%, #0F3936 40%, #1A6B61 100%);
-        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
-        width: 16vw;
+        width: 220px;
+        background: #0c5726;
         color: white;
-        min-height: 100vh;
+        height: 100vh;
+        float: left;
         padding: 20px;
         position: fixed;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        top: 0;
-        left: 0;
-        bottom: 0;
     }
     .sidebar h1 { 
         font-size: 22px; 
@@ -51,42 +41,30 @@
         display: block;
     }
     
-    .main-content { 
-        flex: 1;
-        margin-left: 16vw; 
-        padding: 30px;
-        padding-bottom: 0;
-        background: #e6fbf5;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
+    .main { 
+        margin-left: 240px; 
+        padding: 20px;
         min-height: 100vh;
-    }
-    
-    .section {
-        flex: 1;
-        min-height: calc(100vh - 200px);
+        background: #f8f9fa;
     }
 
     /* Chat Container */
     .chat-container {
-        height: 400px;
-        max-height: 400px;
+        height: 700px;
         border: 1px solid #ddd;
-        border-radius: 10px 10px 0 0;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
         background: white;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        overflow: hidden;
     }
 
     /* Chat Box */
-    #chatBox, #ticketChatBox, .chat-box {
+    #chatBox, #ticketChatBox {
+        flex: 1;
         overflow-y: auto;
-        overflow-x: hidden;
         padding: 20px;
         background: #f8f9fa;
-        height: 100%;
-        max-height: 400px;
     }
 
     /* Chat Rows */
@@ -115,7 +93,7 @@
     }
 
     .chat-row.user .chat-bubble {
-        background: #28a745;
+        background: #007bff;
         color: white;
         border-bottom-right-radius: 5px;
     }
@@ -166,12 +144,6 @@
         opacity: 0.8;
         font-style: italic;
     }
-    
-    /* Message Time for user bubbles (white text on green background) */
-    .chat-row.user .message-time {
-        color: rgba(255, 255, 255, 0.9);
-        opacity: 1;
-    }
 
     /* Suggestion Box */
     .suggestion-box {
@@ -191,36 +163,30 @@
     }
 
     .suggestion:hover {
-        background: #28a745;
+        background: #007bff;
         color: white;
         transform: translateY(-2px);
     }
 
     /* Input Area */
     .chat-input-container {
-        border: 1px solid #ddd;
-        border-top: 2px solid #ddd;
+        border-top: 1px solid #ddd;
         padding: 15px;
         background: white;
         border-radius: 0 0 10px 10px;
-        margin-top: 0;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        position: relative;
-        z-index: 10;
     }
 
     /* Combined message + guided containers */
     #messagesContainer {
-        padding: 0;
-        background: transparent;
-        flex-shrink: 0;
+        padding: 20px;
+        background: #f8f9fa;
+        overflow-y: auto;
+        max-height: 440px;
     }
 
     #guidedContainer {
-        padding: 0;
+        padding: 0 20px 20px 20px;
         background: transparent;
-        margin-top: 10px;
-        flex-shrink: 0;
     }
 
     .chat-input {
@@ -239,12 +205,12 @@
     }
 
     .chat-input input:focus {
-        border-color: #28a745;
+        border-color: #007bff;
         box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
     }
 
     .chat-input button {
-        background: #28a745;
+        background: #007bff;
         color: white;
         border: none;
         border-radius: 25px;
@@ -255,7 +221,7 @@
     }
 
     .chat-input button:hover {
-        background: #218838;
+        background: #0056b3;
         transform: translateY(-1px);
     }
 
@@ -282,7 +248,7 @@
     }
 
     .tab-button.active {
-        background: #28a745;
+        background: #007bff;
         color: white;
     }
 
@@ -348,14 +314,14 @@
 
     .ticket-item-history:hover {
         background: #e3f2fd;
-        border-color: #28a745;
+        border-color: #007bff;
         transform: translateY(-1px);
         box-shadow: 0 2px 5px rgba(0,0,0,0.15);
     }
 
     .ticket-item-history.active {
         background: #e3f2fd;
-        border-color: #28a745;
+        border-color: #007bff;
         box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
     }
 
@@ -388,20 +354,8 @@
     .table-container {
         background: white;
         padding: 20px;
-        padding-bottom: 30px;
         border-radius: 10px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        margin-bottom: 30px;
-    }
-    
-    #chat.section {
-        padding-bottom: 30px;
-        overflow: hidden;
-    }
-    
-    #chat .chat-layout {
-        max-height: calc(100vh - 250px);
-        overflow: visible;
     }
 
     /* Account Section */
@@ -462,7 +416,7 @@
     }
 
     .feedback-form textarea:focus {
-        border-color: #28a745;
+        border-color: #007bff;
         box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
     }
 
@@ -535,170 +489,36 @@
         60% { text-shadow: .25em 0 0 #666, .5em 0 0 rgba(0,0,0,0); }
         80%, 100% { text-shadow: .25em 0 0 #666, .5em 0 0 #666; }
     }
-
-    /* New UI_AIHRA styles */
-    .dashboard {
-        display: flex;
-        min-height: 100vh;
-        width: 100%;
-    }
-    .sb-brand {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 22px 16px 12px 16px;
-    }
-    .sb-logo {
-        width: 42px;
-        height: 42px;
-        margin-bottom: 30px;
-        object-fit: contain;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
-    }
-    .sb-nav {
-        display: flex;
-        flex-direction: column;
-        padding: 8px;
-        gap: 4px;
-        width: 100%;
-    }
-    .sb-link {
-        font-family: "Poppins", sans-serif;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 12px;
-        margin: 2px 4px;
-        border-radius: 10px;
-        text-decoration: none;
-        color: rgba(255,255,255,.92);
-        transition: background .18s ease, transform .18s ease, color .18s ease, box-shadow .18s ease;
-    }
-    .sb-link i {
-        font-size: 18px;
-        width: 20px;
-        text-align: center;
-    }
-    .sb-link:hover {
-        background: rgba(255,255,255,.10);
-        transform: translateX(2px);
-    }
-    .sb-link.active {
-        background: rgba(255,255,255,.16);
-        box-shadow: inset 3px 0 0 0 #34c759;
-    }
-    .sb-bottom {
-        margin-top: auto;
-        padding: 8px;
-        border-top: 1px solid rgba(255,255,255,.12);
-        width: 100%;
-    }
-    .sb-btn {
-        background: transparent;
-        border: none;
-        width: 100%;
-        text-align: left;
-        cursor: pointer;
-    }
-
-    .welcome-message {
-        font-family: "Poppins", sans-serif;
-        font-weight: 600;
-        font-size: 24px;
-        color: #0F3936;
-        margin-bottom: 20px;
-    }
-    .welcome-message span {
-        color: #1fbf8e;
-    }
-    
-    /* Top Navigation Ribbon */
-    .top-nav {
-        display: flex;
-        gap: 8px;
-        background: white;
-        padding: 8px 12px;
-        border-radius: 25px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    .top-nav-link {
-        padding: 8px 20px;
-        border-radius: 20px;
-        text-decoration: none;
-        color: #666;
-        font-weight: 500;
-        font-size: 14px;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid transparent;
-        position: relative;
-    }
-    
-    .top-nav-link:hover {
-        background: #f0f0f0;
-        color: #333;
-    }
-    
-    .top-nav-link.active {
-        background: #28a745;
-        color: white;
-        border-color: #28a745;
-        transform: scale(1.05);
-    }
 </style>
-</head>
+@endsection
 
-<body class="forAll">
-
-<div class="dashboard">
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sb-brand">
-            <img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA" class="sb-logo">
-        </div>
-
-        <nav class="sb-nav">
-            <a href="#home" onclick="showSection('home')" class="sb-link active" id="link-home">
-                <i class="fa-solid fa-house"></i><span>Home</span>
-            </a>
-            <a href="#chat" onclick="showSection('chat')" class="sb-link" id="link-chat">
-                <i class="fa-solid fa-comments"></i><span>Chat</span>
-            </a>
-            <a href="#feedback" onclick="showSection('feedback')" class="sb-link" id="link-feedback">
-                <i class="fa-solid fa-star"></i><span>Feedback</span>
-            </a>
-        </nav>
-
-        <div class="sb-bottom">
-            <a href="#account" onclick="showSection('account')" class="sb-link" id="link-account">
-                <i class="fa-solid fa-user"></i><span>Account</span>
-            </a>
-
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-                <button type="submit" class="sb-link sb-btn">
-                    <i class="fa-solid fa-right-from-bracket"></i><span>Log Out</span>
-                </button>
-            </form>
-        </div>
+@section('content')
+<!-- Sidebar -->
+<div class="sidebar">
+    <h1>AIHRA</h1>
+    <ul>
+        <li class="active"><a href="#home" onclick="showSection('home')">🏠 Home</a></li>
+        <li><a href="#chat" onclick="showSection('chat')">💬 Chat</a></li>
+        <li><a href="#feedback" onclick="showSection('feedback')">⭐ Feedback</a></li>
+        <li><a href="#account" onclick="showSection('account')">👤 Account</a></li>
+    </ul>
+    <div class="account">
+        <img src="{{ asset('uploads/' . Auth::user()->profile_picture) }}" alt="Profile Picture">
+        <a href="{{ route('logout') }}" class="logout"
+           onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+           🚪 Log Out
+        </a>
+        <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
+            @csrf
+        </form>
     </div>
+</div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-        <div style="background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 class="welcome-message" style="margin: 0;">Welcome back, <span>{{ Auth::user()->name }}</span>!</h1>
-            
-            <nav class="top-nav">
-                <a href="#home" onclick="showSection('home')" class="top-nav-link active" id="top-link-home">Home</a>
-                <a href="#chat" onclick="showSection('chat')" class="top-nav-link" id="top-link-chat">Chat</a>
-                <a href="#feedback" onclick="showSection('feedback')" class="top-nav-link" id="top-link-feedback">Feedback</a>
-                <a href="#account" onclick="showSection('account')" class="top-nav-link" id="top-link-account">Account</a>
-            </nav>
-        </div>
-        
-        <!-- Home Section -->
-        <div id="home" class="table-container section" style="display: block;">
-            <h2>📢 Announcements</h2>
+<!-- Main Content -->
+<div class="main">
+    <!-- Home Section -->
+    <div id="home" class="table-container section">
+        <h2>📢 Announcements</h2>
         @forelse($announcements as $announcement)
             <div class='card' style='margin-bottom:15px; padding:15px; border:1px solid #eee; border-radius:6px; background:#f8f9fa;'>
                 <h3 style='margin:0 0 10px 0; color:#333;'>{{ $announcement->title }}</h3>
@@ -711,30 +531,24 @@
 
     <!-- Chat Section -->
     <div id="chat" class="table-container section" style="display:none;">
-        <h2><img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA" style="width: 32px; height: 32px; vertical-align: middle; margin-right: 8px;"> AI HR Assistant</h2>
+        <h2>🤖 AI HR Assistant</h2>
         
         <!-- Chat Layout: Left = Conversations & Tickets, Right = Viewer -->
         <style>
             .chat-layout { display: flex; gap: 20px; align-items: flex-start; }
             .left-panel { width: 320px; }
             .left-panel .panel-box { background: white; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; }
-            #conversationList, #ticketList { max-height: 400px; overflow-y: auto; }
             .left-panel .panel-box h4 { margin: 0 0 8px 0; }
-            #convoPanel, #ticketsPanel { max-height: 470px; }
-            .left-panel .new-chat-btn { display: inline-block; width: 100%; margin-bottom: 10px; padding: 14px 20px; text-align: center; background: #28a745; color: white; border-radius: 10px; cursor: pointer; border: none; font-weight: 600; font-size: 15px; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3); transition: all 0.3s ease; }
-            .left-panel .new-chat-btn:hover { background: #218838; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4); }
-            .left-panel .new-chat-btn:active { transform: translateY(0); }
+            .left-panel .new-chat-btn { display: inline-block; width: 100%; margin-bottom: 10px; padding: 10px; text-align: center; background: #007bff; color: white; border-radius: 8px; cursor: pointer; border: none; }
+            .left-panel .new-chat-btn:hover { background: #0056b3; }
             .right-panel { flex: 1; }
             /* Make chat-container full height inside right-panel */
-            .right-panel .chat-container { 
-                height: auto; 
-                max-height: calc(100vh - 280px);
-            }
+            .right-panel .chat-container { height: 620px; }
         </style>
 
         <div class="chat-layout">
             <div class="left-panel">
-                <button id="leftNewConversationBtn" class="new-chat-btn" onclick="startNewConversation()"><i class="fa-solid fa-plus"></i> New Chat</button>
+                <button id="leftNewConversationBtn" class="new-chat-btn" onclick="startNewConversation()">➕ New Chat</button>
                 <div style="display:flex; gap:8px; margin:10px 0 6px 0;">
                     <button id="chatsTabBtn" class="tab-button active" style="flex:1;" onclick="showChats()">💬 Chats</button>
                     <button id="ticketsTabBtn" class="tab-button" style="flex:1;" onclick="showTickets()">🎫 Tickets</button>
@@ -772,15 +586,12 @@
                                 </div>
                             </div>
                         </div>
-                </div>
 
-                <!-- Separate Input Container -->
-                <div class="chat-input-container">
-                    <div class="chat-input">
-                        <input type="text" id="userMessage" placeholder="Type your message here..." />
-                        <button onclick="sendMessage()" style="background: #28a745; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='#218838'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='#28a745'; this.style.transform='scale(1)'">
-                            <i class="fa-solid fa-paper-plane" style="color: white; font-size: 18px;"></i>
-                        </button>
+                    <div class="chat-input-container">
+                        <div class="chat-input">
+                            <input type="text" id="userMessage" placeholder="Type your message here..." />
+                            <button onclick="sendMessage()">📤 Send</button>
+                        </div>
                     </div>
                 </div>
 
@@ -793,271 +604,40 @@
     </div>
 
     <!-- Feedback Section -->
-    <div id="feedback" class="section" style="display:none;">
-        <div style="max-width: 600px; margin: 50px auto; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-            <h2 style="text-align: center; color: #333; margin: 0 0 10px 0; font-size: 24px;">Rate your experience! 😊</h2>
-            <p style="text-align: center; color: #666; margin: 0 0 30px 0; font-size: 14px;">We would like to hear from you! How's your experience with AIHRA?</p>
-            
-            <form method="POST" action="{{ route('feedback.store') }}" onsubmit="handleFeedbackSubmit(event)">
-                @csrf
-                
-                <div class="star-rating" style="text-align: center; margin-bottom: 30px;">
-                    @for ($i = 1; $i <= 5; $i++)
-                        <span class="star" data-value="{{ $i }}" style="font-size: 48px; cursor: pointer; color: #ddd; margin: 0 5px;">★</span>
-                    @endfor
-                </div>
-                <input type="hidden" name="rating" id="ratingValue" required>
+    <div id="feedback" class="table-container section" style="display:none;">
+        <h2>⭐ Give Feedback</h2>
+        <form method="POST" action="{{ route('feedback.store') }}" class="feedback-form">
+            @csrf
 
-                <textarea name="suggestion" id="suggestion" placeholder="We would like to know what you think ..." 
-                    style="width: 100%; height: 120px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; box-sizing: border-box;" required></textarea>
+            <label for="ratingValue">Rating:</label>
+            <div class="star-rating">
+                @for ($i = 1; $i <= 5; $i++)
+                    <span class="star" data-value="{{ $i }}">★</span>
+                @endfor
+            </div>
+            <input type="hidden" name="rating" id="ratingValue" required>
 
-                <button type="submit" style="width: 100%; margin-top: 20px; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s ease;" 
-                    onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">SUBMIT</button>
-            </form>
-        </div>
+            <label for="suggestion">Your Feedback:</label>
+            <textarea name="suggestion" id="suggestion" placeholder="Please share your thoughts, suggestions, or any issues you've encountered..." required></textarea>
+
+            <button type="submit" class="btn review">✅ Submit Feedback</button>
+        </form>
     </div>
 
     <!-- Account Section -->
-    <div id="account" class="section" style="display:none;">
-        <div style="display: flex; gap: 30px; max-width: 1200px; margin: 0 auto;">
-            <!-- Left Panel - Profile -->
-            <div style="flex: 1; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: bold;">Profile</h3>
-                
-                <div style="text-align: center; margin-bottom: 30px;">
-                    <img src="{{ asset('uploads/' . Auth::user()->profile_picture) }}" alt="Profile Picture" 
-                         style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;">
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Name</label>
-                    <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
-                        {{ Auth::user()->name }}
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Email</label>
-                    <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
-                        {{ Auth::user()->email }}
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Employee number</label>
-                    <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
-                        {{ Auth::user()->employeeNum }}
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 15px;">
-                    <div style="flex: 1;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Age</label>
-                        <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
-                            @php
-                                if (Auth::user()->dob) {
-                                    $dob = new DateTime(Auth::user()->dob);
-                                    $today = new DateTime();
-                                    $age = $today->diff($dob)->y;
-                                    echo $age;
-                                } else {
-                                    echo Auth::user()->age ?? 'N/A';
-                                }
-                            @endphp
-                        </div>
-                    </div>
-                    <div style="flex: 1;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Sex</label>
-                        <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
-                            {{ Auth::user()->sex ?? 'N/A' }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Panel - Account Settings -->
-            <div style="flex: 1; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: bold;">Account Settings</h3>
-
-                <button onclick="showEditProfileModal()" style="width: 100%; padding: 15px; margin-bottom: 15px; background: #e6f7f0; border: none; border-radius: 8px; text-align: left; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.3s;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
-                    Edit Profile
-                </button>
-
-                <button onclick="showChangePasswordModal()" style="width: 100%; padding: 15px; margin-bottom: 15px; background: #e6f7f0; border: none; border-radius: 8px; text-align: left; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.3s;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
-                    Change Password
-                </button>
-
-                <div style="margin-bottom: 30px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">About</label>
-                    <div onclick="showAboutModal()" style="padding: 15px; background: #e6f7f0; border-radius: 8px; color: #333; cursor: pointer; min-height: 60px; transition: background 0.3s;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
-                        {{ Auth::user()->about ?: 'Click to add information about yourself...' }}
-                    </div>
-                </div>
-
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" style="width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">
-                        Log out
-                    </button>
-                </form>
-            </div>
+    <div id="account" class="table-container section" style="display:none;">
+        <h2>👤 Account Information</h2>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="{{ asset('uploads/' . Auth::user()->profile_picture) }}" alt="Profile Picture" 
+                 style="width:120px;height:120px;border-radius:50%;object-fit:cover; border: 3px solid #007bff;">
+            <br>
+            <a href="{{ route('profile.edit') }}" style="display: inline-block; margin-top: 10px; color: #007bff; text-decoration: none;">
+                ✏️ Edit Profile
+            </a>
         </div>
-    </div>
-
-    <!-- Edit Profile Modal -->
-    <div id="editProfileModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: #e6fbf5; padding: 30px; border-radius: 15px; max-width: 420px; width: 90%; max-height: 90vh; overflow-y: auto;">
-            <div style="position: relative; text-align: center; margin-bottom: 20px;">
-                <button onclick="closeEditProfileModal()" style="position: absolute; left: 0; top: 0; background: none; border: none; cursor: pointer; padding: 5px;">
-                    <i class="fa-solid fa-arrow-left" style="font-size: 20px; color: #333;"></i>
-                </button>
-                <h3 style="margin: 0; font-size: 18px; font-weight: bold;">Edit Profile</h3>
-            </div>
-            <form id="editProfileForm" onsubmit="handleProfileUpdate(event)">
-                @csrf
-                
-                <div style="margin-bottom: 20px; text-align: center; position: relative;">
-                    <div style="display: inline-block; position: relative;">
-                        <img id="profilePreview" src="{{ asset('uploads/' . Auth::user()->profile_picture) }}" 
-                             style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;">
-                        <label for="profilePictureInput" style="position: absolute; bottom: 0; right: 0; background: #28a745; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white;">
-                            <i class="fa-solid fa-camera" style="color: white; font-size: 14px;"></i>
-                        </label>
-                        <input type="file" id="profilePictureInput" name="profile_picture" accept="image/*" style="display: none;">
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <div style="flex: 1;">
-                        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">First name</label>
-                        <input type="text" name="firstName" value="{{ Auth::user()->firstName }}" required style="width: 100%; padding: 12px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0;">
-                    </div>
-                    <div style="flex: 1;">
-                        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Last name</label>
-                        <input type="text" name="lastName" value="{{ Auth::user()->lastName }}" required style="width: 100%; padding: 12px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0;">
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <div style="flex: 1;">
-                        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Email</label>
-                        <input type="email" name="email" value="{{ Auth::user()->email }}" required style="width: 100%; padding: 12px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0;">
-                    </div>
-                    <div style="flex: 1;">
-                        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Date of Birth</label>
-                        <input type="date" name="dob" value="{{ Auth::user()->dob }}" max="{{ date('Y-m-d', strtotime('-1 year')) }}" style="width: 100%; padding: 12px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0;">
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Employee number</label>
-                    <input type="text" name="employeeNum" value="{{ Auth::user()->employeeNum }}" readonly style="width: 100%; padding: 12px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0; color: #666;">
-                </div>
-
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Sex</label>
-                    <select name="sex" style="width: 100%; padding: 12px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0;">
-                        <option value="Male" {{ Auth::user()->sex == 'Male' ? 'selected' : '' }}>Male</option>
-                        <option value="Female" {{ Auth::user()->sex == 'Female' ? 'selected' : '' }}>Female</option>
-                    </select>
-                </div>
-
-                <button type="submit" style="width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px;">Save</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Change Password Modal -->
-    <div id="changePasswordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: #e6fbf5; padding: 30px; border-radius: 15px; max-width: 360px; width: 90%;">
-            <div style="position: relative; text-align: center; margin-bottom: 20px;">
-                <h3 style="margin: 0; font-size: 18px; font-weight: bold;">Change Password</h3>
-            </div>
-            <form id="changePasswordForm" onsubmit="handlePasswordChange(event)">
-                @csrf
-                
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Current Password</label>
-                    <div style="position: relative;">
-                        <input type="password" name="current_password" id="currentPassword" required style="width: 100%; padding: 12px; padding-right: 40px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0;">
-                        <button type="button" onclick="togglePassword('currentPassword')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer;">
-                            <i class="fa-solid fa-eye" style="color: #28a745;"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">New Password</label>
-                    <div style="position: relative;">
-                        <input type="password" name="new_password" id="newPassword" required style="width: 100%; padding: 12px; padding-right: 40px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0;">
-                        <button type="button" onclick="togglePassword('newPassword')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer;">
-                            <i class="fa-solid fa-eye" style="color: #28a745;"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Confirm New Password</label>
-                    <div style="position: relative;">
-                        <input type="password" name="new_password_confirmation" id="confirmPassword" required style="width: 100%; padding: 12px; padding-right: 40px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0;">
-                        <button type="button" onclick="togglePassword('confirmPassword')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer;">
-                            <i class="fa-solid fa-eye" style="color: #28a745;"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <button type="button" onclick="closeChangePasswordModal()" style="width: 100%; padding: 15px; background: #d3d3d3; color: #666; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 10px;">Cancel</button>
-                <button type="submit" style="width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Save</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- About Modal -->
-    <div id="aboutModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: #e6fbf5; padding: 30px; border-radius: 15px; max-width: 420px; width: 90%;">
-            <div style="position: relative; text-align: center; margin-bottom: 20px;">
-                <button onclick="closeAboutModal()" style="position: absolute; left: 0; top: 0; background: none; border: none; cursor: pointer; padding: 5px;">
-                    <i class="fa-solid fa-arrow-left" style="font-size: 20px; color: #333;"></i>
-                </button>
-                <h3 style="margin: 0; font-size: 18px; font-weight: bold;">About</h3>
-            </div>
-            <form id="aboutForm" onsubmit="handleAboutUpdate(event)">
-                @csrf
-                
-                <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Tell us about yourself</label>
-                <textarea name="about" rows="8" style="width: 100%; padding: 12px; margin-bottom: 15px; border: none; border-radius: 8px; box-sizing: border-box; resize: vertical; font-family: inherit; background: #d0f0e0;" placeholder="Share something about yourself...">{{ Auth::user()->about }}</textarea>
-
-                <button type="submit" style="width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Save</button>
-            </form>
-        </div>
-    </div>
-
-    <div class="page-footer">
-        <img src="{{ asset('assets/dwccLogo.png') }}" class="dwccLogo"/>
-        <div class="displayicn">
-            <div>
-                <a href="https://dwcc.edu.ph" target="_blank">
-                    <i class="fa-solid fa-globe footerIcon"></i>
-                </a>
-                <p>Website</p>
-            </div>
-            <div>
-                <a href="https://www.facebook.com/DWCC1946" target="_blank">
-                    <i class="fa-brands fa-facebook-f footerIcon"></i>
-                </a>
-                <p>Facebook</p>
-            </div>
-            <div>
-                <a href="mailto:hrecruitment@dwcc.edu.ph">
-                    <i class="fa-solid fa-envelope footerIcon"></i>
-                </a>
-                <p>E-mail</p>
-            </div>
-        </div>
-        <hr class="footer-line">
-        <div class="footer-text">
-            <p><strong>Divine Word College of Calapan, Inc.</strong> Gov. Infantado St., Calapan City, Oriental Mindoro, Philippines</p>
-            <p>&copy; DWCC Human Resources Office. All Rights Reserved.</p>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+            <p><strong>About Me:</strong></p>
+            <p style="color: #666; line-height: 1.6;">{{ Auth::user()->about ?: 'No information provided yet.' }}</p>
         </div>
     </div>
 </div>
@@ -1123,49 +703,12 @@ function showMainChat() {
 
 // Section Navigation
 function showSection(id) {
-    // Scroll to top smoothly
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+    document.getElementById(id).style.display = 'block';
     
-    // Fade out current section
-    const currentSection = document.querySelector('.section[style*="display: block"]');
-    if (currentSection) {
-        currentSection.style.opacity = '0';
-        currentSection.style.transition = 'opacity 0.2s ease';
-    }
-    
-    setTimeout(() => {
-        document.querySelectorAll('.section').forEach(s => {
-            s.style.display = 'none';
-            s.style.opacity = '0';
-        });
-        
-        const section = document.getElementById(id);
-        if (section) {
-            section.style.display = 'block';
-            // Fade in new section
-            setTimeout(() => {
-                section.style.opacity = '1';
-                section.style.transition = 'opacity 0.3s ease';
-            }, 10);
-        }
-    }, 200);
-    
-    // Update active nav item with new sidebar structure
-    document.querySelectorAll('.sb-link').forEach(link => link.classList.remove('active'));
-    const activeLink = document.getElementById('link-' + id);
-    if (activeLink) activeLink.classList.add('active');
-    
-    // Update top navigation ribbon with animation
-    document.querySelectorAll('.top-nav-link').forEach(link => {
-        link.classList.remove('active');
-        link.style.transform = 'scale(1)';
-    });
-    const topLink = document.getElementById('top-link-' + id);
-    if (topLink) {
-        topLink.classList.add('active');
-        // Trigger animation
-        topLink.style.transform = 'scale(1.05)';
-    }
+    // Update active nav item
+    document.querySelectorAll('.sidebar ul li').forEach(li => li.classList.remove('active'));
+    event.target.closest('li').classList.add('active');
     
     // Initialize chat if chat section is opened
     if (id === 'chat') {
@@ -2499,194 +2042,6 @@ function requestNotificationPermission() {
     }
 }
 
-// Account Settings Modal Functions
-function showEditProfileModal() {
-    document.getElementById('editProfileModal').style.display = 'flex';
-    // Setup image preview
-    document.getElementById('profilePictureInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('profilePreview').src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-    
-    // Setup age calculation from date of birth
-    const dobInput = document.querySelector('input[name="dob"]');
-    if (dobInput) {
-        dobInput.addEventListener('change', function() {
-            const dob = new Date(this.value);
-            const today = new Date();
-            let age = today.getFullYear() - dob.getFullYear();
-            const monthDiff = today.getMonth() - dob.getMonth();
-            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-                age--;
-            }
-            // Only store age if it's valid (greater than 0)
-            if (age > 0) {
-                let ageInput = document.querySelector('input[name="age"]');
-                if (!ageInput) {
-                    ageInput = document.createElement('input');
-                    ageInput.type = 'hidden';
-                    ageInput.name = 'age';
-                    document.getElementById('editProfileForm').appendChild(ageInput);
-                }
-                ageInput.value = age;
-            }
-        });
-    }
-}
-
-function closeEditProfileModal() {
-    document.getElementById('editProfileModal').style.display = 'none';
-}
-
-function showChangePasswordModal() {
-    document.getElementById('changePasswordModal').style.display = 'flex';
-}
-
-function closeChangePasswordModal() {
-    document.getElementById('changePasswordModal').style.display = 'none';
-}
-
-function showAboutModal() {
-    document.getElementById('aboutModal').style.display = 'flex';
-}
-
-function closeAboutModal() {
-    document.getElementById('aboutModal').style.display = 'none';
-}
-
-function togglePassword(fieldId) {
-    const field = document.getElementById(fieldId);
-    const icon = field.nextElementSibling.querySelector('i');
-    if (field.type === 'password') {
-        field.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-    } else {
-        field.type = 'password';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-    }
-}
-
-function handleProfileUpdate(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
-    formData.append('_token', '{{ csrf_token() }}');
-    
-    fetch('{{ route("profile.update") }}', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('✅ Profile updated successfully!');
-            closeEditProfileModal();
-            // Reload page to show updated info
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showNotification('❌ ' + (data.message || 'Failed to update profile'));
-        }
-    })
-    .catch(error => {
-        console.error('Error updating profile:', error);
-        showNotification('❌ Failed to update profile');
-    });
-}
-
-function handlePasswordChange(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
-    formData.append('_token', '{{ csrf_token() }}');
-    
-    fetch('{{ route("password.update") }}', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('✅ Password changed successfully!');
-            closeChangePasswordModal();
-            form.reset();
-        } else {
-            showNotification('❌ ' + (data.message || 'Failed to change password'));
-        }
-    })
-    .catch(error => {
-        console.error('Error changing password:', error);
-        showNotification('❌ Failed to change password');
-    });
-}
-
-function handleAboutUpdate(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
-    formData.append('_token', '{{ csrf_token() }}');
-    
-    fetch('{{ route("profile.updateAbout") }}', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('✅ About section updated!');
-            closeAboutModal();
-            // Reload page to show updated info
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showNotification('❌ Failed to update about section');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating about:', error);
-        showNotification('❌ Failed to update about section');
-    });
-}
-
-// Handle feedback form submission
-function handleFeedbackSubmit(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
-    
-    fetch(form.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('✅ Thank you for your feedback!');
-            form.reset();
-            // Reset star rating
-            document.querySelectorAll('.star-rating .star').forEach(star => {
-                star.style.color = '#ccc';
-            });
-            document.getElementById('ratingValue').value = '';
-        } else {
-            showNotification('❌ Failed to submit feedback. Please try again.');
-        }
-    })
-    .catch(error => {
-        console.error('Error submitting feedback:', error);
-        showNotification('❌ Failed to submit feedback. Please try again.');
-    });
-}
-
 function startReplyChecker() {
     setInterval(async () => {
         try {
@@ -2705,10 +2060,4 @@ function startReplyChecker() {
     }, 15000); // Check every 15 seconds
 }
 </script>
-
-    </div>
-</div>
-
-@include('includes.footer')
-</body>
-</html>
+@endsection
