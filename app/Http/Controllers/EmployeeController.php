@@ -156,7 +156,17 @@ public function getTickets()
 
             $conversations = Conversation::where('user_id', $userId)
                 ->orderBy('created_at', 'desc')
-                ->get(['id', 'title', 'first_message', 'created_at']);
+                ->get(['id', 'title', 'first_message', 'created_at'])
+                ->map(function($conversation) {
+                    // Get the latest message for preview
+                    $latestMessage = ChatMessage::where('conversation_id', $conversation->id)
+                        ->where('sender', 'employee')
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                    
+                    $conversation->latest_message = $latestMessage ? $latestMessage->message : $conversation->first_message;
+                    return $conversation;
+                });
 
             return response()->json($conversations);
         } catch (\Exception $e) {
