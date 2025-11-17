@@ -346,7 +346,64 @@
             </div>
         </div>
 
-        <!-- Other sections can be added here following the same style -->
+        {{-- ANNOUNCEMENTS SECTION --}}
+        <section id="announcements" class="section mt-6">
+            <h2 class="text-xl font-semibold mb-3 text-green-800">📢 Announcements</h2>
+
+            {{-- Form for posting new announcements --}}
+            <form action="{{ route('hr.announcements.store') }}" method="POST" enctype="multipart/form-data" class="bg-white shadow-md rounded-lg p-4 mb-4">
+                @csrf
+                <div class="mb-3">
+                    <label class="block font-medium">Title</label>
+                    <input type="text" name="title" class="w-full border rounded p-2" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="block font-medium">Description</label>
+                    <textarea name="description" rows="4" class="w-full border rounded p-2" required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="block font-medium">Image (optional)</label>
+                    <input type="file" name="image" class="w-full border rounded p-2">
+                </div>
+
+                <button type="submit" class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800">
+                    Post Announcement
+                </button>
+            </form>
+
+            {{-- Display announcements --}}
+            <div class="space-y-3">
+                @php
+                    $announcements = DB::table('announcements')
+                        ->where('isActive', 1)
+                        ->orderBy('createdAt', 'desc')
+                        ->get();
+                @endphp
+
+                @forelse ($announcements as $a)
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <h3 class="text-lg font-semibold text-green-800">{{ $a->title }}</h3>
+                        <p class="text-gray-700 mb-2">{{ $a->description }}</p>
+                        @if ($a->image)
+                            <img src="data:image/jpeg;base64,{{ base64_encode($a->image) }}" class="rounded w-48">
+                        @endif
+                        <small class="text-gray-500">{{ $a->createdAt }}</small>
+                    </div>
+                @empty
+                    <p class="text-gray-500">No announcements yet.</p>
+                @endforelse
+            </div>
+        </section>
+
+        {{-- ACCOUNT SECTION --}}
+        <section id="account" class="section mt-6">
+            <h2 class="text-xl font-semibold mb-3 text-green-800">👤 Account Settings</h2>
+
+            {{-- Include your existing hr_profile.blade.php --}}
+            @include('hr.hr_profile')
+        </section>
     </div>
 
     <script>
@@ -359,129 +416,45 @@
             event.target.closest('li').classList.add('active');
         }
 
-        // Function to resolve ticket
-async function resolveTicket(ticketNo) {
-    if (!confirm('Mark this ticket as resolved?')) return;
-
-    try {
-        const res = await fetch('/hr/resolve-ticket', {  // ✅ Fixed path
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ ticket_no: ticketNo })
-        });
-
-        const result = await res.json();
-        console.log('Resolve response:', result);
-        
-        if (result.success) {
-            alert('Ticket resolved!');
-            location.reload();
-        } else {
-            alert('Error: ' + result.message);
+        async function resolveTicket(ticketNo) {
+            if (!confirm('Mark this ticket as resolved?')) return;
+            try {
+                const res = await fetch('/hr/resolve-ticket', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ ticket_no: ticketNo })
+                });
+                const result = await res.json();
+                console.log('Resolve response:', result);
+                if (result.success) {
+                    alert('Ticket resolved!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Resolve error:', error);
+                alert('Failed to resolve ticket');
+            }
         }
-    } catch (error) {
-        console.error('Resolve error:', error);
-        alert('Failed to resolve ticket');
-    }
-}
-// Debug function to test routes
-async function debugRoutes() {
-    console.log('Testing HR routes...');
-    
-    // Test messages endpoint
-    try {
-        const testTicket = document.querySelector('.ticket-item')?.id.replace('ticket-', '');
-        if (testTicket) {
-            console.log('Testing messages endpoint with ticket:', testTicket);
-            const res = await fetch(`/hr/messages/${testTicket}`);
-            const data = await res.json();
-            console.log('Messages endpoint works:', data);
-        }
-    } catch (error) {
-        console.error('Messages endpoint failed:', error);
-    }
-}
 
-// Run this in browser console to test:
-// debugRoutes();
-
-// Debug function to test HR reply
-async function debugHRReply() {
-    const testTicket = document.querySelector('.ticket-item')?.id.replace('ticket-', '');
-    if (!testTicket) {
-        console.log('❌ No tickets found to test');
-        return;
-    }
-    
-    console.log('🧪 Testing HR reply with ticket:', testTicket);
-    
-    try {
-        // First test if we can get messages
-        console.log('1. Testing messages endpoint...');
-        const messagesRes = await fetch(`/hr/messages/${testTicket}`);
-        const messages = await messagesRes.json();
-        console.log('Messages endpoint result:', messages);
-        
-        // Test reply endpoint
-        console.log('2. Testing reply endpoint...');
-        const replyRes = await fetch('/hr/reply', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                ticket_no: testTicket,
-                message: 'Test reply from HR - ' + new Date().toLocaleTimeString()
-            })
-        });
-        
-        const replyResult = await replyRes.json();
-        console.log('Reply endpoint result:', replyResult);
-        
-        // Test messages again to see if reply was saved
-        console.log('3. Testing messages endpoint again...');
-        const messagesRes2 = await fetch(`/hr/messages/${testTicket}`);
-        const messages2 = await messagesRes2.json();
-        console.log('Messages after reply:', messages2);
-        
-        return { replyResult, messagesBefore: messages, messagesAfter: messages2 };
-    } catch (error) {
-        console.error('❌ Debug test failed:', error);
-        return null;
-    }
-}
-
-// Run in console: debugHRReply()
-
-        // Improved openTicket function to show all messages
         async function openTicket(ticketNo) {
             currentTicket = ticketNo;
-            
-            // Remove active class from all tickets
-            document.querySelectorAll('.ticket-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            // Add active class to selected ticket
+            document.querySelectorAll('.ticket-item').forEach(item => item.classList.remove('active'));
             document.getElementById(`ticket-${ticketNo}`).classList.add('active');
-
             try {
                 const response = await fetch(`/hr/messages/${ticketNo}`);
                 const messages = await response.json();
-                
                 const chat = document.getElementById('chatMessages');
                 chat.innerHTML = '';
-                
                 if (messages.length === 0) {
                     chat.innerHTML = '<p style="text-align: center; color: #666; margin-top: 50px;">No messages found for this ticket</p>';
                     return;
                 }
-                
                 messages.forEach(msg => {
                     const messageDiv = document.createElement('div');
                     messageDiv.className = `message ${msg.sender}`;
@@ -494,61 +467,50 @@ async function debugHRReply() {
                     `;
                     chat.appendChild(messageDiv);
                 });
-                
                 document.getElementById('ticket_no').value = ticketNo;
                 chat.scrollTop = chat.scrollHeight;
-                
             } catch (error) {
                 console.error('Error loading messages:', error);
-                const chat = document.getElementById('chatMessages');
-                chat.innerHTML = '<p style="color: red;">Error loading messages</p>';
+                document.getElementById('chatMessages').innerHTML = '<p style="color: red;">Error loading messages</p>';
             }
         }
 
-        // Handle reply form submission
-document.getElementById('replyForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const ticketNo = document.getElementById('ticket_no').value;
-    const msg = document.getElementById('replyMessage').value.trim();
-    
-    if (!msg || !ticketNo) {
-        alert('Please select a ticket and enter a message');
-        return;
-    }
-
-    try {
-        console.log('Sending reply for ticket:', ticketNo);
-        
-        const res = await fetch(`/hr/reply`, {  // ✅ Use direct path instead of route name
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ 
-                ticket_no: ticketNo, 
-                message: msg 
-            })
+        document.getElementById('replyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const ticketNo = document.getElementById('ticket_no').value;
+            const msg = document.getElementById('replyMessage').value.trim();
+            if (!msg || !ticketNo) {
+                alert('Please select a ticket and enter a message');
+                return;
+            }
+            try {
+                console.log('Sending reply for ticket:', ticketNo);
+                const res = await fetch(`/hr/reply`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        ticket_no: ticketNo, 
+                        message: msg 
+                    })
+                });
+                const result = await res.json();
+                console.log('Reply response:', result);
+                if (res.ok && result.success) {
+                    document.getElementById('replyMessage').value = '';
+                    await openTicket(ticketNo);
+                } else {
+                    alert('Failed to send reply: ' + (result.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Reply error:', error);
+                alert('Failed to send reply. Check console for details.');
+            }
         });
 
-        const result = await res.json();
-        console.log('Reply response:', result);
-
-        if (res.ok && result.success) {
-            document.getElementById('replyMessage').value = '';
-            // Refresh the chat to show the new reply
-            await openTicket(ticketNo);
-        } else {
-            alert('Failed to send reply: ' + (result.message || 'Unknown error'));
-        }
-    } catch (error) {
-        console.error('Reply error:', error);
-        alert('Failed to send reply. Check console for details.');
-    }
-});
-
-        // Show inbox by default
         document.addEventListener('DOMContentLoaded', function() {
             showSection('inbox');
         });

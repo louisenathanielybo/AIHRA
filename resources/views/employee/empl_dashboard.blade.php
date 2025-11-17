@@ -522,7 +522,7 @@
         @forelse($announcements as $announcement)
             <div class='card' style='margin-bottom:15px; padding:15px; border:1px solid #eee; border-radius:6px; background:#f8f9fa;'>
                 <h3 style='margin:0 0 10px 0; color:#333;'>{{ $announcement->title }}</h3>
-                <p style='margin:0; color:#666;'>{{ $announcement->content }}</p>
+                <p style='margin:0; color:#666;'>{{ $announcement->description }}</p>
             </div>
         @empty
             <p style='text-align:center; color:#666;'>No announcements yet.</p>
