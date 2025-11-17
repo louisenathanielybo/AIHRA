@@ -1216,10 +1216,26 @@ async function loadGuidedQuestions(parentId = null) {
     
     try {
     const url = parentId ? `{{ url('guided') }}/${parentId}` : `{{ url('guided') }}`;
+        console.log('🔍 Loading guided questions from:', url);
         const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        
+        console.log('📡 Response status:', res.status, res.statusText);
 
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        // Check for authentication errors
+        if (res.status === 401 || res.status === 419) {
+            console.warn('Session expired, redirecting to login');
+            window.location.href = '{{ route("login") }}';
+            return;
+        }
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error('Server error response:', errorText);
+            throw new Error(`Server error: ${res.status} - ${errorText.substring(0, 200)}`);
+        }
+        
         const data = await res.json();
+        console.log('✅ Guided questions data:', data);
 
         if (data.type === 'error') throw new Error(data.message);
         if (data.type === 'final' || data.type === 'escalate') {
@@ -1265,6 +1281,12 @@ async function loadGuidedQuestions(parentId = null) {
         
     } catch (error) {
         console.error('Error loading questions:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            parentId: parentId,
+            url: parentId ? `{{ url('guided') }}/${parentId}` : `{{ url('guided') }}`
+        });
         addMessageToChat(guidedContainer, 'bot', 
             "Sorry, I cannot load the questions right now. Here are some common topics:", 
             'error'
@@ -1297,6 +1319,14 @@ async function handleQuestionClick(id, text) {
     try {
         // First query the guided endpoint to see if this selection has children
         const guidedRes = await fetch(`{{ url('guided') }}/${id}`, { headers: { 'Accept': 'application/json' } });
+        
+        // Check for authentication errors
+        if (guidedRes.status === 401 || guidedRes.status === 419) {
+            console.warn('Session expired, redirecting to login');
+            window.location.href = '{{ route("login") }}';
+            return;
+        }
+        
         if (!guidedRes.ok) throw new Error('Failed to load guided question');
         const guidedData = await guidedRes.json();
 

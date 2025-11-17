@@ -240,8 +240,16 @@ class DialogflowController extends Controller
                     'confidence' => $confidence
                 ]);
 
+                // Store original query details for potential escalation
+                Session::put('pending_escalation', [
+                    'query' => $queryText,
+                    'confidence' => $confidence,
+                    'intent' => $intentName,
+                    'timestamp' => now()->toIso8601String()
+                ]);
+
                 if ($retryCount >= $this->maxRetries) {
-                    return $this->offerHREscalation($queryText, $employeeNum);
+                    return $this->offerHREscalation($queryText, $employeeNum, $confidence);
                 }
 
                 $retryText = $this->getRetryMessage($retryCount);
@@ -353,7 +361,7 @@ class DialogflowController extends Controller
             ]);
 
             // 🆕 FIXED: Better error response that doesn't break the frontend
-            $fallbackReply = "I'm having trouble processing your request right now. Let me guide you through our HR topics instead.";
+            $fallbackReply = "I encountered an error processing that request. Let me help you by creating a support ticket for HR, or you can browse our guided topics to find what you need.";
             // Ensure a conversation exists for this session so replies are persisted
             try {
                 $sessionId = $request->input('sessionId') ?? session()->getId();
@@ -541,23 +549,40 @@ class DialogflowController extends Controller
             // Check if user wants to escalate
             if ($this->wantsEscalation($queryText)) {
                 $this->resetRetryCount();
-
-                // If the user simply replied with an affirmation (eg. "yes"),
-                // prefer the pending escalation query saved in session (if any).
-                $pending = Session::get('pending_escalation');
-                if (!empty($pending) && !empty($pending['query'])) {
-                    Log::info('Using pending escalation from session instead of user affirmation', ['pending' => $pending]);
-                    // Consume and clear pending escalation
+                
+                // 🎯 FIXED: Use stored pending escalation data (original failed query)
+                $pendingEscalation = Session::get('pending_escalation');
+                
+                if ($pendingEscalation && isset($pendingEscalation['query'])) {
+                    $originalQuery = $pendingEscalation['query'];
+                    $originalConfidence = $pendingEscalation['confidence'] ?? 0.0;
+                    
+                    Log::info('✅ Escalating with ORIGINAL query data', [
+                        'original_query' => $originalQuery,
+                        'original_confidence' => $originalConfidence,
+                        'user_confirmation' => $queryText
+                    ]);
+                    
+                    // Clear pending escalation from session
                     Session::forget('pending_escalation');
-                    return $this->escalateToHR($pending['query'], $pending['employeeNum'] ?? $employeeNum, "User confirmed escalation after {$retryCount} retries");
+                    
+                    // Use original query and confidence for ticket priority
+                    return $this->escalateToHR(
+                        $originalQuery, 
+                        $employeeNum, 
+                        "User chose escalation after {$retryCount} retries",
+                        $originalConfidence
+                    );
+                } else {
+                    Log::warning('⚠️ No pending escalation data found, using current query');
+                    return $this->escalateToHR($queryText, $employeeNum, "User chose escalation after {$retryCount} retries");
                 }
-
-                return $this->escalateToHR($queryText, $employeeNum, "User chose escalation after {$retryCount} retries");
             }
 
             // Check if user wants to rephrase
             if ($this->wantsToRephrase($queryText)) {
                 $this->resetRetryCount();
+                Session::forget('pending_escalation');
                 return response()->json([
                     'status' => 'retry_reset',
                     'fulfillmentText' => "Okay, please ask your question in a different way and I'll do my best to help!"
@@ -646,9 +671,21 @@ class DialogflowController extends Controller
     /**
      * 🆕 NEW: Offer HR escalation after max retries
      */
-    private function offerHREscalation(string $queryText, $employeeNum): \Illuminate\Http\JsonResponse
+    private function offerHREscalation(string $queryText, $employeeNum, float $confidence = 0.0): \Illuminate\Http\JsonResponse
     {
-        Log::info('Offering HR escalation after max retries');
+        Log::info('Offering HR escalation after max retries', [
+            'query' => $queryText,
+            'confidence' => $confidence
+        ]);
+
+        // Store escalation details in session for when user confirms
+        Session::put('pending_escalation', [
+            'query' => $queryText,
+            'employeeNum' => $employeeNum,
+            'confidence' => $confidence,
+            'reason' => 'Max retries reached',
+            'timestamp' => now()->toIso8601String()
+        ]);
 
         // Persist pending escalation so an affirmative reply ("yes") will use
         // this original query when escalating.
@@ -667,11 +704,6 @@ class DialogflowController extends Controller
             'status' => 'offer_escalation',
             'fulfillmentText' => "I'm having difficulty understanding your question after several attempts. Would you like me to escalate this to our HR team who can provide better assistance?",
             'max_retries_reached' => true,
-            'pending_escalation' => [
-                'query' => $queryText,
-                'employeeNum' => $employeeNum,
-                'reason' => 'Max retries reached'
-            ],
             'options' => [
                 ['text' => '✅ Yes, please connect me with HR', 'action' => 'escalate'],
                 ['text' => '🔄 Let me try asking differently', 'action' => 'rephrase'],
@@ -861,7 +893,7 @@ class DialogflowController extends Controller
     /**
      * 🔥 FIXED: Escalate query to HR inbox - ALWAYS creates real ticket
      */
-    private function escalateToHR(string $queryText, $employeeNum, string $reason = 'User requested'): \Illuminate\Http\JsonResponse
+    private function escalateToHR(string $queryText, $employeeNum, string $reason = 'User requested', float $originalConfidence = null): \Illuminate\Http\JsonResponse
     {
         $ticketNo = null;
         
@@ -869,15 +901,16 @@ class DialogflowController extends Controller
             Log::info("🎯 Starting escalation process...", [
                 'reason' => $reason,
                 'employee' => $employeeNum,
-                'query' => substr($queryText, 0, 100)
+                'query' => substr($queryText, 0, 100),
+                'original_confidence' => $originalConfidence
             ]);
 
             // Generate unique ticket number FIRST
             $ticketNo = 'TKT-' . strtoupper(Str::random(8)) . '-' . time();
             Log::info("🎯 Generated ticket: " . $ticketNo);
 
-            // Determine priority based on content
-            $priority = $this->determinePriority($queryText);
+            // 🎯 FIXED: Determine priority based on content AND original confidence
+            $priority = $this->determinePriority($queryText, $originalConfidence);
             $category = $this->determineCategory($queryText);
 
             // 🆕 CRITICAL FIX: Create HR inbox ticket with multiple fallback attempts
@@ -891,9 +924,9 @@ class DialogflowController extends Controller
                         'from_user' => $employeeNum ?: 'GUEST',
                         'message' => $queryText,
                         'status' => 'Open',
-                        'priority' => $priority,
+                        'priority' => strtolower($priority),
                         'category' => $category,
-                        'intent' => 'Escalated from Chatbot: ' . $reason,
+                        'intent' => substr('Escalated: ' . $reason, 0, 50),
                         'confidence' => 0.0,
                         'created_at' => now(),
                         'updated_at' => now(),
@@ -972,9 +1005,9 @@ class DialogflowController extends Controller
     }
 
     /**
-     * 🆕 NEW: Determine ticket priority based on content
+     * 🆕 NEW: Determine ticket priority based on content and confidence
      */
-    private function determinePriority(string $queryText): string
+    private function determinePriority(string $queryText, float $confidence = null): string
     {
         $highPriorityKeywords = [
             'emergency', 'urgent', 'critical', 'asap', 'immediately', 'now',
@@ -987,6 +1020,7 @@ class DialogflowController extends Controller
             'salary', 'pay', 'raise', 'promotion', 'disciplinary', 'warning'
         ];
 
+        // Check keywords first (highest priority)
         foreach ($highPriorityKeywords as $keyword) {
             if (stripos($queryText, $keyword) !== false) {
                 return 'High';
@@ -995,6 +1029,18 @@ class DialogflowController extends Controller
 
         foreach ($mediumPriorityKeywords as $keyword) {
             if (stripos($queryText, $keyword) !== false) {
+                return 'Medium';
+            }
+        }
+
+        // 🎯 FIXED: Use confidence score to determine priority
+        // Very low confidence (< 0.3) = High priority (bot completely confused)
+        // Low confidence (0.3 - 0.5) = Medium priority (bot unsure)
+        // Medium+ confidence (> 0.5) = Low priority (just needs clarification)
+        if ($confidence !== null) {
+            if ($confidence < 0.3) {
+                return 'High';
+            } elseif ($confidence < 0.5) {
                 return 'Medium';
             }
         }
@@ -1038,21 +1084,21 @@ class DialogflowController extends Controller
             
             // Use DB facade for direct insertion
             $now = now();
-            $result = DB::table('hr_inboxes')->insert([
+            $result = DB::table('hr_inbox')->insert([
                 'ticket_no' => $ticketNo,
                 'from_user' => $employeeNum ?: 'GUEST',
                 'message' => $queryText,
                 'status' => 'Open',
-                'priority' => $priority,
+                'priority' => strtolower($priority),
                 'category' => $category,
-                'intent' => 'Escalated from Chatbot: ' . $reason,
+                'intent' => substr('Escalated: ' . $reason, 0, 50),
                 'confidence' => 0.0,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
 
             if ($result) {
-                return DB::table('hr_inboxes')->where('ticket_no', $ticketNo)->first();
+                return DB::table('hr_inbox')->where('ticket_no', $ticketNo)->first();
             }
             
             return null;
@@ -1081,32 +1127,32 @@ class DialogflowController extends Controller
                         'from_user' => $employeeNum ?: 'GUEST',
                         'message' => $queryText,
                         'status' => 'Open',
-                        'priority' => 'Medium',
+                        'priority' => 'medium',
                         'category' => 'General',
-                        'intent' => 'EMERGENCY: ' . $reason,
+                        'intent' => substr('EMERGENCY: ' . $reason, 0, 50),
                         'confidence' => 0.0,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
                 },
                 'db_insert' => function() use ($ticketNo, $employeeNum, $queryText, $reason) {
-                    return DB::table('hr_inboxes')->insert([
+                    return DB::table('hr_inbox')->insert([
                         'ticket_no' => $ticketNo,
                         'from_user' => $employeeNum ?: 'GUEST',
                         'message' => $queryText,
                         'status' => 'Open',
-                        'priority' => 'Medium',
+                        'priority' => 'medium',
                         'category' => 'General',
-                        'intent' => 'EMERGENCY: ' . $reason,
+                        'intent' => substr('EMERGENCY: ' . $reason, 0, 50),
                         'confidence' => 0.0,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
                 },
                 'raw_sql' => function() use ($ticketNo, $employeeNum, $queryText, $reason) {
-                    $sql = "INSERT INTO hr_inboxes (ticket_no, from_user, message, status, priority, category, intent, confidence, created_at, updated_at) 
-                            VALUES (?, ?, ?, 'Open', 'Medium', 'General', ?, 0.0, NOW(), NOW())";
-                    return DB::insert($sql, [$ticketNo, $employeeNum ?: 'GUEST', $queryText, 'EMERGENCY: ' . $reason]);
+                    $sql = "INSERT INTO hr_inbox (ticket_no, from_user, message, status, priority, category, intent, confidence, created_at, updated_at) 
+                            VALUES (?, ?, ?, 'Open', 'medium', 'General', ?, 0.0, NOW(), NOW())";
+                    return DB::insert($sql, [$ticketNo, $employeeNum ?: 'GUEST', $queryText, substr('EMERGENCY: ' . $reason, 0, 50)]);
                 }
             ];
 

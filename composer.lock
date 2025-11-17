@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "54e154268bacdba2d66a145702f84d46",
+    "content-hash": "d8c3321289ec6739d92e56ad7e772458",
     "packages": [
         {
             "name": "brick/math",
@@ -706,24 +706,24 @@
         },
         {
             "name": "google/cloud-dialogflow",
-            "version": "v1.4.0",
+            "version": "v2.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/google-cloud-php-dialogflow.git",
-                "reference": "0a13301041d62aed74831019e9fdfcd57f5e51c9"
+                "reference": "345e1936c1aea0cf6504e714dab2d111546b741e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/google-cloud-php-dialogflow/zipball/0a13301041d62aed74831019e9fdfcd57f5e51c9",
-                "reference": "0a13301041d62aed74831019e9fdfcd57f5e51c9",
+                "url": "https://api.github.com/repos/googleapis/google-cloud-php-dialogflow/zipball/345e1936c1aea0cf6504e714dab2d111546b741e",
+                "reference": "345e1936c1aea0cf6504e714dab2d111546b741e",
                 "shasum": ""
             },
             "require": {
-                "google/gax": "^1.1",
-                "php": ">=7.4"
+                "google/gax": "^1.38.0",
+                "php": "^8.1"
             },
             "require-dev": {
-                "google/cloud-core": "^1.39",
+                "google/cloud-core": "^1.52.7",
                 "phpunit/phpunit": "^9.0"
             },
             "suggest": {
@@ -750,9 +750,9 @@
             ],
             "description": "Google Cloud Dialogflow Client for PHP",
             "support": {
-                "source": "https://github.com/googleapis/google-cloud-php-dialogflow/tree/v1.4.0"
+                "source": "https://github.com/googleapis/google-cloud-php-dialogflow/tree/v2.2.1"
             },
-            "time": "2023-05-12T17:54:11+00:00"
+            "time": "2025-10-07T18:41:09+00:00"
         },
         {
             "name": "google/common-protos",

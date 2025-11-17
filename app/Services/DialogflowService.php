@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
-use Google\Cloud\Dialogflow\V2\SessionsClient;
+use Google\Cloud\Dialogflow\V2\Client\SessionsClient;
 use Google\Cloud\Dialogflow\V2\TextInput;
 use Google\Cloud\Dialogflow\V2\QueryInput;
+use Google\Cloud\Dialogflow\V2\DetectIntentRequest;
 
 class DialogflowService
 {
@@ -30,7 +31,11 @@ class DialogflowService
         $queryInput = new QueryInput();
         $queryInput->setText($textInput);
 
-        $response = $this->sessionsClient->detectIntent($session, $queryInput);
+        $request = new DetectIntentRequest();
+        $request->setSession($session);
+        $request->setQueryInput($queryInput);
+
+        $response = $this->sessionsClient->detectIntent($request);
 
         return $response->getQueryResult();
     }
