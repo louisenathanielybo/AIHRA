@@ -68,6 +68,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/tickets', [EmployeeController::class, 'getTickets'])->name('employee.tickets');
         Route::get('/ticket-status/{ticket_no}', [EmployeeController::class, 'getTicketStatus'])->name('employee.ticket-status');
         Route::post('/reply-to-ticket', [EmployeeController::class, 'replyToTicket'])->name('employee.reply-to-ticket');
+        
+        // Conversation routes
+        Route::get('/conversations', [EmployeeController::class, 'getConversations'])->name('employee.conversations');
+        Route::post('/conversations/start', [EmployeeController::class, 'startConversation'])->name('employee.conversations.start');
+        Route::get('/conversations/{id}', [EmployeeController::class, 'getConversationMessages'])->name('employee.conversations.show');
+        Route::delete('/conversations/{id}', [EmployeeController::class, 'deleteConversation'])->name('employee.conversations.delete');
     });
 
     // HR routes

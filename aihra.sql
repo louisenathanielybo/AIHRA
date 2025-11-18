@@ -106,15 +106,16 @@ CREATE TABLE IF NOT EXISTS `chat_messages` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `chat_messages_conversation_id_index` (`conversation_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=114 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=219 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Dumping data for table aihra.chat_messages: ~5 rows (approximately)
+-- Dumping data for table aihra.chat_messages: ~6 rows (approximately)
 INSERT IGNORE INTO `chat_messages` (`id`, `ticket_no`, `conversation_id`, `sender`, `message`, `created_at`, `updated_at`) VALUES
 	(1, 'CXCKFNZQ', NULL, 'hr', 'sda', '2025-10-13 15:16:15', NULL),
 	(2, NULL, 1, 'employee', 'tinker test insert', '2025-11-05 21:02:54', '2025-11-05 21:02:54'),
-	(111, NULL, 58, 'employee', 'hello', '2025-11-17 06:01:45', '2025-11-17 06:01:45'),
-	(112, NULL, 58, 'bot', '👋 Hello! I\'m here to help with HR questions. Let me guide you to the right information.', '2025-11-17 06:01:45', '2025-11-17 06:01:45'),
-	(113, NULL, 58, 'employee', 'emergency', '2025-11-17 06:01:47', '2025-11-17 06:01:47');
+	(215, NULL, 95, 'employee', 'Are there flexible time arrangements?', '2025-11-17 15:25:27', '2025-11-17 15:25:27'),
+	(216, NULL, 95, 'bot', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', '2025-11-17 15:25:41', '2025-11-17 15:25:41'),
+	(217, NULL, 95, 'employee', 'What are the regular working hours?', '2025-11-17 15:25:42', '2025-11-17 15:25:42'),
+	(218, NULL, 95, 'bot', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', '2025-11-17 15:25:43', '2025-11-17 15:25:43');
 
 -- Dumping structure for table aihra.conversations
 CREATE TABLE IF NOT EXISTS `conversations` (
@@ -127,11 +128,11 @@ CREATE TABLE IF NOT EXISTS `conversations` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `conversations_user_id_index` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=59 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=96 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dumping data for table aihra.conversations: ~1 rows (approximately)
 INSERT IGNORE INTO `conversations` (`id`, `user_id`, `session_id`, `title`, `first_message`, `created_at`, `updated_at`) VALUES
-	(58, 'EMP001', '2MwdBvOBXGTKs4xPknUgi6lVCJVY7oSi3pMDnJts-1763388102', '2025-11-17 - hello', 'hello', '2025-11-17 06:01:42', '2025-11-17 06:01:45');
+	(95, 'EMP001', 'sLjMPFWQOPAFJFF9UMm6dZMQ74D7CUOhKAaPGJnz-1763421920', '2025-11-17 - Are there flexible time arrangements?', 'Are there flexible time arrangements?', '2025-11-17 15:25:27', '2025-11-17 15:25:41');
 
 -- Dumping structure for table aihra.failed_jobs
 CREATE TABLE IF NOT EXISTS `failed_jobs` (
@@ -163,9 +164,18 @@ CREATE TABLE IF NOT EXISTS `feedback` (
   CONSTRAINT `feedback_ibfk_2` FOREIGN KEY (`queryID`) REFERENCES `queries` (`queryID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Dumping data for table aihra.feedback: ~1 rows (approximately)
+-- Dumping data for table aihra.feedback: ~10 rows (approximately)
 INSERT IGNORE INTO `feedback` (`feedbackID`, `employeeNum`, `queryID`, `rating`, `suggestion`, `timeStamp`) VALUES
-	('b0c2e171-46a0-484e-b015-7cf389eb301c', 'EMP001', NULL, 3, 'testing', '2025-11-05 13:32:39');
+	('1068acbd-4e57-42e0-abf1-9b6af9fed1ef', 'EMP001', NULL, 5, 'asdasdasd', '2025-11-17 22:13:41'),
+	('35034703-0228-4571-900a-52ad53905666', 'EMP001', NULL, 4, 'dasdasdasd', '2025-11-17 20:59:33'),
+	('3e2e7eec-6994-4d2b-bb7c-a1911bb0771c', 'EMP001', NULL, 5, 'asdasdasd', '2025-11-17 22:13:37'),
+	('4366e7e7-372d-45ed-8176-462903ef68f3', 'EMP001', NULL, 3, 'asdasdasd', '2025-11-17 22:13:43'),
+	('70ed94b1-0c56-4dcf-baa6-9c88f971ed35', 'EMP001', NULL, 4, 'test', '2025-11-17 22:10:41'),
+	('716600e1-07b4-43ea-9400-2ba8d18d1b30', 'EMP001', NULL, 3, 'asdasdasdasdas', '2025-11-17 22:18:50'),
+	('9e6cd6d0-7d96-4690-a0e4-df0f10df77fc', 'EMP001', NULL, 3, 'asdasdasd', '2025-11-17 22:16:50'),
+	('b0c2e171-46a0-484e-b015-7cf389eb301c', 'EMP001', NULL, 3, 'testing', '2025-11-05 13:32:39'),
+	('bfeab309-ee36-4951-b298-43fbccf99bdb', 'EMP001', NULL, 3, 'asdasdasd', '2025-11-17 22:16:58'),
+	('f3dd9410-290a-4371-b4ce-cff93f427675', 'EMP001', NULL, 3, 'test', '2025-11-17 22:13:29');
 
 -- Dumping structure for table aihra.flaggedresponse
 CREATE TABLE IF NOT EXISTS `flaggedresponse` (
@@ -259,9 +269,9 @@ CREATE TABLE IF NOT EXISTS `hr_inbox` (
   `confidence` float DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `ticket_no` (`ticket_no`)
-) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=69 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Dumping data for table aihra.hr_inbox: ~18 rows (approximately)
+-- Dumping data for table aihra.hr_inbox: ~24 rows (approximately)
 INSERT IGNORE INTO `hr_inbox` (`id`, `ticket_no`, `from_user`, `message`, `status`, `is_active`, `priority`, `created_at`, `updated_at`, `category`, `intent`, `confidence`) VALUES
 	(45, 'TKT-SMC2QODA-1761598747', 'EMP001', '"I want to talk to a real person', 'Resolved', 1, 'medium', '2025-10-27 12:59:07', '2025-10-27 15:10:20', 'General', 'Escalated from Chatbot', 0),
 	(46, 'TKT-UUYOVNBI-1761598766', 'EMP001', 'I want to talk to a real person', 'Resolved', 1, 'medium', '2025-10-27 12:59:26', '2025-10-27 15:10:27', 'General', 'Escalated from Chatbot', 0),
@@ -280,7 +290,13 @@ INSERT IGNORE INTO `hr_inbox` (`id`, `ticket_no`, `from_user`, `message`, `statu
 	(59, 'TKT-YXNS8UVD-1761612607', 'Emp002', 'yes', 'Replied', 1, 'medium', '2025-10-27 16:50:08', '2025-10-27 16:51:36', 'General', 'EMERGENCY: User chose escalation after 1 retries', 0),
 	(60, 'TKT-U4FX9FIK-1762398657', 'EMP001', 'I want to talk to a real person', 'Waiting for HR', 1, 'medium', '2025-11-05 19:10:58', '2025-11-12 15:17:19', 'General', 'EMERGENCY: User requested human assistance', 0),
 	(61, 'TKT-MQIBWNUF-1763386253', 'EMP001', 'yes', 'Waiting for HR', 1, 'medium', '2025-11-17 05:30:54', '2025-11-17 05:53:21', 'General', 'EMERGENCY: User chose escalation after 3 retries', 0),
-	(62, 'TKT-Y7BUUZCP-1763388108', 'EMP001', 'emergency', 'Open', 1, 'high', '2025-11-17 06:01:48', '2025-11-17 06:01:48', 'General', 'Escalated: Auto-escalated: Confidence 1, Intent: D', 0);
+	(62, 'TKT-Y7BUUZCP-1763388108', 'EMP001', 'emergency', 'Open', 1, 'high', '2025-11-17 06:01:48', '2025-11-17 06:01:48', 'General', 'Escalated: Auto-escalated: Confidence 1, Intent: D', 0),
+	(63, 'TKT-KMZJIFL5-1763388610', 'EMP001', 'How do I request vacation', 'Open', 1, 'high', '2025-11-17 06:10:10', '2025-11-17 06:10:10', 'Benefits', 'Escalated: User chose escalation after 1 retries', 0),
+	(64, 'TKT-SBQI3MXN-1763388636', 'EMP001', 'escalate it', 'Open', 1, 'low', '2025-11-17 06:10:36', '2025-11-17 06:10:36', 'General', 'Escalated: User requested human assistance', 0),
+	(65, 'TKT-BKRXYKVV-1763388782', 'EMP001', 'sadfsdfasd', 'Open', 1, 'low', '2025-11-17 06:13:02', '2025-11-17 06:13:02', 'General', 'Escalated: User chose escalation after 2 retries', 0),
+	(66, 'TKT-CQLKDGYO-1763389923', 'EMP001', 'Employee Development', 'Open', 1, 'high', '2025-11-17 06:32:03', '2025-11-17 06:32:03', 'General', 'Escalated: User chose escalation after 3 retries', 0),
+	(67, 'TKT-UUX1HQBO-1763412885', 'EMP001', 'What is the procedure for emergency leave?', 'Open', 1, 'high', '2025-11-17 12:54:45', '2025-11-17 12:54:45', 'Benefits', 'Escalated: Auto-escalated: Confidence 0.6502634286', 0),
+	(68, 'TKT-NXYRWGDA-1763412894', 'EMP001', 'What is the procedure for emergency leave?', 'Replied', 1, 'high', '2025-11-17 12:54:54', '2025-11-17 15:19:10', 'Benefits', 'Escalated: Auto-escalated: Confidence 0.6502634286', 0);
 
 -- Dumping structure for table aihra.hr_replies
 CREATE TABLE IF NOT EXISTS `hr_replies` (
@@ -294,7 +310,7 @@ CREATE TABLE IF NOT EXISTS `hr_replies` (
   CONSTRAINT `hr_replies_ibfk_1` FOREIGN KEY (`ticket_no`) REFERENCES `hr_inbox` (`ticket_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Dumping data for table aihra.hr_replies: ~37 rows (approximately)
+-- Dumping data for table aihra.hr_replies: ~45 rows (approximately)
 INSERT IGNORE INTO `hr_replies` (`replyID`, `ticket_no`, `hr_message`, `replied_at`, `replied_by`) VALUES
 	('004d55ea-2ea0-4f3e-afa5-07f2f95d0fdc', 'TKT-JC3HBJGB-1761605142', '🔁 Employee Follow-up: sada', '2025-10-27 15:04:04', 'HR001'),
 	('0a1726a8-d5a7-444f-aa03-d94e1f570c4a', 'TKT-MQIBWNUF-1763386253', 'emergency', '2025-11-17 05:53:21', 'EMP001'),
@@ -304,6 +320,7 @@ INSERT IGNORE INTO `hr_replies` (`replyID`, `ticket_no`, `hr_message`, `replied_
 	('367fa4ff-6a39-4305-8534-f49da49a77b9', 'TKT-U4FX9FIK-1762398657', 'Hello', '2025-11-05 19:11:37', NULL),
 	('37f60635-d445-49b0-9003-e09b13c00e5d', 'TKT-JC3HBJGB-1761605142', 'idek', '2025-10-27 14:46:01', NULL),
 	('39a8ac53-33ea-44d9-940f-ca4b4702e427', 'TKT-HHA6HGUE-1761603943', 'hi', '2025-10-27 14:27:43', NULL),
+	('40878849-a924-4000-a3ad-addec2d47715', 'TKT-NXYRWGDA-1763412894', 'sup', '2025-11-17 15:19:07', NULL),
 	('4c60be44-2d76-4d8b-8484-a15aec96e3bf', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: hey', '2025-11-12 15:12:08', 'EMP001'),
 	('4d6afb2e-ea4a-4b6d-af61-2531503275ab', 'TKT-JC3HBJGB-1761605142', 'sda', '2025-10-27 15:04:16', NULL),
 	('4ddfaa8a-c62a-451c-b1c1-0aafcb8980dd', 'TKT-HHA6HGUE-1761603943', 'sda', '2025-10-27 14:41:00', NULL),
@@ -315,24 +332,31 @@ INSERT IGNORE INTO `hr_replies` (`replyID`, `ticket_no`, `hr_message`, `replied_
 	('66cba46e-b4cf-4f77-9882-4060eb65d9de', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: hi', '2025-11-12 14:44:33', 'EMP001'),
 	('827957e1-3305-410b-8631-8428f7b0af71', 'TKT-MQIBWNUF-1763386253', 'emergency', '2025-11-17 05:53:08', 'EMP001'),
 	('8404289c-718d-4d66-9345-d7fd57fe99a5', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: hello', '2025-11-11 22:17:26', 'EMP001'),
+	('84a1135e-14e0-4452-91a9-37fc183b5ea6', 'TKT-NXYRWGDA-1763412894', 'asdasdas', '2025-11-17 13:57:47', 'EMP001'),
 	('87652be5-e28f-4563-b79d-8c9e6d73e2b3', 'TKT-7ZWV6VMQ-1761601801', 'hello', '2025-10-27 14:09:00', NULL),
+	('8bea71f2-6874-474a-8145-c1eb295e9c19', 'TKT-NXYRWGDA-1763412894', 'asdasd', '2025-11-17 13:57:48', 'EMP001'),
+	('91ef28cc-f41c-4ffa-aec8-ec1f683bc8d4', 'TKT-NXYRWGDA-1763412894', 'asdas', '2025-11-17 13:57:49', 'EMP001'),
 	('95b417d9-1a38-46bd-996a-69378fcb315e', 'TKT-YXNS8UVD-1761612607', 'hyyhy', '2025-10-27 16:51:36', NULL),
 	('a22de847-82ec-4d79-a2fc-56813295eb5e', 'TKT-HHA6HGUE-1761603943', 'idk', '2025-10-27 14:39:46', NULL),
 	('a43fe4d0-7c4e-4272-bf61-8f1c0ffa0c18', 'TKT-U4FX9FIK-1762398657', 'jhhgkjh', '2025-11-12 15:17:19', 'EMP001'),
 	('ac09a49f-0549-40a9-8c2b-efaf474699b8', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: hello', '2025-11-11 21:25:47', 'EMP001'),
 	('af9820d2-d481-439e-8e46-127173eda790', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: yo', '2025-11-12 15:11:56', 'EMP001'),
+	('b064f872-e249-41ee-bb1a-6db243b397a6', 'TKT-NXYRWGDA-1763412894', 'sup', '2025-11-17 15:19:10', NULL),
 	('b1623c64-3ed9-4f12-8c1a-27c2cb0baa20', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: hi', '2025-11-11 22:57:24', 'EMP001'),
 	('b1e418a4-d033-4e7f-bfc2-9f373cb1de1e', 'TKT-HHA6HGUE-1761603943', 'hi', '2025-10-27 14:37:21', NULL),
 	('b3e17340-4fbc-4ca6-a343-6e2ad8f1a89a', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: yo', '2025-11-12 14:44:40', 'EMP001'),
 	('b7fd46c6-b2c7-46ab-8407-a1a05e4d9e5c', 'TKT-SMC2QODA-1761598747', 'Test reply from HR - 6:08:39 AM', '2025-10-27 14:08:40', NULL),
 	('b939bfb0-dfde-4178-b64c-86cdc9510199', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: hello', '2025-11-11 21:27:59', 'EMP001'),
+	('be0eb50c-6dc2-44a0-ae4c-52793c8b3979', 'TKT-NXYRWGDA-1763412894', 'asdasd', '2025-11-17 13:57:45', 'EMP001'),
 	('bf00fa84-1000-45d1-b072-28ec1079d96d', 'TKT-7ZWV6VMQ-1761601801', 'hi', '2025-10-27 14:28:19', NULL),
 	('bf867cff-2c92-4763-946f-d495fac2a183', 'TKT-JC3HBJGB-1761605142', 'ungki', '2025-10-27 14:57:16', NULL),
 	('cc91d75d-001a-4dc9-acc3-58f5d5f8a0e3', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: hi', '2025-11-12 14:43:38', 'EMP001'),
 	('d27dbbad-a1d6-4d04-ae2f-dbba2f812150', 'TKT-D3CPZ2OT-1761610436', 'sdad', '2025-11-05 19:10:01', NULL),
 	('d3a79e6a-f2bf-4ab7-9b8d-1c3795389c4a', 'TKT-U4FX9FIK-1762398657', 'yo', '2025-11-12 15:16:46', NULL),
 	('d7e6c827-ced8-46f8-adb8-dc1296105036', 'TKT-JC3HBJGB-1761605142', '🔁 Employee Follow-up: yes pplease', '2025-10-27 14:56:47', 'HR001'),
-	('e0d0ea54-546f-4bd8-8205-190ced98ee50', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: sup', '2025-11-12 15:07:47', 'EMP001');
+	('e0d0ea54-546f-4bd8-8205-190ced98ee50', 'TKT-U4FX9FIK-1762398657', '🔁 Employee Follow-up: sup', '2025-11-12 15:07:47', 'EMP001'),
+	('e70c1795-cdd7-416b-9939-1d4e73203d76', 'TKT-NXYRWGDA-1763412894', 'asdasd', '2025-11-17 13:57:49', 'EMP001'),
+	('eea8bbea-8e06-41b4-a1da-eebb91887aa9', 'TKT-NXYRWGDA-1763412894', 'asdasdas', '2025-11-17 13:57:46', 'EMP001');
 
 -- Dumping structure for table aihra.interactionlog
 CREATE TABLE IF NOT EXISTS `interactionlog` (
@@ -385,9 +409,9 @@ CREATE TABLE IF NOT EXISTS `migrations` (
   `migration` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `batch` int NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table aihra.migrations: ~14 rows (approximately)
+-- Dumping data for table aihra.migrations: ~17 rows (approximately)
 INSERT IGNORE INTO `migrations` (`id`, `migration`, `batch`) VALUES
 	(1, '2014_10_12_100000_create_password_reset_tokens_table', 1),
 	(2, '2019_08_19_000000_create_failed_jobs_table', 1),
@@ -402,7 +426,10 @@ INSERT IGNORE INTO `migrations` (`id`, `migration`, `batch`) VALUES
 	(12, '2025_11_07_000000_add_timestamps_to_chat_messages', 9),
 	(13, '2025_11_07_000001_add_updated_at_to_chat_messages', 10),
 	(14, '2025_11_07_000002_fix_chat_messages_schema', 11),
-	(15, '2025_11_17_124236_create_accounts_table', 12);
+	(15, '2025_11_17_124236_create_accounts_table', 12),
+	(16, '2025_11_18_000000_add_name_and_about_to_users_table', 13),
+	(17, '2025_11_18_000001_add_dob_to_users_table', 14),
+	(18, '2025_11_18_000002_drop_users_check_constraint', 15);
 
 -- Dumping structure for table aihra.password_reset_tokens
 CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
@@ -450,41 +477,70 @@ CREATE TABLE IF NOT EXISTS `queries` (
   CONSTRAINT `queries_ibfk_1` FOREIGN KEY (`employeeNum`) REFERENCES `users` (`employeeNum`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Dumping data for table aihra.queries: ~33 rows (approximately)
+-- Dumping data for table aihra.queries: ~62 rows (approximately)
 INSERT IGNORE INTO `queries` (`queryID`, `employeeNum`, `question`, `response`, `confidenceScore`, `queryType`, `questionTime`, `responseTime`, `isEscalated`, `handledBy`) VALUES
 	('0082478c-5d70-494d-b364-75c03a520715', 'EMP001', 'credits', '"Leave credits vary: College faculty have 3 vacation and 3 sick leave credits, Basic Education teachers have 12 vacation and 12 sick leave credits, while office and general services staff have 15 vacation and 15 sick leave credits per year. Unused credits may be monetized."', 0.92629, 'Dialogflow', '2025-11-17 13:50:00', '2025-11-17 13:50:00', 0, 'Bot'),
 	('1184c003-551e-464f-933d-0fece5feed45', 'HR001', 'what example of complex hr related question you cant answer?', 'One more time?', 1, 'Dialogflow', '2025-10-27 23:37:38', '2025-10-27 23:37:38', 0, 'Bot'),
+	('1286cf64-9944-4cc8-8ab4-dd156552e183', 'EMP001', 'How long is the probation period?', '"Newly hired employees undergo a 6-month probationary period. Their performance is evaluated before regularization. Those who meet expectations are given a Regular Employment Agreement; those who do not may be terminated."', 0.648208, 'Dialogflow', '2025-11-17 21:44:28', '2025-11-17 21:44:28', 0, 'Bot'),
 	('136981f0-a59e-41ab-a119-3bb1dd833f2b', 'Emp002', 'hiasd', 'I didn\'t get that. Can you say it again?', 1, 'Dialogflow', '2025-10-28 00:33:42', '2025-10-28 00:33:42', 0, 'Bot'),
 	('1e8a7a4b-a871-408d-907f-9fb8c354f0c6', 'HR001', 'okay', 'Sorry, could you say that again?', 1, 'Dialogflow', '2025-10-27 23:36:17', '2025-10-27 23:36:17', 0, 'Bot'),
+	('1fa9aefa-2f47-4e53-9b58-8841643bdd2b', 'EMP001', 'Are there flexible time arrangements?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 1, 'Dialogflow', '2025-11-17 23:25:41', '2025-11-17 23:25:41', 0, 'Bot'),
+	('232fdbd1-079d-4065-89e6-9eacfb6bfd10', 'EMP001', 'Are there flexible time arrangements?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 1, 'Dialogflow', '2025-11-17 21:15:53', '2025-11-17 21:15:53', 0, 'Bot'),
+	('2384e961-6b44-43d1-81e8-e15903eea920', 'EMP001', '"What are the office hours?"', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.615147, 'Dialogflow', '2025-11-17 14:09:42', '2025-11-17 14:09:42', 0, 'Bot'),
 	('2573638c-b05e-47a9-8dde-2014e5978d65', 'HR001', 'how do I apply for government benefits', '"DWCC employees receive government-mandated benefits such as SSS (sickness, disability, funeral, maternity, paternity, loans), PAG-IBIG (multi-purpose loans, housing, retirement), and PhilHealth (hospitalization benefits for employees and dependents)."', 0.626332, 'Dialogflow', '2025-10-27 23:35:42', '2025-10-27 23:35:42', 0, 'Bot'),
 	('25890a1a-759a-4b3b-ad7e-d5e640bcb6d2', 'EMP001', 'Are there flexible time arrangements?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 1, 'Dialogflow', '2025-11-17 13:28:45', '2025-11-17 13:28:45', 0, 'Bot'),
+	('33bb93f3-d2bc-4c7c-bf44-dd3d94f8655d', 'EMP001', 'Are there flexible time arrangements?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 1, 'Dialogflow', '2025-11-17 14:25:11', '2025-11-17 14:25:11', 0, 'Bot'),
+	('34863c3f-0cd2-4284-821d-699968f930ca', 'EMP001', 'What happens after probation period?', '"Newly hired employees undergo a 6-month probationary period. Their performance is evaluated before regularization. Those who meet expectations are given a Regular Employment Agreement; those who do not may be terminated."', 0.610261, 'Dialogflow', '2025-11-17 21:54:39', '2025-11-17 21:54:39', 0, 'Bot'),
 	('3db2cbdc-4e3c-48a4-a80a-54c8f9a4bc44', 'EMP001', 'how many credits do i have', '"Leave credits vary: College faculty have 3 vacation and 3 sick leave credits, Basic Education teachers have 12 vacation and 12 sick leave credits, while office and general services staff have 15 vacation and 15 sick leave credits per year. Unused credits may be monetized."', 0.871918, 'Dialogflow', '2025-11-17 13:50:33', '2025-11-17 13:50:33', 0, 'Bot'),
+	('45494712-2b90-4589-8dee-977d8ba1c05c', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 21:15:51', '2025-11-17 21:15:51', 0, 'Bot'),
 	('48640f3c-89b7-4b4e-9782-a44420fe12a4', 'HR001', 'I want to tralk to HR', '“I’m AIHRA — the AI Human Resource Assistant of Divine Word College of Calapan.”', 0.708492, 'Dialogflow', '2025-10-27 22:17:01', '2025-10-27 22:17:01', 0, 'Bot'),
 	('4ab4af4a-9020-42fc-b8ce-b71baa89986b', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 13:28:41', '2025-11-17 13:28:41', 0, 'Bot'),
 	('5ad2b551-b2f8-4de9-838c-95365db803f0', 'Emp002', 'hiasd', 'I didn\'t get that. Can you repeat?', 1, 'Dialogflow', '2025-10-28 00:33:49', '2025-10-28 00:33:49', 0, 'Bot'),
 	('62a479a2-69a7-4fde-bfc4-b96cffcc8028', 'EMP001', 'sick leave', '"Employees are entitled to vacation and sick leave, which can be monetized if unused. Emergency leave may be granted for serious accidents, natural calamities, or urgent personal matters. Faculty and staff may also request leave without pay for up to one year for health, studies, or other valid reasons."', 0.702864, 'Dialogflow', '2025-11-17 13:30:28', '2025-11-17 13:30:28', 0, 'Bot'),
 	('6442fdf4-9998-11f0-83e4-e86cc7778971', 'EMP001', 'hi', 'I didn\'t get that. Can you repeat?', 1, 'Dialogflow', '2025-09-25 06:47:04', '2025-09-25 06:47:04', 0, 'Bot'),
+	('65afb11b-2584-4aae-bf8a-0085788b55ee', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 20:55:54', '2025-11-17 20:55:54', 0, 'Bot'),
 	('68757e24-428a-4226-8bc6-96ae16d2569d', 'HR001', 'what example of complex hr related question you cant answer?', 'One more time?', 1, 'Dialogflow', '2025-10-27 23:37:33', '2025-10-27 23:37:33', 0, 'Bot'),
+	('68d69c1f-0944-4c53-8a4a-25475f6eaef1', 'EMP001', 'When do I get my first loyalty award?', '"Employees who have completed at least 10 years of service receive a loyalty award, which includes a plaque of recognition and a cash award. The cash award is Php 500 for every year of service."', 0.660302, 'Dialogflow', '2025-11-17 21:29:05', '2025-11-17 21:29:05', 0, 'Bot'),
 	('6da85177-f33b-4676-b458-c3219fb070ec', 'EMP001', 'how many credits do i have', '"Leave credits vary: College faculty have 3 vacation and 3 sick leave credits, Basic Education teachers have 12 vacation and 12 sick leave credits, while office and general services staff have 15 vacation and 15 sick leave credits per year. Unused credits may be monetized."', 0.871918, 'Dialogflow', '2025-11-17 13:50:35', '2025-11-17 13:50:35', 0, 'Bot'),
+	('6e122643-9834-48c5-b578-708cb766e8ef', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 21:10:46', '2025-11-17 21:10:46', 0, 'Bot'),
+	('722b1e91-1704-46ce-80bb-7167194e0a97', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 21:56:45', '2025-11-17 21:56:45', 0, 'Bot'),
+	('7334a58a-3eff-45ef-8cc4-26adc3f10c5a', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 22:18:57', '2025-11-17 22:18:57', 0, 'Bot'),
 	('751d11b8-3273-4b01-a963-68a7685642d3', 'EMP001', 'How many vacation leaves do I get per year?', 'Say that one more time?', 1, 'Dialogflow', '2025-10-27 20:50:31', '2025-10-27 20:50:31', 0, 'Bot'),
+	('75594c17-b053-4a47-969f-f1de43eeee52', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 23:25:43', '2025-11-17 23:25:43', 0, 'Bot'),
+	('7872e91e-8813-4a2e-9a3f-34659c7c2240', 'EMP001', 'How to apply for sick leave?', '"Leave of absence must be requested in writing and approved by the Father President with endorsement from the division head. Unauthorized absences may result in deductions or disciplinary action."', 0.680127, 'Dialogflow', '2025-11-17 14:31:13', '2025-11-17 14:31:13', 0, 'Bot'),
+	('7b3e16de-4d2c-47e7-a799-a0ca2092237e', 'EMP001', 'Can probation period be extended?', '"Newly hired employees undergo a 6-month probationary period. Their performance is evaluated before regularization. Those who meet expectations are given a Regular Employment Agreement; those who do not may be terminated."', 0.679383, 'Dialogflow', '2025-11-17 21:02:10', '2025-11-17 21:02:10', 0, 'Bot'),
+	('7b44fee0-ac3a-40d0-8633-754e578c509c', 'EMP001', 'How long is the probation period?', '"Newly hired employees undergo a 6-month probationary period. Their performance is evaluated before regularization. Those who meet expectations are given a Regular Employment Agreement; those who do not may be terminated."', 0.648208, 'Dialogflow', '2025-11-17 21:54:41', '2025-11-17 21:54:41', 0, 'Bot'),
+	('7e56f418-85db-4f28-83d3-09958e7cc3c3', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 21:33:50', '2025-11-17 21:33:50', 0, 'Bot'),
+	('7ed30e2c-39e4-4d57-80d3-572cea7c8aca', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 21:56:49', '2025-11-17 21:56:49', 0, 'Bot'),
+	('82ed74ee-0acd-47c3-a6a8-ccf3e1328400', 'EMP001', 'Are there flexible time arrangements?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 1, 'Dialogflow', '2025-11-17 14:21:17', '2025-11-17 14:21:17', 0, 'Bot'),
 	('854bacec-8876-491b-8d2d-198021d84360', 'HR001', 'what example of complex hr related question you cant answer?', 'Can you say that again?', 1, 'Dialogflow', '2025-10-27 23:37:30', '2025-10-27 23:37:30', 0, 'Bot'),
 	('86ee52d8-12bd-4139-b17e-ea149cd68310', 'HR001', 'what example of complex hr related question you cant answer?', 'I didn\'t get that. Can you repeat?', 1, 'Dialogflow', '2025-10-27 23:37:11', '2025-10-27 23:37:11', 0, 'Bot'),
 	('8b9d9877-dce9-4952-82f9-55a477945c10', 'HR001', 'where do birds fly in the hr office?', '“I assist employees by answering HR-related queries and forwarding complex ones to HR personnel.”', 0.599892, 'Dialogflow', '2025-10-27 23:36:35', '2025-10-27 23:36:35', 0, 'Bot'),
+	('8c82a758-8f7c-4355-9b4d-68dd4be508a8', 'EMP001', 'Can probation period be extended?', '"Newly hired employees undergo a 6-month probationary period. Their performance is evaluated before regularization. Those who meet expectations are given a Regular Employment Agreement; those who do not may be terminated."', 0.679383, 'Dialogflow', '2025-11-17 21:01:30', '2025-11-17 21:01:30', 0, 'Bot'),
 	('8ce24409-20a3-4b35-9972-51be2142757d', 'Emp002', 'hiasd', 'Sorry, I didn\'t get that. Can you rephrase?', 1, 'Dialogflow', '2025-10-28 00:33:35', '2025-10-28 00:33:35', 0, 'Bot'),
 	('9199d424-91d9-4f6e-a312-314a876e250c', 'EMP001', 'sadas', 'I didn\'t get that. Can you say it again?', 1, 'Dialogflow', '2025-10-27 21:07:50', '2025-10-27 21:07:50', 0, 'Bot'),
+	('9c648c81-a0ae-4b40-aacf-4ae37800bc67', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 14:25:52', '2025-11-17 14:25:52', 0, 'Bot'),
 	('9d5ed3f0-fda1-479f-a9bd-66572899536c', 'HR001', 'what is my salary grade?', '"Employee salaries at DWCC comply with labor laws. Non-teaching staff follow the school’s salary scale, while teaching staff salaries depend on their teaching load and rank. Promotions and step increases affect salary adjustments."', 0.592249, 'Dialogflow', '2025-10-27 23:35:19', '2025-10-27 23:35:19', 0, 'Bot'),
+	('9f0bf426-c728-43cb-8104-0f3101be6b89', 'EMP001', 'Are there flexible time arrangements?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 1, 'Dialogflow', '2025-11-17 14:22:14', '2025-11-17 14:22:14', 0, 'Bot'),
 	('a288fc82-7914-4f3f-86c3-882c319f2f89', 'HR001', 'I need help with tax forms', 'I missed what you said. What was that?', 1, 'Dialogflow', '2025-10-27 23:43:37', '2025-10-27 23:43:37', 0, 'Bot'),
 	('abebe31a-40dc-43c6-87a7-8509d73966a3', 'EMP001', 'how many credits', '"Leave credits vary: College faculty have 3 vacation and 3 sick leave credits, Basic Education teachers have 12 vacation and 12 sick leave credits, while office and general services staff have 15 vacation and 15 sick leave credits per year. Unused credits may be monetized."', 0.884732, 'Dialogflow', '2025-11-17 13:50:12', '2025-11-17 13:50:12', 0, 'Bot'),
 	('b0f657bb-c137-4401-9c14-d4d9cfee7c4d', 'EMP001', 'Are there flexible time arrangements?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 1, 'Dialogflow', '2025-11-17 13:49:12', '2025-11-17 13:49:12', 0, 'Bot'),
+	('b5ac2867-4a58-4acd-abba-cbf99208a7c8', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 21:04:48', '2025-11-17 21:04:48', 0, 'Bot'),
+	('b68697e6-c3ab-4a1b-bc71-ebd958bc2a1c', 'EMP001', 'Can probation period be extended?', '"Newly hired employees undergo a 6-month probationary period. Their performance is evaluated before regularization. Those who meet expectations are given a Regular Employment Agreement; those who do not may be terminated."', 0.679383, 'Dialogflow', '2025-11-17 21:44:29', '2025-11-17 21:44:29', 0, 'Bot'),
 	('ba6703f9-e0e1-4263-99fe-56b7c07afc07', 'HR001', 'what example of complex hr related question you cant answer?', 'I didn\'t get that. Can you repeat?', 1, 'Dialogflow', '2025-10-27 23:37:28', '2025-10-27 23:37:28', 0, 'Bot'),
+	('bae21c47-c7da-4a46-b756-a8326a59fe06', 'EMP001', 'What happens after probation period?', '"Newly hired employees undergo a 6-month probationary period. Their performance is evaluated before regularization. Those who meet expectations are given a Regular Employment Agreement; those who do not may be terminated."', 0.610261, 'Dialogflow', '2025-11-17 21:44:26', '2025-11-17 21:44:26', 0, 'Bot'),
+	('be3e4c46-46ae-4c49-b099-417634066f38', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 21:01:42', '2025-11-17 21:01:42', 0, 'Bot'),
 	('c74d880d-a692-4ddb-bae8-f5dc680785dc', 'EMP001', 'how many credits do i have', '"Leave credits vary: College faculty have 3 vacation and 3 sick leave credits, Basic Education teachers have 12 vacation and 12 sick leave credits, while office and general services staff have 15 vacation and 15 sick leave credits per year. Unused credits may be monetized."', 0.871918, 'Dialogflow', '2025-11-17 13:50:26', '2025-11-17 13:50:26', 0, 'Bot'),
 	('cef85b66-762d-42fe-80e0-501a19555a8f', 'EMP001', 'How many vacation leaves do I get per year?', 'I didn\'t get that. Can you say it again?', 1, 'Dialogflow', '2025-10-27 20:50:35', '2025-10-27 20:50:35', 0, 'Bot'),
 	('d49975ef-05b6-41a1-976d-2b93a7a6371b', 'HR001', 'I want HR assistance', '“I’m AIHRA — the AI Human Resource Assistant of Divine Word College of Calapan.”', 0.592178, 'Dialogflow', '2025-10-28 00:26:41', '2025-10-28 00:26:41', 0, 'Bot'),
 	('e4b13342-8761-4d3d-8053-9f09f033055a', 'EMP001', 'my credits', '"Leave credits vary: College faculty have 3 vacation and 3 sick leave credits, Basic Education teachers have 12 vacation and 12 sick leave credits, while office and general services staff have 15 vacation and 15 sick leave credits per year. Unused credits may be monetized."', 0.92629, 'Dialogflow', '2025-11-17 13:50:19', '2025-11-17 13:50:19', 0, 'Bot'),
 	('e5529190-4bbd-43e7-bef5-eec9d2c4d13f', 'Emp002', 'hiasd', 'One more time?', 1, 'Dialogflow', '2025-10-28 00:33:45', '2025-10-28 00:33:45', 0, 'Bot'),
+	('ebecc6b1-9c65-4620-94ee-05c57ce5cd04', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 21:01:39', '2025-11-17 21:01:39', 0, 'Bot'),
 	('ee59f4ea-3b2c-483c-a2dd-7b8a962e832d', 'HR001', 'what example of complex hr related question you cant ansewer?', 'Sorry, what was that?', 1, 'Dialogflow', '2025-10-27 23:37:00', '2025-10-27 23:37:00', 0, 'Bot'),
 	('f2700f7c-120d-4f10-99dd-b0eccf687b84', 'EMP001', 'how many credits do i have', '"Leave credits vary: College faculty have 3 vacation and 3 sick leave credits, Basic Education teachers have 12 vacation and 12 sick leave credits, while office and general services staff have 15 vacation and 15 sick leave credits per year. Unused credits may be monetized."', 0.871918, 'Dialogflow', '2025-11-17 13:50:36', '2025-11-17 13:50:36', 0, 'Bot'),
-	('f71ade7f-651f-4924-92a2-0a85ef8b949d', 'EMP001', 'How to apply for sick leave?', '"Leave of absence must be requested in writing and approved by the Father President with endorsement from the division head. Unauthorized absences may result in deductions or disciplinary action."', 0.680127, 'Dialogflow', '2025-11-17 13:29:42', '2025-11-17 13:29:42', 0, 'Bot');
+	('f71ade7f-651f-4924-92a2-0a85ef8b949d', 'EMP001', 'How to apply for sick leave?', '"Leave of absence must be requested in writing and approved by the Father President with endorsement from the division head. Unauthorized absences may result in deductions or disciplinary action."', 0.680127, 'Dialogflow', '2025-11-17 13:29:42', '2025-11-17 13:29:42', 0, 'Bot'),
+	('fc209e41-efba-460a-862e-5e14c78d632e', 'EMP001', 'What are the regular working hours?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 0.77641, 'Dialogflow', '2025-11-17 21:56:47', '2025-11-17 21:56:47', 0, 'Bot'),
+	('fc96ea83-7b94-4431-9c2e-fc00d0cd89b0', 'EMP001', 'Are there flexible time arrangements?', 'Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties.', 1, 'Dialogflow', '2025-11-17 21:33:54', '2025-11-17 21:33:54', 0, 'Bot');
 
 -- Dumping structure for table aihra.reasoncatalog
 CREATE TABLE IF NOT EXISTS `reasoncatalog` (
@@ -518,6 +574,7 @@ CREATE TABLE IF NOT EXISTS `tickets` (
 -- Dumping structure for table aihra.users
 CREATE TABLE IF NOT EXISTS `users` (
   `employeeNum` varchar(50) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
   `firstName` varchar(50) DEFAULT NULL,
@@ -526,20 +583,20 @@ CREATE TABLE IF NOT EXISTS `users` (
   `role` enum('Employee','HR','Admin') DEFAULT NULL,
   `sex` enum('Male','Female') DEFAULT NULL,
   `age` int DEFAULT NULL,
+  `dob` date DEFAULT NULL,
   `profile_picture` blob,
   `about` text,
   `status` enum('Active','Deactivated') DEFAULT NULL,
   PRIMARY KEY (`employeeNum`),
-  UNIQUE KEY `email` (`email`),
-  CONSTRAINT `users_chk_1` CHECK (((`age` >= 18) and (`age` <= 65)))
+  UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Dumping data for table aihra.users: ~4 rows (approximately)
-INSERT IGNORE INTO `users` (`employeeNum`, `email`, `password`, `firstName`, `lastName`, `middleName`, `role`, `sex`, `age`, `profile_picture`, `about`, `status`) VALUES
-	('ADM001', 'admin@aihra.com', '$2y$12$LiRgwzhQ0HO8fa9ZhOGmVuIu8LORcAnAGZdXc1sHWVyIvcn5L1Ah2', 'System', 'Admin', NULL, 'Admin', 'Male', 35, NULL, NULL, 'Active'),
-	('EMP001', 'employee@aihra.com', '$2y$12$PICdo.yTJJCSYdAi7VqvdecixD2b31KhijvpIe0aQq1QAWYP6FOJi', 'Juan', 'Dela Cruz', 'Santos', 'Employee', 'Male', 30, NULL, NULL, 'Active'),
-	('Emp002', 'emp2@gmail.com', '$2y$12$IN2Q6VSs6.2rEF2BkU5l7uEkT160LbLyF6XGpT.b0WiBV4N33n34e', 'Test', 'emp', NULL, 'Employee', 'Male', 45, _binary 0x64656661756c742e706e67, NULL, 'Active'),
-	('HR001', 'hr@aihra.com', '$2y$12$MB3IbWHeJjEFhWfAXFCcguqwQvMJRaASFczciWyQtOxupzAUqUgmC', 'Maria', 'Reyes', 'Lopez', 'HR', 'Female', 33, NULL, NULL, 'Active');
+INSERT IGNORE INTO `users` (`employeeNum`, `name`, `email`, `password`, `firstName`, `lastName`, `middleName`, `role`, `sex`, `age`, `dob`, `profile_picture`, `about`, `status`) VALUES
+	('ADM001', NULL, 'admin@aihra.com', '$2y$12$LiRgwzhQ0HO8fa9ZhOGmVuIu8LORcAnAGZdXc1sHWVyIvcn5L1Ah2', 'System', 'Admin', NULL, 'Admin', 'Male', 35, NULL, NULL, NULL, 'Active'),
+	('EMP001', 'Juan', 'employee@aihra.com', '$2y$12$wXr49jk2ZveByqMnp2QEieD.F0cwEDwzhy6w1DmPFJW/1nw4P1Uey', 'Juan', 'Dela Cruz', 'Santos', 'Employee', 'Male', 9, '2016-01-12', _binary 0x313736333431393336325f696d616765732e706e67, 'asdasdasd', 'Active'),
+	('Emp002', NULL, 'emp2@gmail.com', '$2y$12$IN2Q6VSs6.2rEF2BkU5l7uEkT160LbLyF6XGpT.b0WiBV4N33n34e', 'Test', 'emp', NULL, 'Employee', 'Male', 45, NULL, _binary 0x64656661756c742e706e67, NULL, 'Active'),
+	('HR001', NULL, 'hr@aihra.com', '$2y$12$MB3IbWHeJjEFhWfAXFCcguqwQvMJRaASFczciWyQtOxupzAUqUgmC', 'Maria', 'Reyes', 'Lopez', 'HR', 'Female', 33, NULL, NULL, NULL, 'Active');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
