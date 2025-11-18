@@ -9,24 +9,92 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
-    // Main Dashboard - UPDATED to include users
-    public function index()
+    public function index(Request $request)
     {
         $admin = Auth::user();
 
+        // Existing code...
         $kb = DB::table('knowledge_base')->orderBy('id', 'desc')->get();
         $announcements = DB::table('announcements')->orderBy('id', 'desc')->get();
         $feedback = DB::table('feedback')->orderBy('feedbackID', 'desc')->get();
         $flags = DB::table('flaggedresponse')->orderBy('flaggedID', 'desc')->get();
         
-        // 🆕 ADD THIS LINE - Get all users for account management
-        $users = DB::table('users')->orderBy('employeeNum', 'asc')->get();
+        // 🆕 GET HR_INBOX DATA FOR CHATBOT TICKETS
+        $tickets = DB::table('hr_inbox')
+            ->select('*')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Calculate ticket KPIs
+        $totalTickets = $tickets->count();
+        $unresolvedTickets = $tickets->where('status', 'open')->count();
+        $resolvedTickets = $tickets->where('status', 'resolved')->count();
+
+        // 🆕 NEW: Get data for dashboard KPIs
+        $activeUsers = DB::table('users')->where('status', 'Active')->count();
+        $totalInteractions = DB::table('queries')->count();
+        $escalatedQueries = $totalTickets; // Using tickets as escalated queries
+        
+        // 🆕 NEW: Get data for resolution chart
+        $resolvedQueries = DB::table('queries')->where('isEscalated', 0)->count();
+        $pendingQueries = $unresolvedTickets; // Unresolved tickets are pending
+        $escalatedCount = $totalTickets; // All tickets are escalated queries
+        
+        // 🆕 NEW: Get feedback data for feedback tab
+        $feedbackData = DB::table('feedback')
+            ->join('users', 'feedback.employeeNum', '=', 'users.employeeNum')
+            ->select('feedback.*', 'users.firstName', 'users.lastName')
+            ->orderBy('feedback.timeStamp', 'desc')
+            ->get();
+
+        // 🆕 NEW: Get data for performance tab
+        $recentInteractions = DB::table('queries')
+            ->join('users', 'queries.employeeNum', '=', 'users.employeeNum')
+            ->select('queries.*', 'users.firstName', 'users.lastName')
+            ->orderBy('queries.questionTime', 'desc')
+            ->limit(10)
+            ->get();
+
+        $flaggedResponses = DB::table('flaggedresponse')
+            ->join('users', 'flaggedresponse.employeeNum', '=', 'users.employeeNum')
+            ->join('queries', 'flaggedresponse.queryID', '=', 'queries.queryID')
+            ->select('flaggedresponse.*', 'users.firstName', 'users.lastName', 'queries.question')
+            ->orderBy('flaggedresponse.timeStamp', 'desc')
+            ->get();
+
+        // Get users with pagination and search
+        $search = request('search', '');
+        $users = DB::table('users')
+            ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'profile_picture', 'about', 'status')
+            ->when($search, function($query, $search) {
+                return $query->where(function($q) use ($search) {
+                    $q->where('employeeNum', 'like', "%{$search}%")
+                      ->orWhere('firstName', 'like', "%{$search}%")
+                      ->orWhere('lastName', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('role', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('employeeNum', 'asc')
+            ->paginate(10);
+
+        // Get active tab from URL parameter, session, or default to dashboard
+        $active_tab = $request->get('active_tab', session('active_tab', 'dashboard'));
+        
+        // Store in session for form submissions
+        session(['active_tab' => $active_tab]);
 
         return view('admin.admin_dashboard', compact(
-            'admin', 'kb', 'announcements', 'feedback', 'flags', 'users'
+            'admin', 'kb', 'announcements', 'feedback', 'flags', 'users', 'search', 
+            'active_tab', 'tickets', 'totalTickets', 'unresolvedTickets', 'resolvedTickets',
+            'activeUsers', 'totalInteractions', 'escalatedQueries',
+            'resolvedQueries', 'pendingQueries', 'escalatedCount',
+            'feedbackData', 'recentInteractions', 'flaggedResponses'
         ));
     }
 
@@ -100,7 +168,7 @@ class AdminController extends Controller
         return redirect()->route('admin.dashboard')->with('success', 'Profile updated!');
     }
 
-    // 🆕 CREATE ACCOUNT - Updated to work with your main dashboard
+    // 🆕 CREATE ACCOUNT - Updated to work with users table
     public function createAccount(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -110,18 +178,18 @@ class AdminController extends Controller
             'firstName' => 'required|string|max:255',
             'lastName' => 'required|string|max:255',
             'middleName' => 'nullable|string|max:255',
-            'role' => 'required|in:employee,admin,hr,manager',
-            'sex' => 'required|in:male,female,other',
-            'age' => 'required|integer|min:18|max:75',
+            'role' => 'required|in:Employee,Admin,HR',
+            'sex' => 'required|in:Male,Female',
+            'age' => 'required|integer|min:18|max:65',
             'about' => 'nullable|string|max:255',
-            'status' => 'required|in:active,inactive,suspended'
+            'status' => 'required|in:Active,Deactivated'
         ]);
 
         if ($validator->fails()) {
             return redirect()->route('admin.dashboard')
                 ->withErrors($validator)
                 ->withInput()
-                ->with('active_tab', 'create-account'); // Keep create account tab active
+                ->with('active_tab', 'account-management');
         }
 
         try {
@@ -142,40 +210,45 @@ class AdminController extends Controller
 
             return redirect()->route('admin.dashboard')
                 ->with('success', 'Account created successfully!')
-                ->with('active_tab', 'create-account'); // Keep create account tab active
+                ->with('active_tab', 'account-management');
             
         } catch (\Exception $e) {
             return redirect()->route('admin.dashboard')
                 ->withErrors(['error' => 'Failed to create account: ' . $e->getMessage()])
                 ->withInput()
-                ->with('active_tab', 'create-account'); // Keep create account tab active
+                ->with('active_tab', 'account-management');
         }
     }
 
-    // 🆕 UPDATE ACCOUNT - Updated to work with your main dashboard
     public function updateAccount(Request $request, $employeeNum)
     {
+        \Log::info('Update account request:', [
+            'employeeNum' => $employeeNum, 
+            'data' => $request->all()
+        ]);
+        
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|unique:users,email,' . $employeeNum . ',employeeNum',
             'firstName' => 'required|string|max:255',
             'lastName' => 'required|string|max:255',
             'middleName' => 'nullable|string|max:255',
-            'role' => 'required|in:employee,admin,hr,manager',
-            'sex' => 'required|in:male,female,other',
+            'role' => 'required|in:Employee,Admin,HR',
+            'sex' => 'required|in:Male,Female',
             'age' => 'required|integer|min:18|max:65',
             'about' => 'nullable|string|max:255',
-            'status' => 'required|in:active,inactive,suspended'
+            'status' => 'required|in:Active,Deactivated'
         ]);
 
         if ($validator->fails()) {
+            \Log::warning('Validation failed:', ['errors' => $validator->errors()]);
             return redirect()->route('admin.dashboard')
                 ->withErrors($validator)
                 ->withInput()
-                ->with('active_tab', 'create-account');
+                ->with('active_tab', 'account-management');
         }
 
         try {
-            DB::table('users')->where('employeeNum', $employeeNum)->update([
+            $updated = DB::table('users')->where('employeeNum', $employeeNum)->update([
                 'email' => $request->email,
                 'firstName' => $request->firstName,
                 'lastName' => $request->lastName,
@@ -187,82 +260,222 @@ class AdminController extends Controller
                 'status' => $request->status
             ]);
 
-            return redirect()->route('admin.dashboard')
-                ->with('success', 'Account updated successfully!')
-                ->with('active_tab', 'create-account');
+            if ($updated) {
+                \Log::info('Account updated successfully:', ['employeeNum' => $employeeNum]);
+                return redirect()->route('admin.dashboard')
+                    ->with('success', 'Account updated successfully!')
+                    ->with('active_tab', 'account-management');
+            } else {
+                \Log::warning('No rows updated:', ['employeeNum' => $employeeNum]);
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'No changes were made or user not found.')
+                    ->with('active_tab', 'account-management');
+            }
             
         } catch (\Exception $e) {
+            \Log::error('Failed to update account:', [
+                'employeeNum' => $employeeNum,
+                'error' => $e->getMessage()
+            ]);
             return redirect()->route('admin.dashboard')
-                ->withErrors(['error' => 'Failed to update account: ' . $e->getMessage()])
+                ->with('error', 'Failed to update account: ' . $e->getMessage())
                 ->withInput()
-                ->with('active_tab', 'create-account');
+                ->with('active_tab', 'account-management');
         }
     }
 
-    // 🆕 DELETE ACCOUNT - Updated to work with your main dashboard
- // 🆕 UPDATED DELETE ACCOUNT METHOD WITH DEBUGGING
-public function deleteAccount($employeeNum)
-{
-    // Prevent admin from deleting their own account
-    if ($employeeNum == Auth::user()->employeeNum) {
-        return redirect()->route('admin.dashboard')
-            ->with('error', 'You cannot delete your own account.')
-            ->with('active_tab', 'create-account');
-    }
-
-    try {
-        \Log::info('Attempting to delete account', ['employeeNum' => $employeeNum]);
+    // 🆕 DELETE ACCOUNT - Updated to work with users table
+    public function deleteAccount($employeeNum)
+    {
+        \Log::info('Deleting account:', ['employeeNum' => $employeeNum]);
         
-        // Check if user exists
-        $user = DB::table('users')->where('employeeNum', $employeeNum)->first();
-        
-        if (!$user) {
-            \Log::error('User not found for deletion', ['employeeNum' => $employeeNum]);
+        // Prevent admin from deleting their own account
+        if ($employeeNum == Auth::user()->employeeNum) {
+            \Log::warning('Attempt to delete own account:', ['employeeNum' => $employeeNum]);
             return redirect()->route('admin.dashboard')
-                ->with('error', 'User not found.')
-                ->with('active_tab', 'create-account');
+                ->with('error', 'You cannot delete your own account.')
+                ->with('active_tab', 'account-management');
         }
 
-        \Log::info('User found, proceeding with deletion', ['employeeNum' => $employeeNum, 'user' => $user]);
+        try {
+            $user = DB::table('users')->where('employeeNum', $employeeNum)->first();
+            
+            if (!$user) {
+                \Log::warning('User not found for deletion:', ['employeeNum' => $employeeNum]);
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'User not found.')
+                    ->with('active_tab', 'account-management');
+            }
 
-        // Delete the user
-        $deleted = DB::table('users')->where('employeeNum', $employeeNum)->delete();
-        
-        \Log::info('Delete query executed', ['rows_affected' => $deleted]);
-
-        if ($deleted) {
-            \Log::info('Account deleted successfully', ['employeeNum' => $employeeNum]);
+            $deleted = DB::table('users')->where('employeeNum', $employeeNum)->delete();
+            
+            if ($deleted) {
+                \Log::info('Account deleted successfully:', ['employeeNum' => $employeeNum]);
+                return redirect()->route('admin.dashboard')
+                    ->with('success', 'Account deleted successfully!')
+                    ->with('active_tab', 'account-management');
+            } else {
+                \Log::error('Delete query returned 0 rows affected:', ['employeeNum' => $employeeNum]);
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'No account was deleted. User may not exist.')
+                    ->with('active_tab', 'account-management');
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete account:', [
+                'employeeNum' => $employeeNum,
+                'error' => $e->getMessage()
+            ]);
             return redirect()->route('admin.dashboard')
-                ->with('success', 'Account deleted successfully!')
-                ->with('active_tab', 'create-account');
-        } else {
-            \Log::error('Delete query returned 0 rows affected', ['employeeNum' => $employeeNum]);
-            return redirect()->route('admin.dashboard')
-                ->with('error', 'No account was deleted. User may not exist.')
-                ->with('active_tab', 'create-account');
+                ->with('error', 'Failed to delete account: ' . $e->getMessage())
+                ->with('active_tab', 'account-management');
         }
-        
-    } catch (\Exception $e) {
-        \Log::error('Failed to delete account: ' . $e->getMessage(), [
-            'employeeNum' => $employeeNum,
-            'exception' => $e
-        ]);
-        
-        return redirect()->route('admin.dashboard')
-            ->with('error', 'Failed to delete account: ' . $e->getMessage())
-            ->with('active_tab', 'create-account');
     }
-}
 
-    // 🆕 QUICK EDIT ACCOUNT - Simple method to get user data for editing
+    // 🆕 GET ACCOUNT DATA for editing - with better error handling
     public function getAccount($employeeNum)
     {
-        $user = DB::table('users')->where('employeeNum', $employeeNum)->first();
+        \Log::info('Fetching account data for:', ['employeeNum' => $employeeNum]);
         
-        if (!$user) {
-            return response()->json(['error' => 'User not found'], 404);
+        try {
+            $user = DB::table('users')
+                ->where('employeeNum', $employeeNum)
+                ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'profile_picture', 'about', 'status')
+                ->first();
+            
+            if (!$user) {
+                \Log::warning('User not found:', ['employeeNum' => $employeeNum]);
+                return response()->json(['error' => 'User not found'], 404);
+            }
+
+            \Log::info('User found:', ['employeeNum' => $employeeNum]);
+            return response()->json($user);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error fetching user:', [
+                'employeeNum' => $employeeNum,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => 'Server error'], 500);
+        }
+    }
+
+    // 🆕 RESET PASSWORD
+    public function resetPassword(Request $request, $employeeNum)
+    {
+        \Log::info('Resetting password for:', ['employeeNum' => $employeeNum]);
+        
+        $validator = Validator::make($request->all(), [
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            \Log::warning('Password validation failed:', ['errors' => $validator->errors()]);
+            return redirect()->route('admin.dashboard')
+                ->withErrors($validator)
+                ->with('active_tab', 'account-management');
         }
 
-        return response()->json($user);
+        try {
+            $updated = DB::table('users')->where('employeeNum', $employeeNum)->update([
+                'password' => Hash::make($request->password)
+            ]);
+
+            if ($updated) {
+                \Log::info('Password reset successfully:', ['employeeNum' => $employeeNum]);
+                return redirect()->route('admin.dashboard')
+                    ->with('success', 'Password reset successfully!')
+                    ->with('active_tab', 'account-management');
+            } else {
+                \Log::warning('No rows updated for password reset:', ['employeeNum' => $employeeNum]);
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'User not found or no changes made.')
+                    ->with('active_tab', 'account-management');
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to reset password:', [
+                'employeeNum' => $employeeNum,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Failed to reset password: ' . $e->getMessage())
+                ->with('active_tab', 'account-management');
+        }
+    }
+
+    // 🆕 EXPORT CSV FUNCTIONALITY
+    public function exportAccounts()
+    {
+        $users = DB::table('users')
+            ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'status')
+            ->orderBy('employeeNum', 'asc')
+            ->get();
+
+        $fileName = 'accounts_' . date('Y-m-d_H-i-s') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+        ];
+
+        $callback = function() use ($users) {
+            $file = fopen('php://output', 'w');
+            
+            // Add CSV headers
+            fputcsv($file, [
+                'Employee Number',
+                'Email',
+                'First Name', 
+                'Last Name',
+                'Middle Name',
+                'Role',
+                'Gender',
+                'Age',
+                'Status'
+            ]);
+
+            // Add data rows
+            foreach ($users as $user) {
+                fputcsv($file, [
+                    $user->employeeNum,
+                    $user->email,
+                    $user->firstName,
+                    $user->lastName,
+                    $user->middleName ?? '',
+                    $user->role,
+                    $user->sex,
+                    $user->age,
+                    $user->status
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return Response::stream($callback, 200, $headers);
+    }
+
+    public function getTickets()
+    {
+        try {
+            $tickets = DB::table('hr_inbox')
+                ->select('*')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'tickets' => $tickets,
+                'total' => $tickets->count(),
+                'unresolved' => $tickets->where('status', 'open')->count(),
+                'resolved' => $tickets->where('status', 'resolved')->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch tickets: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

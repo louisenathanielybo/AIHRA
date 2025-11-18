@@ -24,12 +24,10 @@ use Illuminate\Support\Facades\DB;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
-
-// Redirect root to login
+  // Redirect root to login
 Route::get('/', function () {
     return redirect('/login');
 });
-
 // 🆕 FIXED: Login routes (should be outside auth middleware)
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
@@ -60,51 +58,55 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard');
 
     // Employee routes
-   // Employee routes
-Route::prefix('employee')->group(function () {
-    Route::get('/dashboard', [EmployeeController::class, 'index'])->name('employee.dashboard');
-    Route::post('/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
-    Route::post('/flag', [FlagController::class, 'store'])->name('flag.store');
-    
-    // 🆕 CORRECT: Make sure these routes exist and point to EmployeeController
-    Route::get('/get-latest-ticket', [EmployeeController::class, 'getLatestTicket'])->name('employee.latestTicket');
-    Route::get('/messages/{ticket_no}', [EmployeeController::class, 'getMessages'])->name('employee.messages');
-    Route::get('/tickets', [EmployeeController::class, 'getTickets'])->name('employee.tickets');
-    // Chat conversation history
-    Route::get('/conversations', [EmployeeController::class, 'getConversations'])->name('employee.conversations');
-    Route::get('/conversations/{id}/messages', [EmployeeController::class, 'getConversationMessages'])->name('employee.conversation.messages');
-    Route::post('/conversations', [EmployeeController::class, 'startConversation'])->name('employee.conversations.start');
-    // Delete conversation
-    Route::delete('/conversations/{id}', [EmployeeController::class, 'deleteConversation'])->name('employee.conversations.delete');
-    Route::get('/ticket-status/{ticket_no}', [EmployeeController::class, 'getTicketStatus'])->name('employee.ticket-status');
-    // 🆕 NEW: Employee replies to existing ticket
-    Route::post('/reply-to-ticket', [EmployeeController::class, 'replyToTicket'])->name('employee.reply-to-ticket');
-});
+    Route::prefix('employee')->group(function () {
+        Route::get('/dashboard', [EmployeeController::class, 'index'])->name('employee.dashboard');
+        Route::post('/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
+        Route::post('/flag', [FlagController::class, 'store'])->name('flag.store');
+        
+        Route::get('/get-latest-ticket', [EmployeeController::class, 'getLatestTicket'])->name('employee.latestTicket');
+        Route::get('/messages/{ticket_no}', [EmployeeController::class, 'getMessages'])->name('employee.messages');
+        Route::get('/tickets', [EmployeeController::class, 'getTickets'])->name('employee.tickets');
+        Route::get('/ticket-status/{ticket_no}', [EmployeeController::class, 'getTicketStatus'])->name('employee.ticket-status');
+        Route::post('/reply-to-ticket', [EmployeeController::class, 'replyToTicket'])->name('employee.reply-to-ticket');
+    });
 
-   // HR routes
-Route::prefix('hr')->group(function () {
-    Route::get('/dashboard', [HRController::class, 'index'])->name('hr.dashboard');
-    Route::get('/profile', [HRController::class, 'editProfile'])->name('hr.profile');
-    Route::put('/profile/update', [HRController::class, 'updateProfile'])->name('hr.profile.update');
-    Route::post('/reply', [HRController::class, 'reply'])->name('hr.reply'); // ✅ Keep only this one
-    Route::post('/announcements', [HrAnnouncementController::class, 'store'])->name('hr.announcements.store');
-    Route::get('/messages/{ticket_no}', [HRController::class, 'getMessages'])->name('hr.messages');
-    Route::get('/tickets/json', [HRController::class, 'ticketsJson'])->name('hr.tickets.json');
-    Route::post('/resolve-ticket', [HRController::class, 'resolveTicket'])->name('hr.resolve-ticket'); // ✅ Fixed path
-});
+    // HR routes
+    Route::prefix('hr')->group(function () {
+        Route::get('/dashboard', [HRController::class, 'index'])->name('hr.dashboard');
+        Route::get('/profile', [HRController::class, 'editProfile'])->name('hr.profile');
+        Route::put('/profile/update', [HRController::class, 'updateProfile'])->name('hr.profile.update');
+        Route::post('/reply', [HRController::class, 'reply'])->name('hr.reply');
+        Route::post('/announcements', [HrAnnouncementController::class, 'store'])->name('hr.announcements.store');
+        Route::get('/messages/{ticket_no}', [HRController::class, 'getMessages'])->name('hr.messages');
+        Route::get('/tickets/json', [HRController::class, 'ticketsJson'])->name('hr.tickets.json');
+        Route::post('/resolve-ticket', [HRController::class, 'resolveTicket'])->name('hr.resolve-ticket');
+    });
 
-    // Admin routes
-  Route::prefix('admin')->group(function () {
+   // Admin Routes - FIXED VERSION
+Route::prefix('admin')->group(function () {
+    // Main dashboard - GET only
     Route::get('/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
-    Route::post('/create-account', [AdminController::class, 'createAccount'])->name('admin.create-account');
-    Route::get('/delete-account/{employeeNum}', [AdminController::class, 'deleteAccount'])->name('admin.delete-account');
-    Route::put('/update-account/{employeeNum}', [AdminController::class, 'updateAccount'])->name('admin.update-account'); // 🆕 FIXED
-    Route::get('/get-account/{employeeNum}', [AdminController::class, 'getAccount'])->name('admin.get-account');
-    Route::post('/kb/add', [AdminController::class, 'addKnowledge'])->name('admin.kb.add');
-    Route::get('/kb/delete/{id}', [AdminController::class, 'deleteKnowledge'])->name('admin.kb.delete');
-    Route::post('/announcement/add', [AdminController::class, 'addAnnouncement'])->name('admin.announcement.add');
-    Route::get('/announcement/delete/{id}', [AdminController::class, 'deleteAnnouncement'])->name('admin.announcement.delete');
-    Route::post('/profile/update', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
+    
+    // Account management routes
+    Route::get('/accounts/{employeeNum}', [AdminController::class, 'getAccount'])->name('admin.accounts.get');
+    Route::put('/accounts/{employeeNum}', [AdminController::class, 'updateAccount'])->name('admin.accounts.update');
+    Route::post('/accounts/{employeeNum}/reset-password', [AdminController::class, 'resetPassword'])->name('admin.accounts.reset-password');
+    Route::delete('/accounts/{employeeNum}', [AdminController::class, 'deleteAccount'])->name('admin.accounts.delete');
+    
+    // Create account - POST to /admin/accounts (not /admin/dashboard)
+    Route::post('/accounts', [AdminController::class, 'createAccount'])->name('admin.accounts.create');
+    
+    // Export accounts
+    Route::get('/accounts/export', [AdminController::class, 'exportAccounts'])->name('admin.accounts.export');
+    
+    // Other admin routes...
+    Route::post('/knowledge', [AdminController::class, 'addKnowledge'])->name('admin.knowledge.add');
+    Route::delete('/knowledge/{id}', [AdminController::class, 'deleteKnowledge'])->name('admin.knowledge.delete');
+    Route::post('/announcements', [AdminController::class, 'addAnnouncement'])->name('admin.announcements.add');
+    Route::delete('/announcements/{id}', [AdminController::class, 'deleteAnnouncement'])->name('admin.announcements.delete');
+    Route::post('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
+    // Add this route for AJAX ticket data
+Route::get('/admin/tickets/data', [AdminController::class, 'getTickets'])->name('admin.tickets.data');
 });
 
     // Guided questions (for chatbot)
@@ -121,6 +123,3 @@ Route::prefix('hr')->group(function () {
         return response()->json($messages);
     });
 });
-
-// Remove the duplicate require if it's causing issues
-// require __DIR__.'/auth.php';
