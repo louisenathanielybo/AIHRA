@@ -7,56 +7,97 @@
 <head>
     @include('includes.header')
 <style>
+    :root {
+        --primary: #2d5a3d;
+        --secondary: #4a8c5e;
+        --accent: #3a7d54;
+        --light: #f0f7f2;
+        --dark: #1e3b2a;
+        --success: #4caf50;
+        --warning: #ff9800;
+        --danger: #f44336;
+        --gray: #789984;
+        --sidebar-width: 250px;
+        --card-bg: #ffffff;
+        --hover-light: #e8f5e8;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
     /* Layout */
     .sidebar {
-        background: linear-gradient(180deg, #0A2F2D 0%, #0F3936 40%, #1A6B61 100%);
-        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
-        width: 16vw;
+        background: linear-gradient(180deg, var(--primary) 0%, var(--dark) 100%);
+        box-shadow: 2px 0 10px rgba(45, 90, 61, 0.1);
+        width: var(--sidebar-width);
         color: white;
         min-height: 100vh;
-        padding: 20px;
+        padding: 20px 0;
         position: fixed;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
         top: 0;
         left: 0;
         bottom: 0;
+        z-index: 1000;
     }
-    .sidebar h1 { 
-        font-size: 22px; 
-        margin-bottom: 20px; 
+    .sidebar-header {
+        padding: 0 20px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        margin-bottom: 20px;
+    }
+
+    .sidebar-header h2 {
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #e8f5e8;
+    }
+
+    .sidebar-menu {
+        list-style: none;
+        padding: 0;
+    }
+
+    .sidebar-menu li {
+        margin-bottom: 5px;
+    }
+
+    .sidebar-menu a {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: #e8f5e8;
+        text-decoration: none;
+        transition: all 0.3s;
+        border-radius: 0 8px 8px 0;
+        margin-right: 10px;
+    }
+
+    .sidebar-menu a:hover, 
+    .sidebar-menu a.active {
+        background: rgba(255,255,255,0.15);
+        border-left: 4px solid var(--secondary);
+        color: white;
+    }
+
+    .sidebar-menu i {
+        margin-right: 10px;
+        width: 20px;
         text-align: center;
-    }
-    .sidebar ul { 
-        list-style: none; 
-        padding: 0; 
-    }
-    .sidebar ul li { 
-        margin-bottom: 15px; 
-        padding: 10px;
-        border-radius: 5px;
-        transition: background 0.3s ease;
-    }
-    .sidebar ul li:hover { 
-        background: rgba(255,255,255,0.1);
-    }
-    .sidebar ul li.active { 
-        background: rgba(255,255,255,0.2);
-    }
-    .sidebar ul li a { 
-        color: white; 
-        text-decoration: none; 
-        font-weight: bold; 
-        display: block;
+        color: #a8d5b5;
     }
     
     .main-content { 
         flex: 1;
-        margin-left: 16vw; 
-        padding: 30px;
-        padding-bottom: 0;
-        background: #e6fbf5;
+        margin-left: var(--sidebar-width); 
+        padding: 20px;
+        background: #f8fdf9;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -72,10 +113,10 @@
     .chat-container {
         height: 400px;
         max-height: 400px;
-        border: 1px solid #ddd;
-        border-radius: 10px 10px 0 0;
+        border: 1px solid #e0efe5;
+        border-radius: 12px 12px 0 0;
         background: white;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);
         overflow: hidden;
     }
 
@@ -115,7 +156,7 @@
     }
 
     .chat-row.user .chat-bubble {
-        background: #28a745;
+        background: var(--secondary);
         color: white;
         border-bottom-right-radius: 5px;
     }
@@ -125,6 +166,81 @@
         color: #333;
         border: 1px solid #ddd;
         border-bottom-left-radius: 5px;
+        position: relative;
+    }
+
+    /* Flag Button */
+    .flag-btn {
+        position: absolute;
+        bottom: -8px;
+        right: -8px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        transition: all 0.3s;
+        opacity: 0.6;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        z-index: 10;
+    }
+
+    .chat-row.bot:hover .flag-btn {
+        opacity: 1;
+    }
+
+    .flag-btn:hover {
+        background: #fff3cd;
+        border-color: #ffc107;
+        transform: scale(1.1);
+    }
+
+    /* Flag Modal */
+    .flag-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .flag-modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .flag-option {
+        padding: 12px;
+        margin: 8px 0;
+        border: 2px solid #e0efe5;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .flag-option:hover {
+        border-color: var(--secondary);
+        background: var(--hover-light);
+    }
+
+    .flag-option.selected {
+        border-color: var(--secondary);
+        background: var(--hover-light);
     }
 
     /* Special Message Types */
@@ -191,20 +307,20 @@
     }
 
     .suggestion:hover {
-        background: #28a745;
+        background: var(--secondary);
         color: white;
         transform: translateY(-2px);
     }
 
     /* Input Area */
     .chat-input-container {
-        border: 1px solid #ddd;
-        border-top: 2px solid #ddd;
+        border: 1px solid #e0efe5;
+        border-top: 2px solid #e0efe5;
         padding: 15px;
         background: white;
-        border-radius: 0 0 10px 10px;
+        border-radius: 0 0 12px 12px;
         margin-top: 0;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);
         position: relative;
         z-index: 10;
     }
@@ -389,9 +505,35 @@
         background: white;
         padding: 20px;
         padding-bottom: 30px;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);
         margin-bottom: 30px;
+        border: 1px solid #e0efe5;
+    }
+    
+    /* Announcements Container */
+    .announcements-container {
+        max-height: calc(100vh - 250px);
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+
+    .announcements-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .announcements-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .announcements-container::-webkit-scrollbar-thumb {
+        background: var(--secondary);
+        border-radius: 10px;
+    }
+
+    .announcements-container::-webkit-scrollbar-thumb:hover {
+        background: var(--primary);
     }
     
     #chat.section {
@@ -437,6 +579,67 @@
 
     .logout:hover {
         background: rgba(255,255,255,0.2);
+    }
+
+    /* Sidebar Footer */
+    .sidebar-footer {
+        position: absolute;
+        bottom: 20px;
+        width: 100%;
+        padding: 0 20px;
+    }
+
+    .account-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+    }
+
+    .account-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        border: 2px solid #a8d5b5;
+    }
+
+    .account-details {
+        flex: 1;
+    }
+
+    .account-name {
+        font-weight: 500;
+        font-size: 0.9rem;
+        color: white;
+    }
+
+    .account-role {
+        font-size: 0.8rem;
+        color: #a8d5b5;
+    }
+
+    .logout-btn {
+        background: none;
+        border: none;
+        color: #a8d5b5;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 3px;
+        transition: all 0.3s;
+    }
+
+    .logout-btn:hover {
+        background: rgba(255,255,255,0.1);
+        color: white;
     }
 
     /* Feedback Form */
@@ -542,74 +745,80 @@
         min-height: 100vh;
         width: 100%;
     }
-    .sb-brand {
+
+
+    /* Header Section */
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e0efe5;
+    }
+
+    .header h1 {
+        color: var(--primary);
+        font-size: 1.8rem;
+        font-weight: 600;
+    }
+
+    .header-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .date-range {
+        background: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08);
+        font-size: 0.9rem;
+        color: var(--primary);
+        border: 1px solid #e0efe5;
+    }
+
+    .user-account-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08);
+        cursor: pointer;
+        border: 1px solid #e0efe5;
+        transition: all 0.3s;
+    }
+
+    .user-account-header:hover {
+        box-shadow: 0 4px 12px rgba(45, 90, 61, 0.12);
+        transform: translateY(-1px);
+    }
+
+    .user-avatar-header {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: var(--secondary);
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 22px 16px 12px 16px;
-    }
-    .sb-logo {
-        width: 42px;
-        height: 42px;
-        margin-bottom: 30px;
-        object-fit: contain;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
-    }
-    .sb-nav {
-        display: flex;
-        flex-direction: column;
-        padding: 8px;
-        gap: 4px;
-        width: 100%;
-    }
-    .sb-link {
-        font-family: "Poppins", sans-serif;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 12px;
-        margin: 2px 4px;
-        border-radius: 10px;
-        text-decoration: none;
-        color: rgba(255,255,255,.92);
-        transition: background .18s ease, transform .18s ease, color .18s ease, box-shadow .18s ease;
-    }
-    .sb-link i {
-        font-size: 18px;
-        width: 20px;
-        text-align: center;
-    }
-    .sb-link:hover {
-        background: rgba(255,255,255,.10);
-        transform: translateX(2px);
-    }
-    .sb-link.active {
-        background: rgba(255,255,255,.16);
-        box-shadow: inset 3px 0 0 0 #34c759;
-    }
-    .sb-bottom {
-        margin-top: auto;
-        padding: 8px;
-        border-top: 1px solid rgba(255,255,255,.12);
-        width: 100%;
-    }
-    .sb-btn {
-        background: transparent;
-        border: none;
-        width: 100%;
-        text-align: left;
-        cursor: pointer;
+        color: white;
+        font-weight: bold;
+        border: 2px solid #a8d5b5;
     }
 
     .welcome-message {
         font-family: "Poppins", sans-serif;
         font-weight: 600;
         font-size: 24px;
-        color: #0F3936;
+        color: var(--primary);
         margin-bottom: 20px;
     }
     .welcome-message span {
-        color: #1fbf8e;
+        color: var(--secondary);
     }
     
     /* Top Navigation Ribbon */
@@ -619,14 +828,15 @@
         background: white;
         padding: 8px 12px;
         border-radius: 25px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08);
+        border: 1px solid #e0efe5;
     }
     
     .top-nav-link {
         padding: 8px 20px;
         border-radius: 20px;
         text-decoration: none;
-        color: #666;
+        color: var(--gray);
         font-weight: 500;
         font-size: 14px;
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -635,16 +845,17 @@
     }
     
     .top-nav-link:hover {
-        background: #f0f0f0;
-        color: #333;
+        background: var(--hover-light);
+        color: var(--primary);
     }
     
     .top-nav-link.active {
-        background: #28a745;
+        background: var(--secondary);
         color: white;
-        border-color: #28a745;
         transform: scale(1.05);
     }
+    
+
 </style>
 </head>
 
@@ -653,39 +864,39 @@
 <div class="dashboard">
     <!-- Sidebar -->
     <div class="sidebar">
-        <div class="sb-brand">
-            <img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA" class="sb-logo">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-robot"></i> AIHRA Employee</h2>
         </div>
 
-        <nav class="sb-nav">
-            <a href="#home" onclick="showSection('home')" class="sb-link active" id="link-home">
-                <i class="fa-solid fa-house"></i><span>Home</span>
-            </a>
-            <a href="#chat" onclick="showSection('chat')" class="sb-link" id="link-chat">
-                <i class="fa-solid fa-comments"></i><span>Chat</span>
-            </a>
-            <a href="#feedback" onclick="showSection('feedback')" class="sb-link" id="link-feedback">
-                <i class="fa-solid fa-star"></i><span>Feedback</span>
-            </a>
-        </nav>
+        <ul class="sidebar-menu">
+            <li><a href="#home" onclick="showSection('home')" class="active" id="link-home"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="#chat" onclick="showSection('chat')" id="link-chat"><i class="fas fa-comments"></i> Chat</a></li>
+            <li><a href="#feedback" onclick="showSection('feedback')" id="link-feedback"><i class="fas fa-star"></i> Feedback</a></li>
+            <li><a href="#account" onclick="showSection('account')" id="link-account"><i class="fas fa-user"></i> Account</a></li>
+        </ul>
 
-        <div class="sb-bottom">
-            <a href="#account" onclick="showSection('account')" class="sb-link" id="link-account">
-                <i class="fa-solid fa-user"></i><span>Account</span>
-            </a>
-
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-                <button type="submit" class="sb-link sb-btn">
-                    <i class="fa-solid fa-right-from-bracket"></i><span>Log Out</span>
+        <div class="sidebar-footer">
+            <div class="account-info">
+                <div class="account-avatar">
+                    {{ substr(Auth::user()->name, 0, 1) }}
+                </div>
+                <div class="account-details">
+                    <div class="account-name">{{ Auth::user()->name }}</div>
+                    <div class="account-role">Employee</div>
+                </div>
+                <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">
+                    @csrf
+                </form>
+                <button class="logout-btn" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" title="Log Out">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
-            </form>
+            </div>
         </div>
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
-        <div style="background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div style="background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 1px solid #e0efe5;">
             <h1 class="welcome-message" style="margin: 0;">Welcome back, <span>{{ Auth::user()->name }}</span>!</h1>
             
             <nav class="top-nav">
@@ -697,17 +908,29 @@
         </div>
         
         <!-- Home Section -->
-        <div id="home" class="table-container section" style="display: block;">
-            <h2>📢 Announcements</h2>
-        @forelse($announcements as $announcement)
-            <div class='card' style='margin-bottom:15px; padding:15px; border:1px solid #eee; border-radius:6px; background:#f8f9fa;'>
-                <h3 style='margin:0 0 10px 0; color:#333;'>{{ $announcement->title }}</h3>
-                <p style='margin:0; color:#666;'>{{ $announcement->description }}</p>
+        <div id="home" class="section" style="display: block;">
+            <div class="announcements-container" style="max-height: calc(100vh - 250px); overflow-y: auto; padding-right: 10px;">
+                <h2 style="margin-bottom: 20px; color: var(--primary);">📢 Announcements</h2>
+                @forelse($announcements as $announcement)
+                    <div class='card' style='margin-bottom:20px; padding:20px; border:1px solid #e0efe5; border-radius:12px; background:white; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);'>
+                        <h3 style='margin:0 0 10px 0; color: var(--primary); font-weight: 600;'>{{ $announcement->title }}</h3>
+                        <p style='margin:0 0 15px 0; color:#666;'>{{ $announcement->description }}</p>
+                        @if ($announcement->image)
+                            <img src="data:image/jpeg;base64,{{ base64_encode($announcement->image) }}" 
+                                alt="{{ $announcement->title }}"
+                                style="max-width: 600px; width: 100%; height: auto; border-radius: 8px; margin-top: 10px;">
+                        @endif
+                        @if(isset($announcement->createdAt))
+                            <small style="display: block; margin-top: 10px; color: var(--gray);">
+                                {{ \Carbon\Carbon::parse($announcement->createdAt)->timezone('Asia/Manila')->format('M d, Y \a\t h:i A') }}
+                            </small>
+                        @endif
+                    </div>
+                @empty
+                    <p style='text-align:center; color:#666;'>No announcements yet.</p>
+                @endforelse
             </div>
-        @empty
-            <p style='text-align:center; color:#666;'>No announcements yet.</p>
-        @endforelse
-    </div>
+        </div>
 
     <!-- Chat Section -->
     <div id="chat" class="table-container section" style="display:none;">
@@ -1032,6 +1255,46 @@
         </div>
     </div>
 
+    <!-- Flag Response Modal -->
+    <div id="flagModal" class="flag-modal">
+        <div class="flag-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: var(--primary);">🚩 Flag this response</h3>
+                <button onclick="closeFlagModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">&times;</button>
+            </div>
+            
+            <p style="color: #666; margin-bottom: 20px;">Please select a reason for flagging this response:</p>
+            
+            <div id="flagReasonsList">
+                <div class="flag-option" onclick="selectFlagReason('Wrong Info', this)">
+                    <strong>❌ Wrong Info</strong>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">The information provided is incorrect or outdated</p>
+                </div>
+                <div class="flag-option" onclick="selectFlagReason('Incomplete', this)">
+                    <strong>⚠️ Incomplete</strong>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">The response doesn't fully answer the question</p>
+                </div>
+                <div class="flag-option" onclick="selectFlagReason('Confusing', this)">
+                    <strong>🤔 Confusing</strong>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">The response is hard to understand</p>
+                </div>
+                <div class="flag-option" onclick="selectFlagReason('Irrelevant', this)">
+                    <strong>🔀 Irrelevant</strong>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">The response doesn't relate to the question</p>
+                </div>
+            </div>
+            
+            <input type="hidden" id="flaggedQuery" />
+            <input type="hidden" id="flaggedResponse" />
+            <input type="hidden" id="selectedReason" />
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="closeFlagModal()" style="flex: 1; padding: 12px; background: #e0efe5; color: var(--primary); border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">Cancel</button>
+                <button onclick="submitFlag()" style="flex: 1; padding: 12px; background: var(--secondary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">Submit Flag</button>
+            </div>
+        </div>
+    </div>
+
     <div class="page-footer">
         <img src="{{ asset('assets/dwccLogo.png') }}" class="dwccLogo"/>
         <div class="displayicn">
@@ -1151,7 +1414,7 @@ function showSection(id) {
     }, 200);
     
     // Update active nav item with new sidebar structure
-    document.querySelectorAll('.sb-link').forEach(link => link.classList.remove('active'));
+    document.querySelectorAll('.sidebar-menu a').forEach(link => link.classList.remove('active'));
     const activeLink = document.getElementById('link-' + id);
     if (activeLink) activeLink.classList.add('active');
     
@@ -1309,16 +1572,16 @@ async function sendMessage() {
         // 🆕 FIXED: Handle different response formats (render into messagesContainer)
         if (data.fulfillmentText) {
             // Standard Dialogflow response
-            addMessageToChat(messagesEl, 'bot', data.fulfillmentText);
+            addMessageToChat(messagesEl, 'bot', data.fulfillmentText, 'normal', msg);
             conversationPath.push({ type: 'bot', message: data.fulfillmentText });
         } 
         else if (data.response) {
             // Custom backend response format
-            handleCustomResponse(data.response, messagesEl);
+            handleCustomResponse(data.response, messagesEl, msg);
         }
         else if (data.message) {
             // Alternative response format
-            addMessageToChat(messagesEl, 'bot', data.message);
+            addMessageToChat(messagesEl, 'bot', data.message, 'normal', msg);
             conversationPath.push({ type: 'bot', message: data.message });
         }
         else {
@@ -1338,7 +1601,7 @@ async function sendMessage() {
 }
 
 // 🆕 NEW: Handle custom backend responses
-function handleCustomResponse(response, chatBox) {
+function handleCustomResponse(response, chatBox, query = '') {
     console.log('🔄 Handling custom response:', response);
     
     const { message, ticket_no, escalated, needs_hr, message_type } = response;
@@ -1349,7 +1612,7 @@ function handleCustomResponse(response, chatBox) {
     } 
     else if (needs_hr) {
         // Suggest escalation
-        addMessageToChat(chatBox, 'bot', message);
+        addMessageToChat(chatBox, 'bot', message, 'normal', query);
         addMessageToChat(chatBox, 'bot', 
             "Would you like me to escalate this to HR for further assistance?",
             'info'
@@ -1375,7 +1638,7 @@ function handleCustomResponse(response, chatBox) {
     }
     else {
         // Regular AI response
-        addMessageToChat(chatBox, 'bot', message);
+        addMessageToChat(chatBox, 'bot', message, 'normal', query);
     }
     
     conversationPath.push({ type: 'bot', message: message });
@@ -1631,7 +1894,7 @@ async function testNLPIntegration() {
 // Replace the existing sendMessage function with the fixed version above
 
 // Add message to chat with proper formatting
-function addMessageToChat(chatBox, sender, message, type = 'normal') {
+function addMessageToChat(chatBox, sender, message, type = 'normal', query = '') {
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-row ${sender}`;
     
@@ -1641,14 +1904,33 @@ function addMessageToChat(chatBox, sender, message, type = 'normal') {
     else if (type === 'info') bubbleClass += ' info';
     else if (sender === 'bot' && message.includes('HR')) bubbleClass += ' hr-reply';
     
-    messageDiv.innerHTML = `
-        <div class="${bubbleClass}">
-            ${message}
-            <div class="message-time">${new Date().toLocaleString()}</div>
-        </div>
+    const bubble = document.createElement('div');
+    bubble.className = bubbleClass;
+    bubble.innerHTML = `
+        ${message}
+        <div class="message-time">${new Date().toLocaleString()}</div>
     `;
     
+    // Add flag button for bot responses (not for tickets or guided questions)
+    if (sender === 'bot' && !currentSelectedTicket && query) {
+        console.log('Adding flag button for query:', query);
+        const flagBtn = document.createElement('button');
+        flagBtn.className = 'flag-btn';
+        flagBtn.title = 'Flag this response';
+        flagBtn.innerHTML = '🚩';
+        flagBtn.onclick = function(e) {
+            e.stopPropagation();
+            console.log('Flag button clicked');
+            openFlagModal(query, message);
+        };
+        bubble.appendChild(flagBtn);
+    } else {
+        console.log('No flag button:', { sender, hasTicket: !!currentSelectedTicket, hasQuery: !!query });
+    }
+    
+    messageDiv.appendChild(bubble);
     chatBox.appendChild(messageDiv);
+    
     // scroll the messages container (fallback to messagesContainer if caller passed an element without id)
     const targetId = (chatBox && chatBox.id) ? chatBox.id : 'messagesContainer';
     scrollChat(targetId);
@@ -1706,8 +1988,9 @@ async function loadGuidedQuestions(parentId = null) {
             // Final answer: render into the main messages area (not the guided box),
             // then ask if user needs more help
             const answer = data.data?.[0]?.answer || data.answer || "Thank you for your question!";
+            const question = data.data?.[0]?.question_text || 'guided question';
             const messagesEl = document.getElementById('messagesContainer');
-            if (messagesEl) addMessageToChat(messagesEl, 'bot', answer);
+            if (messagesEl) addMessageToChat(messagesEl, 'bot', answer, 'normal', question);
 
             // Ask if they need more help with Yes/No options
             guidedContainer.innerHTML = `
@@ -1850,7 +2133,7 @@ async function handleQuestionClick(id, text) {
         if (!dfRes.ok) {
             // Fallback: show the answer from guidedData if provided
             if (guidedData.type === 'final' && guidedData.data && guidedData.data[0] && guidedData.data[0].answer) {
-                addMessageToChat(chatBox, 'bot', guidedData.data[0].answer);
+                addMessageToChat(messagesEl, 'bot', guidedData.data[0].answer, 'normal', text);
                 conversationPath.push({ type: 'bot', message: guidedData.data[0].answer });
             }
             return;
@@ -1867,7 +2150,7 @@ async function handleQuestionClick(id, text) {
 
         // Display Dialogflow/backend reply (DialogflowController persists messages server-side)
         if (dfData.fulfillmentText) {
-            addMessageToChat(messagesEl, 'bot', dfData.fulfillmentText);
+            addMessageToChat(messagesEl, 'bot', dfData.fulfillmentText, 'normal', text);
             conversationPath.push({ type: 'bot', message: dfData.fulfillmentText });
             
             // Only show "Need more help?" if this is a successful response (not error/retry/escalation)
@@ -1890,9 +2173,9 @@ async function handleQuestionClick(id, text) {
                 }
             }
         } else if (dfData.response) {
-            handleCustomResponse(dfData.response, messagesEl);
+            handleCustomResponse(dfData.response, messagesEl, text);
         } else if (dfData.message) {
-            addMessageToChat(messagesEl, 'bot', dfData.message);
+            addMessageToChat(messagesEl, 'bot', dfData.message, 'normal', text);
             conversationPath.push({ type: 'bot', message: dfData.message });
             
             // Only show "Need more help?" if this is a successful response (not error/retry/escalation)
@@ -2058,7 +2341,14 @@ async function viewConversation(convoId) {
         const messagesEl = document.getElementById('messagesContainer');
         messagesEl.innerHTML = '<p class="loading">Loading conversation...</p>';
 
-        const response = await fetch(`{{ url('employee/conversations') }}/${convoId}/messages`);
+        const response = await fetch(`{{ url('employee/conversations') }}/${convoId}`);
+        
+        if (!response.ok) {
+            console.error('Failed to load conversation:', response.status, response.statusText);
+            messagesEl.innerHTML = '<p style="text-align: center; color: #ff6b6b; margin-top: 50px;">❌ Failed to load conversation messages</p>';
+            return;
+        }
+        
         const messages = await response.json();
 
         if (!messages || messages.length === 0) {
@@ -2072,6 +2362,7 @@ async function viewConversation(convoId) {
 
                 const isEmployee = msg.sender === 'employee';
                 const isHR = msg.sender === 'hr';
+                const isBot = msg.sender === 'bot';
 
                 // If this message represents guided options (stored as is_button), render into guidedContainer
                 if (msg.is_button) {
@@ -2097,12 +2388,27 @@ async function viewConversation(convoId) {
                 const displayMessage = normalizeEmployeeMessage(msg.message || '');
                 const senderLabel = isEmployee ? ' (You)' : (isHR ? ' (HR)' : '');
 
-                messageDiv.innerHTML = `
-                    <div class="${bubbleClass}">
-                        ${displayMessage}
-                        <div class="message-time">${new Date(msg.created_at).toLocaleString()}${senderLabel}</div>
-                    </div>
+                const bubble = document.createElement('div');
+                bubble.className = bubbleClass;
+                bubble.innerHTML = `
+                    ${displayMessage}
+                    <div class="message-time">${new Date(msg.created_at).toLocaleString()}${senderLabel}</div>
                 `;
+
+                // Add flag button for bot messages
+                if (isBot && msg.query) {
+                    const flagBtn = document.createElement('button');
+                    flagBtn.className = 'flag-btn';
+                    flagBtn.title = 'Flag this response';
+                    flagBtn.innerHTML = '🚩';
+                    flagBtn.onclick = function(e) {
+                        e.stopPropagation();
+                        openFlagModal(msg.query, msg.message);
+                    };
+                    bubble.appendChild(flagBtn);
+                }
+
+                messageDiv.appendChild(bubble);
                 messagesEl.appendChild(messageDiv);
         });
 
@@ -2379,6 +2685,100 @@ function restartChat() {
     if (guidedContainer) guidedContainer.innerHTML = '';
     conversationPath = [];
     startGuidedFlow();
+}
+
+// Flag Modal Functions
+let currentFlagData = { query: '', response: '' };
+
+function openFlagModal(query, response) {
+    currentFlagData = { query, response };
+    document.getElementById('flaggedQuery').value = query;
+    document.getElementById('flaggedResponse').value = response;
+    document.getElementById('flagModal').style.display = 'flex';
+    
+    // Clear any previous selection
+    document.querySelectorAll('.flag-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    document.getElementById('selectedReason').value = '';
+}
+
+function closeFlagModal() {
+    document.getElementById('flagModal').style.display = 'none';
+    currentFlagData = { query: '', response: '' };
+}
+
+function selectFlagReason(reason, element) {
+    // Clear all selections
+    document.querySelectorAll('.flag-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    
+    // Select this one
+    element.classList.add('selected');
+    document.getElementById('selectedReason').value = reason;
+}
+
+async function submitFlag() {
+    const reason = document.getElementById('selectedReason').value;
+    
+    if (!reason) {
+        alert('Please select a reason for flagging this response.');
+        return;
+    }
+    
+    console.log('Submitting flag with data:', {
+        user_query: currentFlagData.query,
+        bot_response: currentFlagData.response,
+        reason: reason
+    });
+    
+    try {
+        const response = await fetch('{{ route("flag.store") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                user_query: currentFlagData.query,
+                bot_response: currentFlagData.response,
+                reason: reason
+            })
+        });
+        
+        console.log('Flag response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Flag submission error:', errorText);
+            alert('Failed to flag response: ' + response.status + ' - ' + errorText.substring(0, 100));
+            return;
+        }
+        
+        const data = await response.json();
+        console.log('Flag response data:', data);
+        
+        if (data.success) {
+            closeFlagModal();
+            
+            // Show success notification
+            const notification = document.createElement('div');
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--success); color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 3000;';
+            notification.innerHTML = '✅ Response flagged successfully. Thank you for your feedback!';
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        } else {
+            console.error('Flag submission failed:', data);
+            alert('Failed to flag response: ' + (data.message || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error flagging response:', error);
+        alert('An error occurred: ' + error.message);
+    }
 }
 
 // Remove any close/delete controls left over from previous UI iterations.

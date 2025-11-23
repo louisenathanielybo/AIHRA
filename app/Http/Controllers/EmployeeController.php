@@ -192,7 +192,24 @@ public function getTickets()
                 ->orderBy('created_at', 'asc')
                 ->get(['sender', 'message', 'created_at']);
 
-            return response()->json($messages);
+            // Add query field for bot messages (use previous employee message as query)
+            $lastEmployeeMessage = null;
+            $messagesWithQuery = $messages->map(function($message) use (&$lastEmployeeMessage) {
+                $messageArray = $message->toArray();
+                
+                if ($message->sender === 'employee') {
+                    $lastEmployeeMessage = $message->message;
+                    $messageArray['query'] = null;
+                } elseif ($message->sender === 'bot') {
+                    $messageArray['query'] = $lastEmployeeMessage;
+                } else {
+                    $messageArray['query'] = null;
+                }
+                
+                return $messageArray;
+            });
+
+            return response()->json($messagesWithQuery);
         } catch (\Exception $e) {
             \Log::error('Get conversation messages error: ' . $e->getMessage());
             return response()->json([], 500);

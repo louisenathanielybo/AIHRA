@@ -1029,6 +1029,28 @@ use Illuminate\Support\Str;
             border-bottom: 1px solid #e8f5e8;
         }
     }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
 </style>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
@@ -1200,7 +1222,7 @@ use Illuminate\Support\Str;
                 </div>
                 
                 <div class="data-table">
-                    <h3>Flagged Responses</h3>
+                    <h3>Flagged Responses ({{ count($flaggedResponses ?? []) }})</h3>
                     <table>
                         <thead>
                             <tr>
@@ -1208,21 +1230,38 @@ use Illuminate\Support\Str;
                                 <th>Query</th>
                                 <th>Reason</th>
                                 <th>Date</th>
+                                <th>Status</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($flaggedResponses as $flagged)
-                            <tr>
+                            <tr id="flag-row-{{ $flagged->flaggedID }}">
                                 <td>{{ $flagged->firstName }} {{ $flagged->lastName }}</td>
-                                <td>{{ \Illuminate\Support\Str::limit($flagged->question, 50) }}</td>
-                                <td>{{ $flagged->description ?? 'Unknown' }}</td>
+                                <td title="{{ $flagged->question }}">{{ \Illuminate\Support\Str::limit($flagged->question, 50) }}</td>
+                                <td>{{ $flagged->description ?? $flagged->reasonID ?? 'Unknown' }}</td>
                                 <td>{{ \Carbon\Carbon::parse($flagged->timeStamp)->format('d/m/y') }}</td>
-                                <td><button class="btn btn-primary">Review</button></td>
+                                <td><span class="status {{ strtolower($flagged->status) }}">{{ $flagged->status }}</span></td>
+                                <td>
+                                    @if($flagged->status === 'Pending')
+                                    <button class="btn btn-primary" style="padding: 6px 12px; margin-right: 5px;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Reviewed')">
+                                        Review
+                                    </button>
+                                    <button class="btn" style="padding: 6px 12px; background: var(--success); color: white;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Resolved')">
+                                        Resolved
+                                    </button>
+                                    @elseif($flagged->status === 'Reviewed')
+                                    <button class="btn" style="padding: 6px 12px; background: var(--success); color: white;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Resolved')">
+                                        Resolved
+                                    </button>
+                                    @else
+                                    <span style="color: #666;">—</span>
+                                    @endif
+                                </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="5" style="text-align: center; padding: 30px; color: #666;">
+                                <td colspan="6" style="text-align: center; padding: 30px; color: #666;">
                                     No flagged responses found.
                                 </td>
                             </tr>
@@ -1307,6 +1346,55 @@ use Illuminate\Support\Str;
                             <td><span class="trend down">-0.3s</span></td>
                             <td>1.0s</td>
                         </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="data-table">
+                <h3>Flagged Responses ({{ count($flaggedResponses ?? []) }})</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Query</th>
+                            <th>Reason</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($flaggedResponses as $flagged)
+                        <tr id="flag-row-{{ $flagged->flaggedID }}">
+                            <td>{{ $flagged->firstName }} {{ $flagged->lastName }}</td>
+                            <td title="{{ $flagged->question }}">{{ \Illuminate\Support\Str::limit($flagged->question, 50) }}</td>
+                            <td>{{ $flagged->reasonID ?? 'Unknown' }}</td>
+                            <td>{{ \Carbon\Carbon::parse($flagged->timeStamp)->format('d/m/y') }}</td>
+                            <td><span class="status {{ strtolower($flagged->status) }}">{{ $flagged->status }}</span></td>
+                            <td>
+                                @if($flagged->status === 'Pending')
+                                <button class="btn btn-primary" style="padding: 6px 12px; margin-right: 5px;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Reviewed')">
+                                    Review
+                                </button>
+                                <button class="btn" style="padding: 6px 12px; background: var(--success); color: white;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Resolved')">
+                                    Resolved
+                                </button>
+                                @elseif($flagged->status === 'Reviewed')
+                                <button class="btn" style="padding: 6px 12px; background: var(--success); color: white;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Resolved')">
+                                    Resolved
+                                </button>
+                                @else
+                                <span style="color: #666;">—</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 30px; color: #666;">
+                                No flagged responses found.
+                            </td>
+                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -2484,6 +2572,87 @@ use Illuminate\Support\Str;
         }
 
         // DELETE ACCOUNT FUNCTION
+        // Update flag status
+        async function updateFlagStatus(flagId, status) {
+            if (!confirm(`Mark this flagged response as ${status}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/flags/${flagId}/update-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({ status: status })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update all instances of this flag row across all tables
+                    const rows = document.querySelectorAll(`tr[id="flag-row-${flagId}"]`);
+                    
+                    rows.forEach(row => {
+                        const statusCell = row.querySelector('td:nth-last-child(2)');
+                        const actionCell = row.querySelector('td:last-child');
+                        
+                        // Update status badge with animation
+                        if (statusCell) {
+                            statusCell.innerHTML = `<span class="status ${status.toLowerCase()}">${status}</span>`;
+                            statusCell.style.transition = 'background-color 0.3s ease';
+                        }
+                        
+                        // Update action buttons based on new status
+                        if (actionCell) {
+                            if (status === 'Reviewed') {
+                                actionCell.innerHTML = `
+                                    <button class="btn" style="padding: 6px 12px; background: var(--success); color: white;" onclick="updateFlagStatus('${flagId}', 'Resolved')">
+                                        Resolved
+                                    </button>
+                                `;
+                            } else if (status === 'Resolved') {
+                                actionCell.innerHTML = `<span style="color: #666;">—</span>`;
+                            }
+                        }
+                    });
+                    
+                    // Show success notification
+                    showNotification('Flag status updated successfully!', 'success');
+                } else {
+                    showNotification('Failed to update flag status.', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating flag:', error);
+                showNotification('An error occurred while updating the flag.', 'error');
+            }
+        }
+
+        // Show notification helper
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'var(--success)' : 'var(--danger)'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                z-index: 3000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
         function deleteAccount(employeeNum) {
             if (confirm(`Are you sure you want to delete account ${employeeNum}? This action cannot be undone.`)) {
                 // Create and submit form

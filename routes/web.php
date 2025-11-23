@@ -112,7 +112,10 @@ Route::prefix('admin')->group(function () {
     Route::delete('/announcements/{id}', [AdminController::class, 'deleteAnnouncement'])->name('admin.announcements.delete');
     Route::post('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
     // Add this route for AJAX ticket data
-Route::get('/admin/tickets/data', [AdminController::class, 'getTickets'])->name('admin.tickets.data');
+    Route::get('/admin/tickets/data', [AdminController::class, 'getTickets'])->name('admin.tickets.data');
+    
+    // Flagged responses routes
+    Route::post('/flags/{id}/update-status', [FlagController::class, 'updateStatus'])->name('admin.flags.update-status');
 });
 
     // Guided questions (for chatbot)
