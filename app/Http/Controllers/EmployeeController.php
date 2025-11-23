@@ -16,6 +16,7 @@ class EmployeeController extends Controller
     public function index()
     {
         $announcements = DB::table('announcements')
+            ->where('isActive', 1)
             ->orderBy('id', 'desc')
             ->get();
 

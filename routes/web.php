@@ -86,6 +86,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/messages/{ticket_no}', [HRController::class, 'getMessages'])->name('hr.messages');
         Route::get('/tickets/json', [HRController::class, 'ticketsJson'])->name('hr.tickets.json');
         Route::post('/resolve-ticket', [HRController::class, 'resolveTicket'])->name('hr.resolve-ticket');
+        // ADD THESE NEW ROUTES FOR DELETE
+    Route::get('/announcements/{id}', [HRController::class, 'getAnnouncement'])->name('hr.announcements.get');
+    Route::post('/announcements/{id}', [HRController::class, 'updateAnnouncement'])->name('hr.announcements.update');
+    Route::delete('/announcements/{id}', [HRController::class, 'deleteAnnouncement'])->name('hr.announcements.delete');
     });
 
    // Admin Routes - FIXED VERSION
