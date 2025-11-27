@@ -32,8 +32,9 @@ class AdminController extends Controller
         
         // Calculate ticket KPIs
         $totalTickets = $tickets->count();
-        $unresolvedTickets = $tickets->where('status', 'open')->count();
-        $resolvedTickets = $tickets->where('status', 'resolved')->count();
+        $unresolvedTickets = $tickets->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
+        $resolvedTickets = $tickets->where('status', 'Resolved')->count();
+        $expiredTickets = $tickets->where('is_expired', true)->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
 
         // 🆕 NEW: Get data for dashboard KPIs
         $activeUsers = DB::table('users')->where('status', 'Active')->count();
@@ -91,7 +92,7 @@ class AdminController extends Controller
 
         return view('admin.admin_dashboard', compact(
             'admin', 'kb', 'announcements', 'feedback', 'flags', 'users', 'search', 
-            'active_tab', 'tickets', 'totalTickets', 'unresolvedTickets', 'resolvedTickets',
+            'active_tab', 'tickets', 'totalTickets', 'unresolvedTickets', 'resolvedTickets', 'expiredTickets',
             'activeUsers', 'totalInteractions', 'escalatedQueries',
             'resolvedQueries', 'pendingQueries', 'escalatedCount',
             'feedbackData', 'recentInteractions', 'flaggedResponses'
@@ -468,8 +469,8 @@ class AdminController extends Controller
                 'success' => true,
                 'tickets' => $tickets,
                 'total' => $tickets->count(),
-                'unresolved' => $tickets->where('status', 'open')->count(),
-                'resolved' => $tickets->where('status', 'resolved')->count()
+                'unresolved' => $tickets->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count(),
+                'resolved' => $tickets->where('status', 'Resolved')->count()
             ]);
         } catch (\Exception $e) {
             return response()->json([

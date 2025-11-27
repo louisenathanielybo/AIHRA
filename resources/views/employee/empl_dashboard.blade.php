@@ -865,7 +865,10 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2><i class="fas fa-robot"></i> AIHRA Employee</h2>
+            <h2 style="display: flex; align-items: center; gap: 8px;">
+                <img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA Logo" style="width: 50px; height: 50px;">
+                AIHRA
+            </h2>
         </div>
 
         <ul class="sidebar-menu">
@@ -934,7 +937,7 @@
 
     <!-- Chat Section -->
     <div id="chat" class="table-container section" style="display:none;">
-        <h2><img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA" style="width: 32px; height: 32px; vertical-align: middle; margin-right: 8px;"> AI HR Assistant</h2>
+        <h2><img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA" style="width: 50px; height: 50px; vertical-align: middle; margin-right: 8px;"> AI HR Assistant</h2>
         
         <!-- Chat Layout: Left = Conversations & Tickets, Right = Viewer -->
         <style>

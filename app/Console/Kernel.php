@@ -12,7 +12,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Check for expired tickets every 15 minutes
+        $schedule->call(function () {
+            $service = new \App\Services\TicketExpirationService();
+            $service->checkExpiredTickets();
+        })->everyFifteenMinutes();
     }
 
     /**

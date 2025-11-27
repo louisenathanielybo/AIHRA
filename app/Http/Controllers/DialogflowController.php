@@ -912,6 +912,9 @@ class DialogflowController extends Controller
             // 🎯 FIXED: Determine priority based on content AND original confidence
             $priority = $this->determinePriority($queryText, $originalConfidence);
             $category = $this->determineCategory($queryText);
+            
+            // Calculate response and resolution deadlines based on priority
+            $deadlines = $this->calculateDeadlines($priority);
 
             // 🆕 CRITICAL FIX: Create HR inbox ticket with multiple fallback attempts
             $inbox = null;
@@ -928,6 +931,8 @@ class DialogflowController extends Controller
                         'category' => $category,
                         'intent' => substr('Escalated: ' . $reason, 0, 50),
                         'confidence' => 0.0,
+                        'response_deadline' => $deadlines['response_deadline'],
+                        'resolution_deadline' => $deadlines['resolution_deadline'],
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
@@ -1006,21 +1011,35 @@ class DialogflowController extends Controller
 
     /**
      * 🆕 NEW: Determine ticket priority based on content and confidence
+     * Priority levels: Urgent, High, Medium, Low
      */
     private function determinePriority(string $queryText, float $confidence = null): string
     {
+        $urgentKeywords = [
+            'emergency', 'urgent', 'critical', 'asap', 'immediately', 'right now',
+            'harassment', 'discrimination', 'assault', 'unsafe', 'danger', 'threat',
+            'suicide', 'self-harm', 'violence', 'abuse'
+        ];
+
         $highPriorityKeywords = [
-            'emergency', 'urgent', 'critical', 'asap', 'immediately', 'now',
-            'harassment', 'discrimination', 'bullying', 'unsafe', 'danger',
-            'fired', 'termination', 'legal', 'lawyer', 'police'
+            'fired', 'termination', 'terminated', 'legal', 'lawyer', 'police',
+            'bullying', 'severe', 'serious complaint', 'cannot work',
+            'injury', 'accident', 'medical emergency'
         ];
 
         $mediumPriorityKeywords = [
-            'complaint', 'issue', 'problem', 'error', 'not working', 'broken',
-            'salary', 'pay', 'raise', 'promotion', 'disciplinary', 'warning'
+            'complaint', 'issue', 'problem', 'concern', 'dispute',
+            'salary issue', 'pay problem', 'not paid', 'wrong pay',
+            'disciplinary', 'warning', 'promotion denied'
         ];
 
-        // Check keywords first (highest priority)
+        // Check keywords in priority order
+        foreach ($urgentKeywords as $keyword) {
+            if (stripos($queryText, $keyword) !== false) {
+                return 'Urgent';
+            }
+        }
+
         foreach ($highPriorityKeywords as $keyword) {
             if (stripos($queryText, $keyword) !== false) {
                 return 'High';
@@ -1033,19 +1052,51 @@ class DialogflowController extends Controller
             }
         }
 
-        // 🎯 FIXED: Use confidence score to determine priority
-        // Very low confidence (< 0.3) = High priority (bot completely confused)
-        // Low confidence (0.3 - 0.5) = Medium priority (bot unsure)
-        // Medium+ confidence (> 0.5) = Low priority (just needs clarification)
+        // Use confidence score as fallback
+        // Very low confidence (< 0.2) = High priority (bot completely confused)
+        // Low confidence (0.2 - 0.4) = Medium priority (bot unsure)
+        // Medium+ confidence (> 0.4) = Low priority (standard inquiry)
         if ($confidence !== null) {
-            if ($confidence < 0.3) {
+            if ($confidence < 0.2) {
                 return 'High';
-            } elseif ($confidence < 0.5) {
+            } elseif ($confidence < 0.4) {
                 return 'Medium';
             }
         }
 
         return 'Low';
+    }
+
+    /**
+     * Calculate response and resolution deadlines based on priority
+     */
+    private function calculateDeadlines(string $priority): array
+    {
+        $now = now();
+        
+        switch ($priority) {
+            case 'Urgent':
+                return [
+                    'response_deadline' => $now->copy()->addMinutes(30),
+                    'resolution_deadline' => $now->copy()->addHours(4)
+                ];
+            case 'High':
+                return [
+                    'response_deadline' => $now->copy()->addHour(),
+                    'resolution_deadline' => $now->copy()->addHours(8)
+                ];
+            case 'Medium':
+                return [
+                    'response_deadline' => $now->copy()->addHours(8),
+                    'resolution_deadline' => $now->copy()->addHours(48)
+                ];
+            case 'Low':
+            default:
+                return [
+                    'response_deadline' => $now->copy()->addHours(24),
+                    'resolution_deadline' => $now->copy()->addHours(72)
+                ];
+        }
     }
 
     /**
@@ -1082,6 +1133,9 @@ class DialogflowController extends Controller
         try {
             Log::info("🔄 Trying alternative ticket creation method", ['ticket_no' => $ticketNo]);
             
+            // Calculate deadlines
+            $deadlines = $this->calculateDeadlines($priority);
+            
             // Use DB facade for direct insertion
             $now = now();
             $result = DB::table('hr_inbox')->insert([
@@ -1093,6 +1147,8 @@ class DialogflowController extends Controller
                 'category' => $category,
                 'intent' => substr('Escalated: ' . $reason, 0, 50),
                 'confidence' => 0.0,
+                'response_deadline' => $deadlines['response_deadline'],
+                'resolution_deadline' => $deadlines['resolution_deadline'],
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);

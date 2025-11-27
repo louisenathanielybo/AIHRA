@@ -918,7 +918,6 @@
                                     <div>
                                         <span class="badge {{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span>
                                         <span class="badge">{{ $ticket->category }}</span>
-                                        <span style="color:#666;">{{ number_format($ticket->confidence * 100, 0) }}%</span>
                                     </div>
                                     @if($ticket->status === 'Replied')
                                         <span class="badge replied">Replied</span>

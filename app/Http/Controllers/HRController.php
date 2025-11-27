@@ -25,8 +25,8 @@ class HRController extends Controller
             ->orderBy('createdAt', 'desc')
             ->get();
 
-        // ✅ Get all inbox tickets
-        $inbox = HrInbox::all();
+        // ✅ Get all inbox tickets (newest first)
+        $inbox = HrInbox::orderBy('created_at', 'desc')->get();
 
         // ✅ Get the currently logged-in user
         $user = Auth::user();
@@ -226,6 +226,28 @@ class HRController extends Controller
         return response()->json(HrInbox::orderBy('created_at', 'desc')->get());
     }
 
+    /**
+     * Check and mark expired tickets (can be called manually or via scheduled task)
+     */
+    public function checkExpiredTickets()
+    {
+        $service = new \App\Services\TicketExpirationService();
+        $result = $service->checkExpiredTickets();
+        
+        return response()->json($result);
+    }
+
+    /**
+     * Get expiration statistics
+     */
+    public function getExpirationStats()
+    {
+        $service = new \App\Services\TicketExpirationService();
+        $stats = $service->getExpirationStats();
+        
+        return response()->json($stats);
+    }
+
     public function getMessages($ticket_no)
     {
         try {
@@ -300,12 +322,20 @@ class HRController extends Controller
 
             // 🆕 REMOVED: No chat_messages insertion
 
-            // Update ticket status
-            HrInbox::where('ticket_no', $request->ticket_no)
-                ->update([
-                    'status' => 'Replied', 
-                    'updated_at' => now()
-                ]);
+            // Update ticket status and set responded_at if first response
+            $ticket = HrInbox::where('ticket_no', $request->ticket_no)->first();
+            
+            $updateData = [
+                'status' => 'Replied', 
+                'updated_at' => now()
+            ];
+            
+            // Set responded_at timestamp if this is the first response
+            if ($ticket && is_null($ticket->responded_at)) {
+                $updateData['responded_at'] = now();
+            }
+            
+            HrInbox::where('ticket_no', $request->ticket_no)->update($updateData);
 
             return response()->json([
                 'success' => true, 
@@ -333,10 +363,11 @@ class HRController extends Controller
         ]);
 
         try {
-            // Update ticket status
+            // Update ticket status and set resolved_at timestamp
             HrInbox::where('ticket_no', $request->ticket_no)
                 ->update([
-                    'status' => 'Resolved', 
+                    'status' => 'Resolved',
+                    'resolved_at' => now(),
                     'updated_at' => now()
                 ]);
 

@@ -745,7 +745,7 @@ use Illuminate\Support\Str;
     }
 
     .modal-body {
-        padding: 20px;
+        padding: 14px;
     }
 
     /* ===== TICKET MODAL ===== */
@@ -789,28 +789,28 @@ use Illuminate\Support\Str;
     .form-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
+        gap: 10px;
     }
 
     .form-group {
-        margin-bottom: 15px;
+        margin-bottom: 10px;
     }
 
     .form-group-full {
         grid-column: 1 / -1;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
     }
 
     .form-group label {
         display: block;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
         font-weight: 500;
         color: var(--primary);
     }
 
     .form-group input, .form-group select, .form-group textarea {
         width: 100%;
-        padding: 10px 12px;
+        padding: 8px 10px;
         border: 1px solid #e0efe5;
         border-radius: 6px;
         font-size: 0.9rem;
@@ -826,7 +826,7 @@ use Illuminate\Support\Str;
 
     .form-group textarea {
         resize: vertical;
-        min-height: 80px;
+        min-height: 60px;
     }
 
     /* ===== PAGINATION ===== */
@@ -1071,7 +1071,7 @@ use Illuminate\Support\Str;
             <li><a href="#" class="{{ $active_tab == 'performance' ? 'active' : '' }}" data-section="performance"><i class="fas fa-chart-line"></i> Chatbot Performance</a></li>
             <li><a href="#" class="{{ $active_tab == 'feedback' ? 'active' : '' }}" data-section="feedback"><i class="fas fa-comment-alt"></i> Feedback</a></li>
             <li><a href="#" class="{{ $active_tab == 'content' ? 'active' : '' }}" data-section="content"><i class="fas fa-cogs"></i> Content Management</a></li>
-            <li><a href="#" class="{{ $active_tab == 'tickets' ? 'active' : '' }}" data-section="tickets"><i class="fas fa-ticket-alt"></i> Chatbot Tickets</a></li>
+            <li><a href="#" class="{{ $active_tab == 'tickets' ? 'active' : '' }}" data-section="tickets"><i class="fas fa-ticket-alt"></i> Chatbot Ticket Details</a></li>
             <li><a href="#" class="{{ $active_tab == 'account-management' ? 'active' : '' }}" data-section="account-management"><i class="fas fa-user-cog"></i> Account Management</a></li>
         </ul>
         
@@ -1468,7 +1468,7 @@ use Illuminate\Support\Str;
             </div>
         </div>
         
-        <!-- Chatbot Tickets Section -->
+        <!-- Chatbot Ticket Details Section -->
         <div id="tickets" class="section-content">
             <div class="dashboard-cards">
                 <div class="card stat-card">
@@ -1517,7 +1517,7 @@ use Illuminate\Support\Str;
             
             <!-- Tickets Table -->
             <div class="data-table">
-                <h3>Chatbot Tickets</h3>
+                <h3>Chatbot Ticket Details</h3>
                 <table id="ticketsTable">
                     <thead>
                         <tr>
@@ -2079,7 +2079,7 @@ use Illuminate\Support\Str;
                     pageTitle.textContent = 'Content Management';
                     break;
                 case 'tickets':
-                    pageTitle.textContent = 'Chatbot Tickets';
+                    pageTitle.textContent = 'Chatbot Ticket Details';
                     break;
                 case 'account-management':
                     pageTitle.textContent = 'Account Management';

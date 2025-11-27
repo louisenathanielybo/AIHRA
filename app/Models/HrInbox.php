@@ -9,16 +9,20 @@ class HrInbox extends Model
     protected $table = 'hr_inbox';
 
     protected $fillable = [
-    'ticket_no',
-    'from_user',
-    'message',
-    'status',
-    'priority',
-    'category',
-    'intent',
-    'confidence',
-];
-
+        'ticket_no',
+        'from_user',
+        'message',
+        'status',
+        'priority',
+        'category',
+        'intent',
+        'confidence',
+        'response_deadline',
+        'resolution_deadline',
+        'responded_at',
+        'resolved_at',
+        'is_expired',
+    ];
 
     /**
      * Indicates if the model should be timestamped.
@@ -33,5 +37,10 @@ class HrInbox extends Model
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'response_deadline' => 'datetime',
+        'resolution_deadline' => 'datetime',
+        'responded_at' => 'datetime',
+        'resolved_at' => 'datetime',
+        'is_expired' => 'boolean',
     ];
 }
