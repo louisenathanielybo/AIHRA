@@ -250,6 +250,7 @@
             color: #666;
         }
         .card.high { border-left: 4px solid #dc3545; }
+        .card.urgent { border-left: 4px solid #b00020; }
         .card.medium { border-left: 4px solid #ffc107; }
         .card.low { border-left: 4px solid #28a745; }
         .card.replied { border-left: 4px solid #007bff; }
@@ -307,8 +308,11 @@
         .badge.high { background: #f8d7da; color: #721c24; }
         .badge.medium { background: #fff3cd; color: #856404; }
         .badge.low { background: #d1ecf1; color: #0c5460; }
+        .badge.urgent { background: #fce8e6; color: #b00020; border: 1px solid #f5c2c7; font-weight: 700; }
         .badge.replied { background: #d4edda; color: #155724; }
         .badge.resolved { background: #e2e3e5; color: #383d41; }
+        .badge.expired { background: #fdecea; color: #b00020; border: 1px solid #f5c2c7; }
+        .badge.deadline { background: #e7f5ff; color: #0b5ed7; border: 1px solid #b6e0fe; }
 
         .chat-messages {
             flex: 1;
@@ -888,6 +892,10 @@
                         <h3>{{ $inbox->count() }}</h3>
                         <p>Total Tickets</p>
                     </div>
+                    <div class="card urgent">
+                        <h3>{{ $inbox->where('priority', 'urgent')->count() }}</h3>
+                        <p>Urgent Priority</p>
+                    </div>
                     <div class="card high">
                         <h3>{{ $inbox->where('priority', 'high')->count() }}</h3>
                         <p>High Priority</p>
@@ -918,11 +926,37 @@
                                     <div>
                                         <span class="badge {{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span>
                                         <span class="badge">{{ $ticket->category }}</span>
+                                        @php
+                                            $deadlineLabel = null;
+                                            $deadlineOverdue = false;
+                                            $action = null;
+                                            if ($ticket->status !== 'Resolved') {
+                                                if (is_null($ticket->responded_at)) {
+                                                    $deadline = $ticket->response_deadline;
+                                                    $action = 'Respond';
+                                                } else {
+                                                    $deadline = $ticket->resolution_deadline;
+                                                    $action = 'Resolve';
+                                                }
+                                                if ($deadline) {
+                                                    $dl = \Carbon\Carbon::parse($deadline);
+                                                    $deadlineOverdue = $dl->isPast();
+                                                    $diff = $dl->diffForHumans(null, ['parts' => 2, 'short' => true, 'syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE]);
+                                                    $deadlineLabel = $deadlineOverdue ? ($action . ' overdue by ' . $diff) : ($action . ' in ' . $diff);
+                                                }
+                                            }
+                                        @endphp
+                                        @if(!is_null($deadlineLabel))
+                                            <span class="badge deadline {{ $deadlineOverdue ? 'overdue' : '' }}">{{ $deadlineLabel }}</span>
+                                        @endif
                                     </div>
                                     @if($ticket->status === 'Replied')
                                         <span class="badge replied">Replied</span>
                                     @elseif($ticket->status === 'Resolved')
                                         <span class="badge resolved">Resolved</span>
+                                    @endif
+                                    @if($ticket->is_expired)
+                                        <span class="badge expired">Expired</span>
                                     @endif
                                     
                                     @if($ticket->status !== 'Resolved')

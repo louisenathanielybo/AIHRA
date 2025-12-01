@@ -913,6 +913,13 @@ class DialogflowController extends Controller
             $priority = $this->determinePriority($queryText, $originalConfidence);
             $category = $this->determineCategory($queryText);
             
+            Log::info('🎯 Ticket Priority Determined', [
+                'query' => substr($queryText, 0, 100),
+                'priority' => $priority,
+                'confidence' => $originalConfidence,
+                'category' => $category
+            ]);
+            
             // Calculate response and resolution deadlines based on priority
             $deadlines = $this->calculateDeadlines($priority);
 
@@ -997,7 +1004,7 @@ class DialogflowController extends Controller
             ]);
 
             // 🆕 CRITICAL FIX: ALWAYS create a ticket, even if basic methods fail
-            $finalTicketNo = $this->ensureTicketCreation($ticketNo, $employeeNum, $queryText, $reason);
+            $finalTicketNo = $this->ensureTicketCreation($ticketNo, $employeeNum, $queryText, $reason, $originalConfidence);
             
             return response()->json([
                 'status' => 'escalated',
@@ -1012,58 +1019,89 @@ class DialogflowController extends Controller
     /**
      * 🆕 NEW: Determine ticket priority based on content and confidence
      * Priority levels: Urgent, High, Medium, Low
+     * 
+     * Categorization Logic:
+     * - Low (>85%): General requests, policy documents, forms, basic inquiries
+     * - Medium (70-85%): Leave credits, benefits policies, promotion criteria, training
+     * - High (50-70%): Salary discrepancies, unpaid benefits, urgent benefit claims, promotion disputes
+     * - Urgent (<50%): Harassment, discrimination, wrongful termination, legal/safety concerns
      */
     private function determinePriority(string $queryText, float $confidence = null): string
     {
+        // Critical/Urgent keywords - override confidence score
         $urgentKeywords = [
-            'emergency', 'urgent', 'critical', 'asap', 'immediately', 'right now',
-            'harassment', 'discrimination', 'assault', 'unsafe', 'danger', 'threat',
-            'suicide', 'self-harm', 'violence', 'abuse'
+            'harass', 'discriminat', 'wrongful termination', 'fired unfairly',
+            'legal', 'lawyer', 'sue', 'court', 'police',
+            'unsafe', 'danger', 'threat', 'violence', 'assault',
+            'suicide', 'self-harm', 'abuse', 'safety concern', 'bully', 'bullied',
+            'emergency', 'urgent', 'critical', 'asap', 'immediately'
         ];
 
+        // High priority keywords - salary, benefits, employment status issues
         $highPriorityKeywords = [
-            'fired', 'termination', 'terminated', 'legal', 'lawyer', 'police',
-            'bullying', 'severe', 'serious complaint', 'cannot work',
-            'injury', 'accident', 'medical emergency'
+            'salary discrepancy', 'not paid', 'unpaid', 'missing pay', 'wrong salary',
+            'benefit claim', 'urgent benefit', 'benefit denied', 'benefit issue',
+            'promotion dispute', 'ranking dispute', 'demotion', 'unfair ranking',
+            'compensation issue', 'payroll error'
         ];
 
+        // Medium priority keywords - non-urgent HR questions
         $mediumPriorityKeywords = [
-            'complaint', 'issue', 'problem', 'concern', 'dispute',
-            'salary issue', 'pay problem', 'not paid', 'wrong pay',
-            'disciplinary', 'warning', 'promotion denied'
+            'leave credit', 'vacation leave', 'sick leave', 'leave balance',
+            'benefit polic', 'insurance polic', 'health benefit',
+            'promotion criteria', 'ranking schedule', 'promotion process',
+            'training opportunit', 'employee development', 'career development',
+            'performance review'
         ];
 
-        // Check keywords in priority order
+        // Check critical keywords first (always Urgent regardless of confidence)
         foreach ($urgentKeywords as $keyword) {
             if (stripos($queryText, $keyword) !== false) {
+                Log::info('🚨 Urgent keyword detected', ['keyword' => $keyword, 'query' => substr($queryText, 0, 50)]);
                 return 'Urgent';
             }
         }
 
+        // Check high priority keywords (salary, benefits, employment disputes)
         foreach ($highPriorityKeywords as $keyword) {
             if (stripos($queryText, $keyword) !== false) {
+                Log::info('⚠️ High priority keyword detected', ['keyword' => $keyword, 'query' => substr($queryText, 0, 50)]);
                 return 'High';
             }
         }
 
+        // Check medium priority keywords (leave, policies, training)
         foreach ($mediumPriorityKeywords as $keyword) {
             if (stripos($queryText, $keyword) !== false) {
+                Log::info('📋 Medium priority keyword detected', ['keyword' => $keyword, 'query' => substr($queryText, 0, 50)]);
                 return 'Medium';
             }
         }
 
-        // Use confidence score as fallback
-        // Very low confidence (< 0.2) = High priority (bot completely confused)
-        // Low confidence (0.2 - 0.4) = Medium priority (bot unsure)
-        // Medium+ confidence (> 0.4) = Low priority (standard inquiry)
+        // Use confidence-based categorization
         if ($confidence !== null) {
-            if ($confidence < 0.2) {
+            Log::info('📊 Using confidence-based priority', ['confidence' => $confidence]);
+            if ($confidence < 0.50) {
+                // Below 50% confidence = Urgent
+                Log::info('Priority: Urgent (confidence < 50%)');
+                return 'Urgent';
+            } elseif ($confidence < 0.70) {
+                // 50-70% confidence = High
+                Log::info('Priority: High (confidence 50-70%)');
                 return 'High';
-            } elseif ($confidence < 0.4) {
+            } elseif ($confidence < 0.85) {
+                // 70-85% confidence = Medium
+                Log::info('Priority: Medium (confidence 70-85%)');
                 return 'Medium';
+            } else {
+                // Above 85% confidence = Low
+                Log::info('Priority: Low (confidence > 85%)');
+                return 'Low';
             }
         }
 
+        // Default to Low for escalations with no confidence data
+        Log::info('Priority: Low (default - no confidence data)');
         return 'Low';
     }
 
@@ -1168,47 +1206,65 @@ class DialogflowController extends Controller
     /**
      * 🆕 NEW: Ensure ticket creation no matter what - final fallback
      */
-    private function ensureTicketCreation(?string $originalTicketNo, $employeeNum, string $queryText, string $reason): string
+    private function ensureTicketCreation(?string $originalTicketNo, $employeeNum, string $queryText, string $reason, float $originalConfidence = null): string
     {
         $ticketNo = $originalTicketNo ?: 'TKT-EMERGENCY-' . time();
         
         try {
             Log::info("🚨 EMERGENCY: Ensuring ticket creation with final fallback", ['ticket_no' => $ticketNo]);
 
+            // Determine priority based on content and confidence
+            $priority = $this->determinePriority($queryText, $originalConfidence);
+            $category = $this->determineCategory($queryText);
+            $deadlines = $this->calculateDeadlines($priority);
+
             // Try multiple creation methods
             $methods = [
-                'eloquent_create' => function() use ($ticketNo, $employeeNum, $queryText, $reason) {
+                'eloquent_create' => function() use ($ticketNo, $employeeNum, $queryText, $reason, $priority, $category, $deadlines) {
                     return HrInbox::create([
                         'ticket_no' => $ticketNo,
                         'from_user' => $employeeNum ?: 'GUEST',
                         'message' => $queryText,
                         'status' => 'Open',
-                        'priority' => 'medium',
-                        'category' => 'General',
+                        'priority' => strtolower($priority),
+                        'category' => $category,
                         'intent' => substr('EMERGENCY: ' . $reason, 0, 50),
                         'confidence' => 0.0,
+                        'response_deadline' => $deadlines['response_deadline'],
+                        'resolution_deadline' => $deadlines['resolution_deadline'],
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
                 },
-                'db_insert' => function() use ($ticketNo, $employeeNum, $queryText, $reason) {
+                'db_insert' => function() use ($ticketNo, $employeeNum, $queryText, $reason, $priority, $category, $deadlines) {
                     return DB::table('hr_inbox')->insert([
                         'ticket_no' => $ticketNo,
                         'from_user' => $employeeNum ?: 'GUEST',
                         'message' => $queryText,
                         'status' => 'Open',
-                        'priority' => 'medium',
-                        'category' => 'General',
+                        'priority' => strtolower($priority),
+                        'category' => $category,
                         'intent' => substr('EMERGENCY: ' . $reason, 0, 50),
                         'confidence' => 0.0,
+                        'response_deadline' => $deadlines['response_deadline'],
+                        'resolution_deadline' => $deadlines['resolution_deadline'],
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
                 },
-                'raw_sql' => function() use ($ticketNo, $employeeNum, $queryText, $reason) {
-                    $sql = "INSERT INTO hr_inbox (ticket_no, from_user, message, status, priority, category, intent, confidence, created_at, updated_at) 
-                            VALUES (?, ?, ?, 'Open', 'medium', 'General', ?, 0.0, NOW(), NOW())";
-                    return DB::insert($sql, [$ticketNo, $employeeNum ?: 'GUEST', $queryText, substr('EMERGENCY: ' . $reason, 0, 50)]);
+                'raw_sql' => function() use ($ticketNo, $employeeNum, $queryText, $reason, $priority, $category, $deadlines) {
+                    $sql = "INSERT INTO hr_inbox (ticket_no, from_user, message, status, priority, category, intent, confidence, response_deadline, resolution_deadline, created_at, updated_at) 
+                            VALUES (?, ?, ?, 'Open', ?, ?, ?, 0.0, ?, ?, NOW(), NOW())";
+                    return DB::insert($sql, [
+                        $ticketNo,
+                        $employeeNum ?: 'GUEST',
+                        $queryText,
+                        strtolower($priority),
+                        $category,
+                        substr('EMERGENCY: ' . $reason, 0, 50),
+                        $deadlines['response_deadline'],
+                        $deadlines['resolution_deadline']
+                    ]);
                 }
             ];
 

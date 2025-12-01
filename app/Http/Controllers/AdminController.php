@@ -172,6 +172,8 @@ class AdminController extends Controller
     // 🆕 CREATE ACCOUNT - Updated to work with users table
     public function createAccount(Request $request)
     {
+        $minBirth = now()->subYears(65)->format('Y-m-d'); // Earliest acceptable (oldest user 65)
+        $maxBirth = now()->subYears(18)->format('Y-m-d'); // Latest acceptable (youngest user 18)
         $validator = Validator::make($request->all(), [
             'employeeNum' => 'required|unique:users',
             'email' => 'required|email|unique:users',
@@ -181,7 +183,7 @@ class AdminController extends Controller
             'middleName' => 'nullable|string|max:255',
             'role' => 'required|in:Employee,Admin,HR',
             'sex' => 'required|in:Male,Female',
-            'age' => 'required|integer|min:18|max:65',
+            'birth_date' => 'required|date|after_or_equal:'.$minBirth.'|before_or_equal:'.$maxBirth,
             'about' => 'nullable|string|max:255',
             'status' => 'required|in:Active,Deactivated'
         ]);
@@ -194,6 +196,9 @@ class AdminController extends Controller
         }
 
         try {
+            // Compute age from birth_date
+            $birthDate = \Carbon\Carbon::parse($request->birth_date);
+            $age = $birthDate->diffInYears(now());
             DB::table('users')->insert([
                 'employeeNum' => $request->employeeNum,
                 'email' => $request->email,
@@ -203,7 +208,8 @@ class AdminController extends Controller
                 'middleName' => $request->middleName,
                 'role' => $request->role,
                 'sex' => $request->sex,
-                'age' => $request->age,
+                'age' => $age,
+                'birth_date' => $birthDate->format('Y-m-d'),
                 'about' => $request->about,
                 'status' => $request->status,
                 'profile_picture' => 'default.png'
@@ -235,7 +241,7 @@ class AdminController extends Controller
             'middleName' => 'nullable|string|max:255',
             'role' => 'required|in:Employee,Admin,HR',
             'sex' => 'required|in:Male,Female',
-            'age' => 'required|integer|min:18|max:65',
+            'dob' => 'nullable|date|after_or_equal:'.now()->subYears(65)->format('Y-m-d').'|before_or_equal:'.now()->subYears(18)->format('Y-m-d'),
             'about' => 'nullable|string|max:255',
             'status' => 'required|in:Active,Deactivated'
         ]);
@@ -249,17 +255,22 @@ class AdminController extends Controller
         }
 
         try {
-            $updated = DB::table('users')->where('employeeNum', $employeeNum)->update([
+            $updatePayload = [
                 'email' => $request->email,
                 'firstName' => $request->firstName,
                 'lastName' => $request->lastName,
                 'middleName' => $request->middleName,
                 'role' => $request->role,
                 'sex' => $request->sex,
-                'age' => $request->age,
                 'about' => $request->about,
                 'status' => $request->status
-            ]);
+            ];
+            if ($request->filled('dob')) {
+                $birthDate = \Carbon\Carbon::parse($request->dob);
+                $updatePayload['age'] = $birthDate->diffInYears(now());
+                $updatePayload['dob'] = $birthDate->format('Y-m-d');
+            }
+            $updated = DB::table('users')->where('employeeNum', $employeeNum)->update($updatePayload);
 
             if ($updated) {
                 \Log::info('Account updated successfully:', ['employeeNum' => $employeeNum]);
@@ -341,7 +352,7 @@ class AdminController extends Controller
         try {
             $user = DB::table('users')
                 ->where('employeeNum', $employeeNum)
-                ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'profile_picture', 'about', 'status')
+                ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'dob', 'profile_picture', 'about', 'status')
                 ->first();
             
             if (!$user) {
@@ -350,6 +361,11 @@ class AdminController extends Controller
             }
 
             \Log::info('User found:', ['employeeNum' => $employeeNum]);
+            // Ensure dob is always present, even if null
+            if (!property_exists($user, 'dob')) {
+                $user->dob = null;
+            }
+            $user->dob = $user->dob ?? null;
             return response()->json($user);
             
         } catch (\Exception $e) {

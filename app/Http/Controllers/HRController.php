@@ -313,10 +313,17 @@ class HRController extends Controller
 
         try {
             // 🆕 FIXED: Only save to hr_replies table
+            // Use a reliable identifier for replied_by (employeeNum > email > 'HR')
+            $repliedBy = 'HR';
+            if (Auth::check()) {
+                $user = Auth::user();
+                $repliedBy = $user->employeeNum ?? ($user->email ?? 'HR');
+            }
+
             HrReply::create([
                 'ticket_no'  => $request->ticket_no,
                 'hr_message' => $request->message,
-                'replied_by' => Auth::check() ? Auth::user()->username : 'HR',
+                'replied_by' => $repliedBy,
                 'replied_at' => now(),
             ]);
 

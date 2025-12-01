@@ -28,7 +28,7 @@ class User extends Authenticatable
         'role',
         'sex',
         'age',
-        'dob',
+        'birth_date',
         'profile_picture',
         'status',
         'about',

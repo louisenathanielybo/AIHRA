@@ -561,6 +561,7 @@ use Illuminate\Support\Str;
     .priority.high { background: #ffebee; color: var(--danger); }
     .priority.medium { background: #fff3e0; color: var(--warning); }
     .priority.low { background: #e8f5e8; color: var(--success); }
+    .priority.urgent { background: #fbe9e7; color: #b00020; border: 1px solid #ffcdd2; font-weight: 600; }
 
     .status.open { background: #e8f5e8; color: var(--success); }
     .status.resolved { background: #e3f2fd; color: var(--secondary); }
@@ -1409,23 +1410,34 @@ use Illuminate\Support\Str;
                         <tr>
                             <th>User</th>
                             <th>Rating</th>
-                            <th>Comment</th>
+                            <th>Feedback</th>
                             <th>Date</th>
                         </tr>
                     </thead>
                     <tbody>
+                        @forelse($feedbackData as $feedback)
                         <tr>
-                            <td>emp_12345</td>
-                            <td>⭐ 5.0</td>
-                            <td>Very helpful and quick response!</td>
-                            <td>2025-01-23</td>
+                            <td>{{ $feedback->firstName }} {{ $feedback->lastName }}</td>
+                            <td>
+                                @for($i = 1; $i <= 5; $i++)
+                                    @if($i <= $feedback->rating)
+                                        ⭐
+                                    @else
+                                        ☆
+                                    @endif
+                                @endfor
+                                ({{ $feedback->rating }}/5)
+                            </td>
+                            <td>{{ $feedback->suggestion ?? 'No feedback text' }}</td>
+                            <td>{{ \Carbon\Carbon::parse($feedback->timeStamp)->format('M d, Y H:i') }}</td>
                         </tr>
+                        @empty
                         <tr>
-                            <td>emp_67890</td>
-                            <td>⭐ 4.0</td>
-                            <td>Good information but could be more detailed</td>
-                            <td>2025-01-22</td>
+                            <td colspan="4" style="text-align: center; padding: 30px; color: #666;">
+                                No feedback received yet.
+                            </td>
                         </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -1499,6 +1511,7 @@ use Illuminate\Support\Str;
                         <label for="priorityFilter">Priority</label>
                         <select id="priorityFilter">
                             <option value="all">All Priority</option>
+                            <option value="urgent">Urgent</option>
                             <option value="high">High</option>
                             <option value="medium">Medium</option>
                             <option value="low">Low</option>
@@ -1838,9 +1851,10 @@ use Illuminate\Support\Str;
                         </div>
 
                         <div class="form-group">
-                            <label for="age">Age *</label>
-                            <input type="number" id="age" name="age" value="{{ old('age') }}" min="18" max="65" required>
-                            @error('age')
+                            <label for="dob">Date of Birth *</label>
+                            <input type="date" id="dob" name="dob" value="{{ old('dob') }}" max="{{ date('Y-m-d') }}" required>
+                            <small id="agePreview" style="display:block;margin-top:4px;color:#555;">Age: —</small>
+                            @error('dob')
                                 <span style="color: #e74c3c; font-size: 0.8rem;">{{ $message }}</span>
                             @enderror
                         </div>
@@ -1870,6 +1884,62 @@ use Illuminate\Support\Str;
             </div>
         </div>
     </div>
+
+    <script>
+    (function(){
+        const birthInput = document.getElementById('dob');
+        const agePreview = document.getElementById('agePreview');
+        function updateAge(){
+            if(!birthInput || !birthInput.value) { agePreview.textContent = 'Age: —'; return; }
+            const dob = new Date(birthInput.value + 'T00:00:00');
+            if(isNaN(dob.getTime())) { agePreview.textContent = 'Age: —'; return; }
+            const today = new Date();
+            let age = today.getFullYear() - dob.getFullYear();
+            const m = today.getMonth() - dob.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+            agePreview.textContent = 'Age: ' + age + ' years';
+        }
+        if(birthInput){
+            birthInput.addEventListener('change', updateAge);
+            birthInput.addEventListener('keyup', updateAge);
+            updateAge();
+        }
+
+        // Edit modal age auto-update - set up globally
+        window.updateEditAge = function(){
+            const editBirthInput = document.getElementById('edit_dob');
+            const editAgePreview = document.getElementById('editAgePreview');
+            if(!editBirthInput || !editBirthInput.value) { 
+                if(editAgePreview) editAgePreview.textContent = 'Age: —'; 
+                return; 
+            }
+            const dob = new Date(editBirthInput.value + 'T00:00:00');
+            if(isNaN(dob.getTime())) { 
+                if(editAgePreview) editAgePreview.textContent = 'Age: —'; 
+                return; 
+            }
+            const today = new Date();
+            let age = today.getFullYear() - dob.getFullYear();
+            const m = today.getMonth() - dob.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+            if(editAgePreview) editAgePreview.textContent = 'Age: ' + age + ' years';
+        };
+        
+        // Set up event listeners using event delegation on document
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.id === 'edit_dob') {
+                window.updateEditAge();
+            }
+        });
+        document.addEventListener('input', function(e) {
+            if (e.target && e.target.id === 'edit_dob') {
+                window.updateEditAge();
+            }
+        });
+        
+        window.refreshEditAgePreview = window.updateEditAge;
+    })();
+    </script>
 
     <!-- Edit Account Modal -->
     <div id="editAccountModal" class="modal">
@@ -1925,8 +1995,9 @@ use Illuminate\Support\Str;
                         </div>
 
                         <div class="form-group">
-                            <label for="edit_age">Age *</label>
-                            <input type="number" id="edit_age" name="age" min="18" max="65" required>
+                            <label for="edit_dob">Date of Birth *</label>
+                            <input type="date" id="edit_dob" name="dob" max="{{ date('Y-m-d') }}" required>
+                            <small id="editAgePreview" style="display:block;margin-top:4px;color:#555;">Age: —</small>
                         </div>
 
                         <div class="form-group-full">
@@ -2536,7 +2607,16 @@ use Illuminate\Support\Str;
                 document.getElementById('edit_middleName').value = user.middleName || '';
                 document.getElementById('edit_role').value = user.role || 'Employee';
                 document.getElementById('edit_sex').value = user.sex || 'Male';
-                document.getElementById('edit_age').value = user.age || '';
+                // Birth date + age preview
+                const birthInput = document.getElementById('edit_dob');
+                const agePrev = document.getElementById('editAgePreview');
+                if (birthInput) {
+                    birthInput.value = user.dob || '';
+                    // Trigger age preview update
+                    if (typeof window.updateEditAge === 'function') {
+                        window.updateEditAge();
+                    }
+                }
                 document.getElementById('edit_about').value = user.about || '';
                 document.getElementById('edit_status').value = user.status || 'Active';
                 

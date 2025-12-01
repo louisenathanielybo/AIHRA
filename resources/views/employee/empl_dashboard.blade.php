@@ -866,8 +866,8 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <h2 style="display: flex; align-items: center; gap: 8px;">
-                <img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA Logo" style="width: 50px; height: 50px;">
                 AIHRA
+                <img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA Logo" style="width: 50px; height: 50px;"> 
             </h2>
         </div>
 
@@ -1382,6 +1382,10 @@ function showMainChat() {
     if (chatContainer) chatContainer.style.display = 'block';
     if (ticketBox) ticketBox.style.display = 'none';
     if (replySection) replySection.style.display = 'none';
+    // Clear any selected ticket so messages route to Dialogflow, not ticket replies
+    currentSelectedTicket = null;
+    const userInput = document.getElementById('userMessage');
+    if (userInput) userInput.placeholder = 'Type your message...';
     // reset selected info header
     const sel = document.getElementById('selectedTicketInfo');
     if (sel) sel.innerHTML = '<p style="text-align: center; color: #666; margin: 0;">Select a conversation or ticket from the left to view messages</p>';
@@ -2322,6 +2326,10 @@ async function loadConversations() {
 // View specific conversation messages
 async function viewConversation(convoId) {
     try {
+        // Ensure we are in chat context, not ticket reply context
+        currentSelectedTicket = null;
+        const msgInput = document.getElementById('userMessage');
+        if (msgInput) msgInput.placeholder = 'Type your message...';
         // Keep main chat visible and render conversation messages into messagesContainer
         const chatContainer = document.querySelector('.chat-container');
         if (chatContainer) chatContainer.style.display = 'block';
@@ -2824,17 +2832,21 @@ async function startNewConversation() {
             currentSessionId = data.session_id;
             currentConversationId = data.id;
 
-            // Clear the message + guided containers and start guided flow
+            // Clear containers and start the guided flow reliably
             // Ensure main chat area is visible
             showMainChat();
             const messagesEl = document.getElementById('messagesContainer');
             const guidedContainer = document.getElementById('guidedContainer');
             if (messagesEl) messagesEl.innerHTML = '';
-            if (guidedContainer) guidedContainer.innerHTML = '';
+            if (guidedContainer) {
+                guidedContainer.style.display = 'block';
+                guidedContainer.innerHTML = '';
+            }
             conversationPath = [];
-            // show a quick system message and then load guided questions
-            if (messagesEl) addMessageToChat(messagesEl, 'bot', '🔄 Started a new conversation. How can I help you?', 'info');
-            await loadGuidedQuestions();
+            // Start guided flow (shows greeting and loads first-level questions)
+            await startGuidedFlow();
+            const userInput = document.getElementById('userMessage');
+            if (userInput) userInput.focus();
 
             // Insert the new conversation into the list immediately (avoids timing issues
             // where reloading the whole list may not yet include the new item).
