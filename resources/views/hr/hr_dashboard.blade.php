@@ -429,6 +429,85 @@
             margin-bottom: 15px;
         }
 
+        /* Sidebar Footer */
+        .sidebar-footer {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            padding: 0 20px;
+        }
+
+        .account-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .account-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #1fbf8e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .account-details {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .account-name {
+            font-weight: 500;
+            font-size: 14px;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .account-role {
+            font-size: 12px;
+            color: #a8d5b5;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #a8d5b5;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
         /* ===== ACCOUNT SECTION STYLES ===== */
         .account-layout {
             display: flex;
@@ -558,13 +637,14 @@
         }
 
         .modal-content {
-            background: #e6fbf5;
+            background: white;
             padding: 30px;
             border-radius: 15px;
-            max-width: 420px;
+            max-width: 500px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
         .modal-header {
@@ -590,8 +670,9 @@
 
         .modal-title {
             margin: 0;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
+            color: #0F3936;
         }
 
         /* Form Styles */
@@ -600,11 +681,20 @@
         .modal-form textarea {
             width: 100%;
             padding: 12px;
-            border: none;
+            border: 1px solid #ddd;
             border-radius: 8px;
             box-sizing: border-box;
-            background: #d0f0e0;
+            background: white;
             font-family: inherit;
+            font-size: 14px;
+        }
+
+        .modal-form input:focus,
+        .modal-form select:focus,
+        .modal-form textarea:focus {
+            outline: none;
+            border-color: #28a745;
+            box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
         }
 
         .form-row {
@@ -624,7 +714,8 @@
         .form-group label {
             display: block;
             margin-bottom: 5px;
-            font-size: 13px;
+            font-size: 14px;
+            font-weight: 600;
             color: #333;
         }
 
@@ -636,15 +727,12 @@
             background: none;
             border: none;
             cursor: pointer;
-        }
-
-        .password-toggle i {
-            color: #28a745;
+            color: #666;
         }
 
         .submit-button {
             width: 100%;
-            padding: 15px;
+            padding: 12px;
             background: #28a745;
             color: white;
             border: none;
@@ -652,20 +740,30 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .submit-button:hover {
+            background: #218838;
         }
 
         .cancel-button {
             width: 100%;
-            padding: 15px;
-            background: #d3d3d3;
-            color: #666;
+            padding: 12px;
+            background: #6c757d;
+            color: white;
             border: none;
             border-radius: 8px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+
+        .cancel-button:hover {
+            background: #5a6268;
         }
 
         /* Profile Picture Upload */
@@ -762,6 +860,96 @@
         #editAnnouncementModal .modal-content {
             max-width: 600px;
         }
+        
+        /* Add Announcement Button */
+        .add-announcement-btn {
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 8px;
+        }
+        
+        .add-announcement-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Add Announcement Modal specific styles */
+        #addAnnouncementModal .modal-content {
+            max-width: 500px;
+        }
+        
+        #addAnnouncementModal .form-group label {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        #addAnnouncementModal input[type="text"],
+        #addAnnouncementModal textarea,
+        #addAnnouncementModal input[type="file"] {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        #addAnnouncementModal textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        #addAnnouncementModal input[type="file"] {
+            padding: 8px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-buttons button {
+            flex: 1;
+        }
+        
+        /* Status Messages */
+        .status-message {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+            display: none;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        .required {
+            color: #dc3545;
+        }
     </style>
 </head>
 <body class="forAll">
@@ -786,13 +974,22 @@
             </a>
         </nav>
 
-        <div class="sb-bottom">
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-                <button type="submit" class="sb-link sb-btn">
-                    <i class="fa-solid fa-right-from-bracket"></i><span>Log Out</span>
+        <div class="sidebar-footer">
+            <div class="account-info">
+                <div class="account-avatar">
+                    {{ substr(Auth::user()->name, 0, 1) }}
+                </div>
+                <div class="account-details">
+                    <div class="account-name">{{ Auth::user()->name }}</div>
+                    <div class="account-role">Employee</div>
+                </div>
+                <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">
+                    @csrf
+                </form>
+                <button class="logout-btn" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" title="Log Out">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -811,43 +1008,15 @@
         <!-- Announcements Section -->
         <div id="announcements" class="section active">
             <div class="table-container">
-                <h2>🏠 Announcements</h2>
-
-                {{-- Toggle Button --}}
-                <button id="toggleAnnouncementForm" class="btn" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 15px;">
-                    + Add an Announcement
-                </button>
-
-                {{-- Announcement Form (hidden by default) --}}
-                <form id="announcementForm" action="{{ route('hr.announcements.store') }}" method="POST" enctype="multipart/form-data" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: none;">
-                    @csrf
-                    <div class="form-group">
-                        <label>Title</label>
-                        <input type="text" name="title" class="form-control" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Description</label>
-                        <textarea name="description" rows="4" class="form-control" required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Image (optional)</label>
-                        <input type="file" name="image" class="form-control">
-                    </div>
-
-                    <div style="display: flex; gap: 10px;">
-                        <button type="submit" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
-                            Proceed
-                        </button>
-                        <button type="button" id="cancelAnnouncement" style="background: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
+                <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">🏠 Announcements</h2>
+                    <button class="add-announcement-btn" onclick="showAddAnnouncementModal()">
+                        + Add Announcement
+                    </button>
+                </div>
 
                 {{-- Display announcements --}}
-                <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="display: flex; flex-direction: column; gap: 15px;" id="announcementsList">
                     @php
                         $announcements = DB::table('announcements')
                             ->where('isActive', 1)
@@ -856,7 +1025,7 @@
                     @endphp
 
                     @forelse ($announcements as $a)
-                        <div class="announcement-card">
+                        <div class="announcement-card" id="announcement-{{ $a->id }}">
                             <div class="announcement-header">
                                 <h3 class="announcement-title">{{ $a->title }}</h3>
                                 <div class="announcement-actions">
@@ -875,7 +1044,7 @@
                             </small>
                         </div>
                     @empty
-                        <p style="color: #666; text-align: center;">No announcements yet.</p>
+                        <p style="color: #666; text-align: center; padding: 40px;">No announcements yet. Create your first announcement!</p>
                     @endforelse
                 </div>
             </div>
@@ -1001,7 +1170,7 @@
                         <h3>Profile</h3>
                         
                         <div class="profile-image-container">
-                            <img src="{{ isset($user) && $user->profile_picture ? asset('uploads/'.$user->profile_picture) : asset('admin/assets/default-profile.png') }}" 
+                            <img src="{{ isset($user) && $user->profile_picture ? asset('uploads/'.$user->profile_picture) : asset('assets/Logo.png') }}" 
                                  alt="Profile Picture" class="profile-image">
                         </div>
 
@@ -1083,6 +1252,43 @@
     </div>
 </div>
 
+<!-- Add Announcement Modal -->
+<div id="addAnnouncementModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Add New Announcement</h3>
+        </div>
+        <div id="announcementStatus" class="status-message"></div>
+        <form id="addAnnouncementForm" class="modal-form" action="{{ route('hr.announcements.store') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="form-group">
+                <label>Title <span class="required">*</span></label>
+                <input type="text" name="title" id="announcementTitle" required 
+                       placeholder="Enter announcement title" maxlength="200">
+            </div>
+
+            <div class="form-group">
+                <label>Description <span class="required">*</span></label>
+                <textarea name="description" id="announcementDescription" rows="4" required 
+                          placeholder="Enter announcement description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Image (optional)</label>
+                <input type="file" name="image" id="announcementImage" accept="image/*">
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    Supported formats: JPG, PNG, GIF. Max size: 64KB.
+                </small>
+            </div>
+
+            <div class="modal-buttons">
+                <button type="button" class="cancel-button" onclick="closeAddAnnouncementModal()">Cancel</button>
+                <button type="submit" class="submit-button">Create Announcement</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Edit Profile Modal -->
 <div id="editProfileModal" class="modal-overlay">
     <div class="modal-content">
@@ -1098,7 +1304,7 @@
             <div class="form-group" style="text-align: center; margin-bottom: 20px;">
                 <div class="profile-upload-container">
                     <img id="profilePreview" class="profile-preview" 
-                         src="{{ isset($user) && $user->profile_picture ? asset('uploads/'.$user->profile_picture) : asset('admin/assets/default-profile.png') }}">
+                         src="{{ isset($user) && $user->profile_picture ? asset('uploads/'.$user->profile_picture) : asset('assets/Logo.png') }}">
                     <label for="profilePictureInput" class="upload-label">
                         <i class="fa-solid fa-camera"></i>
                     </label>
@@ -1405,28 +1611,33 @@
         }
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
-        showSection('announcements');
-        
-        // Toggle announcement form
-        const toggleBtn = document.getElementById('toggleAnnouncementForm');
-        const form = document.getElementById('announcementForm');
-        const cancelBtn = document.getElementById('cancelAnnouncement');
-
-        if (toggleBtn && form && cancelBtn) {
-            toggleBtn.addEventListener('click', () => {
-                form.style.display = 'block';
-                toggleBtn.style.display = 'none';
-            });
-
-            cancelBtn.addEventListener('click', () => {
-                form.style.display = 'none';
-                toggleBtn.style.display = 'inline-block';
-            });
-        }
-    });
-
-    // ===== ANNOUNCEMENT EDIT/DELETE FUNCTIONS =====
+    // ===== ANNOUNCEMENT MODAL FUNCTIONS =====
+    function showAddAnnouncementModal() {
+        document.getElementById('addAnnouncementModal').style.display = 'flex';
+        document.getElementById('addAnnouncementForm').reset();
+        document.getElementById('announcementStatus').className = 'status-message';
+        document.getElementById('announcementStatus').innerHTML = '';
+        document.getElementById('announcementStatus').style.display = 'none';
+    }
+    
+    function closeAddAnnouncementModal() {
+        document.getElementById('addAnnouncementModal').style.display = 'none';
+    }
+    
+document.getElementById('addAnnouncementForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const form = this;
+    const statusElement = document.getElementById('announcementStatus');
+    const submitButton = form.querySelector('.submit-button');
+    
+    const originalText = submitButton.textContent;
+    submitButton.innerHTML = 'Creating...';
+    submitButton.disabled = true;
+    
+    form.submit();
+    
+});
     
     function editAnnouncement(id) {
         // Fetch announcement data
@@ -1665,6 +1876,29 @@
         document.body.appendChild(notification);
         setTimeout(() => notification.remove(), 3000);
     }
+
+    // Close modals when clicking outside
+    document.addEventListener('DOMContentLoaded', function() {
+        showSection('announcements');
+        
+        // Close modal when clicking on overlay
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay').forEach(modal => {
+                    modal.style.display = 'none';
+                });
+            }
+        });
+    });
 </script>
 
 @include('includes.footer')
