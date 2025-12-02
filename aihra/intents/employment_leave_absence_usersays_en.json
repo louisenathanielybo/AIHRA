@@ -1,0 +1,41 @@
+[
+  {
+    "id": "800b7bd5-3b71-49f0-b3a2-21f585081cce",
+    "data": [
+      {
+        "text": "absent",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "ddc72a9e-d4c2-4773-a0ac-72684d836021",
+    "data": [
+      {
+        "text": "What if I\u0027m absent?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "71195ebb-4662-4422-bf8b-400f7beb9111",
+    "data": [
+      {
+        "text": "\"How do I apply for leave?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

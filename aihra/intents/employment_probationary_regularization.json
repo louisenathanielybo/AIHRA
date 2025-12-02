@@ -1,0 +1,35 @@
+{
+  "id": "c71ec3af-3d51-4b0a-8c76-1c513620123a",
+  "name": "employment_probationary_regularization",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "\"Newly hired employees undergo a 6-month probationary period. Their performance is evaluated before regularization. Those who meet expectations are given a Regular Employment Agreement; those who do not may be terminated.\""
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

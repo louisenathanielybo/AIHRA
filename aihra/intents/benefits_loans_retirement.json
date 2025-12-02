@@ -1,0 +1,35 @@
+{
+  "id": "83c47be7-ce25-4e2c-8033-9e14bb5dadfe",
+  "name": "benefits_loans_retirement",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "Employees may avail of multi-purpose and housing loans through Pag-IBIG, and retirement benefits as mandated by law. The school also manages retirement plans in compliance with labor regulations."
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": true,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

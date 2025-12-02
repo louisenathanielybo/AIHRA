@@ -1,0 +1,28 @@
+[
+  {
+    "id": "a810212a-e3bc-4b48-aeb6-ce3594f74c71",
+    "data": [
+      {
+        "text": "Can we apply for loans?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "43c2668d-17c5-467d-afb1-ee6dae98b081",
+    "data": [
+      {
+        "text": "\"Do employees get retirement benefits?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

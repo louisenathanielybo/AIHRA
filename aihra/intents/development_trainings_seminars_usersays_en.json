@@ -1,0 +1,28 @@
+[
+  {
+    "id": "60934e05-e766-4b5c-8c38-94d4fe742d52",
+    "data": [
+      {
+        "text": "\"How much is the allowance for trainings?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "40865c47-f94e-48a1-9b1e-a1d470ee7222",
+    "data": [
+      {
+        "text": "\"Are seminars supported by the school?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

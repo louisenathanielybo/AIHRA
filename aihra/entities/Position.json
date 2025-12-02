@@ -1,0 +1,9 @@
+{
+  "id": "9fb809c6-597c-4c9f-a277-bbd1c3755d49",
+  "name": "Position",
+  "isOverridable": true,
+  "isEnum": false,
+  "isRegexp": false,
+  "automatedExpansion": false,
+  "allowFuzzyExtraction": true
+}

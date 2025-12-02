@@ -1,0 +1,41 @@
+[
+  {
+    "id": "9562a8d7-1e8d-4dd5-addc-031427b2bd07",
+    "data": [
+      {
+        "text": "attendance",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "09dade43-fcdd-4932-ada1-dd4d35e6f016",
+    "data": [
+      {
+        "text": "\"What happens if I\u0027m late?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "9a49c670-d7a9-452c-a934-e5aedf28db30",
+    "data": [
+      {
+        "text": "\"How is attendance monitored?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

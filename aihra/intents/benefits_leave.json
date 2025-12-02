@@ -1,0 +1,35 @@
+{
+  "id": "c5c220e7-d420-4f39-b67e-f1d8db350b4b",
+  "name": "benefits_leave",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "Employees are entitled to vacation and sick leave. Emergency leave may be granted for serious accidents, natural calamities, or urgent personal matters. Faculty and staff may also request leave without pay for up to one year for health, studies, or other valid reasons."
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": true,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

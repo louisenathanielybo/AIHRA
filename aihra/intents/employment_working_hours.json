@@ -1,0 +1,35 @@
+{
+  "id": "ac0644ef-3a60-4219-a37c-e6172f47a2a2",
+  "name": "employment_working_hours",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "Regular working hours are 8:00 AM–12:00 NN and 1:00–5:00 PM, Monday to Saturday for non-teaching personnel. Faculty follow their teaching load schedules plus required consultation and institutional duties."
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": true,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

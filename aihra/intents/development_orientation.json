@@ -1,0 +1,35 @@
+{
+  "id": "b8c4ea05-1cb7-4be6-98a3-f32a942e2104",
+  "name": "development_orientation",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "\"All newly hired and newly ranked employees undergo orientation conducted by the HR Office and division heads. Topics include job description, rights and responsibilities, and DWCC’s mission, vision, and policies.\""
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

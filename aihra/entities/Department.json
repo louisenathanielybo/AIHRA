@@ -1,0 +1,9 @@
+{
+  "id": "087a2713-e728-4161-9577-0a0db315f2be",
+  "name": "Department",
+  "isOverridable": true,
+  "isEnum": false,
+  "isRegexp": false,
+  "automatedExpansion": false,
+  "allowFuzzyExtraction": true
+}

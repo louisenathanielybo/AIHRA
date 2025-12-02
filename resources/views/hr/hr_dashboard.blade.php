@@ -181,6 +181,52 @@
             transform: scale(1.05);
         }
 
+        /* Split tabs (match employee UI) */
+        .split-tabs {
+            display: flex;
+            gap: 8px;
+            background: #fff;
+            padding: 6px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .split-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 16px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: #444;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all .18s ease;
+        }
+        .split-tab:hover { background: #f2f2f2; }
+        .split-tab.active {
+            background: #28a745;
+            color: #fff;
+            border-color: #28a745;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
+        }
+        .split-tab .tab-count {
+            background: rgba(255,255,255,.2);
+            color: inherit;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+        .split-heading {
+            margin-top: 10px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #0F3936;
+        }
+
         /* Account Section */
         .account {
             position: absolute;
@@ -1084,10 +1130,24 @@
                 </div>
 
                 <div class="ticket-container">
-                    <!-- Ticket List -->
+                    <!-- Ticket List with Pending/Resolved toggle -->
                     <div class="ticket-list">
-                        <h3 style="margin-top: 0;">Pending Tickets</h3>
-                        @forelse($inbox as $ticket)
+                        <div class="split-tabs">
+                            <button type="button" class="split-tab active" id="btn-pending" onclick="switchTicketList('pending')">
+                                <i class="fa-regular fa-clock"></i>
+                                <span>Pending</span>
+                                <span class="tab-count">{{ $inbox->where('status','!=','Resolved')->count() }}</span>
+                            </button>
+                            <button type="button" class="split-tab" id="btn-resolved" onclick="switchTicketList('resolved')">
+                                <i class="fa-solid fa-check"></i>
+                                <span>Resolved</span>
+                                <span class="tab-count">{{ $inbox->where('status','Resolved')->count() }}</span>
+                            </button>
+                        </div>
+
+                        <h3 class="split-heading" id="heading-pending">Pending Tickets</h3>
+                        <div id="list-pending">
+                        @forelse($inbox->filter(function($t){ return $t->status !== 'Resolved'; }) as $ticket)
                             <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')">
                                 <strong>🎫 {{ $ticket->ticket_no }}</strong>
                                 <div class="ticket-meta">
@@ -1138,8 +1198,32 @@
                                 </div>
                             </div>
                         @empty
-                            <p>No tickets available.</p>
+                            <p>No pending tickets.</p>
                         @endforelse
+                        </div>
+
+                        <h3 class="split-heading" style="display:none;" id="heading-resolved">Resolved Tickets</h3>
+                        <div id="list-resolved" style="display:none;">
+                        @forelse($inbox->filter(function($t){ return $t->status === 'Resolved'; }) as $ticket)
+                            <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')">
+                                <strong>🎫 {{ $ticket->ticket_no }}</strong>
+                                <div class="ticket-meta">
+                                    <div>{{ Str::limit($ticket->message, 50) }}</div>
+                                    <div>
+                                        <span class="badge {{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span>
+                                        <span class="badge">{{ $ticket->category }}</span>
+                                        <span class="badge resolved">Resolved</span>
+                                        @if($ticket->is_expired)
+                                            <span class="badge expired">Expired</span>
+                                        @endif
+                                    </div>
+                                    <span class="resolved-badge">✅ Resolved</span>
+                                </div>
+                            </div>
+                        @empty
+                            <p>No resolved tickets.</p>
+                        @endforelse
+                        </div>
                     </div>
 
                     <!-- Chat Container -->
@@ -1539,6 +1623,32 @@
         } catch (error) {
             console.error('Resolve error:', error);
             alert('Failed to resolve ticket');
+        }
+    }
+
+    // Switch between pending and resolved ticket lists
+    function switchTicketList(which){
+        const pendingBtn = document.getElementById('btn-pending');
+        const resolvedBtn = document.getElementById('btn-resolved');
+        const headingPending = document.getElementById('heading-pending');
+        const headingResolved = document.getElementById('heading-resolved');
+        const listPending = document.getElementById('list-pending');
+        const listResolved = document.getElementById('list-resolved');
+        if(!pendingBtn || !resolvedBtn || !headingPending || !headingResolved || !listPending || !listResolved) return;
+        if(which === 'resolved'){
+            pendingBtn.classList.remove('active');
+            resolvedBtn.classList.add('active');
+            headingPending.style.display = 'none';
+            listPending.style.display = 'none';
+            headingResolved.style.display = '';
+            listResolved.style.display = '';
+        } else {
+            resolvedBtn.classList.remove('active');
+            pendingBtn.classList.add('active');
+            headingResolved.style.display = 'none';
+            listResolved.style.display = 'none';
+            headingPending.style.display = '';
+            listPending.style.display = '';
         }
     }
 

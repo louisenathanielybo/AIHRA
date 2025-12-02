@@ -1,0 +1,54 @@
+[
+  {
+    "id": "5c421e85-d17b-4abc-b5ec-694dd2fff7f7",
+    "data": [
+      {
+        "text": "SSS, Pag-IBIG, PhilHealth",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "478dd440-bbc0-415a-9c5c-b5867a607533",
+    "data": [
+      {
+        "text": "financial aid",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "ab923520-1ac0-40e8-a8cc-04dc3c86fd7d",
+    "data": [
+      {
+        "text": "Do we have SSS, Pag-IBIG, PhilHealth?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "937297b1-2957-43e7-8e1e-0065a239d00c",
+    "data": [
+      {
+        "text": "\"What are the government benefits?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

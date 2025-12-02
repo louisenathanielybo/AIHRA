@@ -1,0 +1,35 @@
+{
+  "id": "a5bffd86-a00c-4f5a-bdf6-abeb2398694e",
+  "name": "employment_leave_absence",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "Leave of absence, with or without pay shall always be filed. Study leave must be requested in writing and approved by the Father President with endorsement from the division head. Unauthorized absences may result in deductions or disciplinary action.\""
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

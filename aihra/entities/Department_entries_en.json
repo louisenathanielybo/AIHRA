@@ -1,0 +1,39 @@
+[
+  {
+    "value": "HR",
+    "synonyms": [
+      "HR"
+    ]
+  },
+  {
+    "value": "Finance",
+    "synonyms": [
+      "Finance"
+    ]
+  },
+  {
+    "value": "Registrar",
+    "synonyms": [
+      "Registrar"
+    ]
+  },
+  {
+    "value": "Academic",
+    "synonyms": [
+      "Academic Affairs"
+    ]
+  },
+  {
+    "value": "Sao",
+    "synonyms": [
+      "Sao",
+      "Student Affairs"
+    ]
+  },
+  {
+    "value": "ISSO",
+    "synonyms": [
+      "ISSO"
+    ]
+  }
+]

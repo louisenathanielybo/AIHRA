@@ -183,7 +183,7 @@ class AdminController extends Controller
             'middleName' => 'nullable|string|max:255',
             'role' => 'required|in:Employee,Admin,HR',
             'sex' => 'required|in:Male,Female',
-            'birth_date' => 'required|date|after_or_equal:'.$minBirth.'|before_or_equal:'.$maxBirth,
+            'dob' => 'required|date|after_or_equal:'.$minBirth.'|before_or_equal:'.$maxBirth,
             'about' => 'nullable|string|max:255',
             'status' => 'required|in:Active,Deactivated'
         ]);
@@ -196,8 +196,8 @@ class AdminController extends Controller
         }
 
         try {
-            // Compute age from birth_date
-            $birthDate = \Carbon\Carbon::parse($request->birth_date);
+            // Compute age from dob
+            $birthDate = \Carbon\Carbon::parse($request->dob);
             $age = $birthDate->diffInYears(now());
             DB::table('users')->insert([
                 'employeeNum' => $request->employeeNum,
@@ -209,7 +209,7 @@ class AdminController extends Controller
                 'role' => $request->role,
                 'sex' => $request->sex,
                 'age' => $age,
-                'birth_date' => $birthDate->format('Y-m-d'),
+                'dob' => $birthDate->format('Y-m-d'),
                 'about' => $request->about,
                 'status' => $request->status,
                 'profile_picture' => 'default.png'
