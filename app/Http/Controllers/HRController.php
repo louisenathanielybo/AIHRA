@@ -19,20 +19,34 @@ class HRController extends Controller
      */
     public function index()
     {
-        // ✅ Get all HR announcements
+        // ✅ Get all HR announcements (excluding expired ones)
         $announcements = DB::table('announcements')
             ->where('isActive', 1)
+            ->where(function($query) {
+                $query->whereNull('expiry_date')
+                      ->orWhere('expiry_date', '>=', now()->toDateString());
+            })
             ->orderBy('createdAt', 'desc')
             ->get();
 
         // ✅ Get all inbox tickets (newest first)
         $inbox = HrInbox::orderBy('created_at', 'desc')->get();
 
+        // ✅ Compute inbox stats
+        $inboxStats = [
+            'total' => HrInbox::count(),
+            'urgent' => HrInbox::where('priority', 'urgent')->count(),
+            'high' => HrInbox::where('priority', 'high')->count(),
+            'medium' => HrInbox::where('priority', 'medium')->count(),
+            'low' => HrInbox::where('priority', 'low')->count(),
+            'replied' => HrInbox::where('status', 'Replied')->count(),
+        ];
+
         // ✅ Get the currently logged-in user
         $user = Auth::user();
 
         // ✅ Pass variables to the view
-        return view('hr.hr_dashboard', compact('announcements', 'inbox', 'user'));
+        return view('hr.hr_dashboard', compact('announcements', 'inbox', 'user', 'inboxStats'));
     }
 
     /**
@@ -43,7 +57,7 @@ class HRController extends Controller
         $request->validate([
             'title'   => 'required|string|max:255',
             'content' => 'required|string',
-            'image'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'image'   => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
         ]);
 
         $employeeNum = Auth::user()->employeeNum ?? null;
@@ -77,12 +91,53 @@ class HRController extends Controller
                 ->where('id', $id)
                 ->where('isActive', 1)
                 ->first();
-            
+
             if ($announcement) {
-                return response()->json([
-                    'success' => true,
-                    'announcement' => $announcement
-                ]);
+                try {
+                    // Normalize payload for the frontend
+                    $payload = [
+                        'id' => $announcement->id ?? null,
+                        'title' => $announcement->title ?? '',
+                        'description' => $announcement->description ?? '',
+                        // Ensure date string in Y-m-d for <input type="date">
+                        'expiry_date' => !empty($announcement->expiry_date)
+                            ? (function($d){
+                                try { return \Carbon\Carbon::parse($d)->format('Y-m-d'); } catch (\Throwable $e) { return null; }
+                              })($announcement->expiry_date)
+                            : null,
+                    ];
+
+                    // Convert binary image blob to base64 if present
+                    if (!empty($announcement->image)) {
+                        try {
+                            $binary = is_resource($announcement->image)
+                                ? stream_get_contents($announcement->image)
+                                : $announcement->image;
+                            if ($binary !== null && $binary !== '') {
+                                $payload['image'] = base64_encode($binary);
+                            } else {
+                                $payload['image'] = null;
+                            }
+                        } catch (\Throwable $e) {
+                            $payload['image'] = null;
+                            \Log::warning('Failed to base64-encode announcement image: ' . $e->getMessage());
+                        }
+                    } else {
+                        $payload['image'] = null;
+                    }
+
+                    \Log::info('HR getAnnouncement payload prepared', ['payload' => $payload]);
+                    return response()->json([
+                        'success' => true,
+                        'announcement' => $payload
+                    ]);
+                } catch (\Throwable $e) {
+                    \Log::error('Error preparing announcement payload: ' . $e->getMessage());
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Error preparing announcement payload'
+                    ], 500);
+                }
             }
             
             return response()->json([
@@ -107,7 +162,8 @@ class HRController extends Controller
             $validator = Validator::make($request->all(), [
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+                'expiry_date' => 'nullable|date|after_or_equal:today'
             ]);
 
             if ($validator->fails()) {
@@ -121,8 +177,12 @@ class HRController extends Controller
             $data = [
                 'title' => $request->title,
                 'description' => $request->description,
-                // Remove updatedAt since the column doesn't exist
             ];
+            
+            // Add expiry_date if provided
+            if ($request->has('expiry_date')) {
+                $data['expiry_date'] = $request->expiry_date;
+            }
             
             // Handle image update if provided
             if ($request->hasFile('image')) {

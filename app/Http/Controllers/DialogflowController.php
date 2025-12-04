@@ -91,7 +91,7 @@ class DialogflowController extends Controller
             Log::info('Processing query:', ['query' => $queryText, 'employee' => $employeeNum]);
 
             // 🆕 NEW: Check if this is a retry after multiple failed attempts
-            $retryResponse = $this->handleRetryScenario($queryText, $employeeNum);
+            $retryResponse = $this->handleRetryScenario($queryText, $employeeNum, $conversation);
             if ($retryResponse) {
                 return $retryResponse;
             }
@@ -135,26 +135,15 @@ class DialogflowController extends Controller
                 Log::info('Escalation request detected', ['query' => $queryText]);
                 $this->resetRetryCount();
 
-                $escalationResponse = $this->escalateToHR($queryText, $employeeNum, 'User requested human assistance');
+                $escalationResponse = $this->escalateToHR($queryText, $employeeNum, 'User requested human assistance', null, $conversation ? $conversation->id : null);
 
-                // Persist bot escalation reply into conversation
-                if (!empty($conversation)) {
+                // Update conversation title if needed
+                if (!empty($conversation) && empty($conversation->title)) {
                     try {
-                        $payload = $escalationResponse->getData(true);
-                        $botText = $payload['fulfillmentText'] ?? ($payload['message'] ?? 'Your request was escalated to HR.');
-                        ChatMessage::create([
-                            'ticket_no' => $payload['ticket_no'] ?? null,
-                            'sender' => 'bot',
-                            'message' => $botText,
-                            'conversation_id' => $conversation->id
-                        ]);
-
-                        if (empty($conversation->title)) {
-                            $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
-                            $conversation->save();
-                        }
+                        $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+                        $conversation->save();
                     } catch (\Throwable $e) {
-                        Log::warning('Failed to save escalation bot message: ' . $e->getMessage());
+                        Log::warning('Failed to update conversation title: ' . $e->getMessage());
                     }
                 }
 
@@ -229,7 +218,7 @@ class DialogflowController extends Controller
                     'intent' => $intentName
                 ]);
                 $this->resetRetryCount();
-                return $this->escalateToHR($queryText, $employeeNum, "Auto-escalated: Confidence {$confidence}, Intent: {$intentName}");
+                return $this->escalateToHR($queryText, $employeeNum, "Auto-escalated: Confidence {$confidence}, Intent: {$intentName}", $confidence, $conversation ? $conversation->id : null);
             }
 
             // 🆕 NEW: Handle retry logic for unclear questions
@@ -541,7 +530,7 @@ class DialogflowController extends Controller
     /**
      * 🆕 NEW: Handle retry scenario (when user responds to retry prompt)
      */
-    private function handleRetryScenario(string $queryText, $employeeNum): ?\Illuminate\Http\JsonResponse
+    private function handleRetryScenario(string $queryText, $employeeNum, $conversation = null): ?\Illuminate\Http\JsonResponse
     {
         $retryCount = Session::get('retry_count', 0);
         
@@ -571,11 +560,12 @@ class DialogflowController extends Controller
                         $originalQuery, 
                         $employeeNum, 
                         "User chose escalation after {$retryCount} retries",
-                        $originalConfidence
+                        $originalConfidence,
+                        $conversation ? $conversation->id : null
                     );
                 } else {
                     Log::warning('⚠️ No pending escalation data found, using current query');
-                    return $this->escalateToHR($queryText, $employeeNum, "User chose escalation after {$retryCount} retries");
+                    return $this->escalateToHR($queryText, $employeeNum, "User chose escalation after {$retryCount} retries", null, $conversation ? $conversation->id : null);
                 }
             }
 
@@ -893,7 +883,7 @@ class DialogflowController extends Controller
     /**
      * 🔥 FIXED: Escalate query to HR inbox - ALWAYS creates real ticket
      */
-    private function escalateToHR(string $queryText, $employeeNum, string $reason = 'User requested', float $originalConfidence = null): \Illuminate\Http\JsonResponse
+    private function escalateToHR(string $queryText, $employeeNum, string $reason = 'User requested', float $originalConfidence = null, $conversationId = null): \Illuminate\Http\JsonResponse
     {
         $ticketNo = null;
         
@@ -989,12 +979,40 @@ class DialogflowController extends Controller
 
             Log::info("✅ Escalation completed successfully", ['ticket_no' => $ticketNo]);
 
+            // Get response time expectation based on priority
+            $responseTimeInfo = $this->getResponseTimeInfo($priority);
+            
+            // Create empathetic message based on priority
+            $empathyMessage = $this->getEmpathyMessage($priority);
+            
+            $fulfillmentMessage = "✅ {$empathyMessage}<br><br>" . 
+                                   "I've connected you with our HR team who can better assist you. Your ticket number is: <strong>{$ticketNo}</strong><br><br>" . 
+                                   "⏱️ You can expect a response within <strong>{$responseTimeInfo['initialResponse']}</strong>.<br><br>" . 
+                                   $responseTimeInfo['closingMessage'];
+            
+            // Save bot response to chat history
+            if ($conversationId) {
+                try {
+                    ChatMessage::create([
+                        'ticket_no' => $ticketNo,
+                        'sender' => 'bot',
+                        'message' => $fulfillmentMessage,
+                        'conversation_id' => $conversationId
+                    ]);
+                    Log::info("✅ Escalation message saved to chat history", ['conversation_id' => $conversationId]);
+                } catch (\Exception $chatError) {
+                    Log::warning('Failed to save escalation message to chat history: ' . $chatError->getMessage());
+                }
+            }
+            
             return response()->json([
                 'status' => 'escalated',
-                'fulfillmentText' => "✅ I've escalated your query to our HR team. They'll get back to you soon. Your ticket number is: **{$ticketNo}**",
+                'fulfillmentText' => $fulfillmentMessage,
                 'ticket_no' => $ticketNo,
                 'escalated' => true,
-                'priority' => $priority
+                'priority' => $priority,
+                'response_time' => $responseTimeInfo,
+                'conversation_id' => $conversationId
             ]);
 
         } catch (\Exception $e) {
@@ -1006,12 +1024,40 @@ class DialogflowController extends Controller
             // 🆕 CRITICAL FIX: ALWAYS create a ticket, even if basic methods fail
             $finalTicketNo = $this->ensureTicketCreation($ticketNo, $employeeNum, $queryText, $reason, $originalConfidence);
             
+            // Get response time info (use Medium as default for fallback)
+            $priority = $this->determinePriority($queryText, $originalConfidence);
+            $responseTimeInfo = $this->getResponseTimeInfo($priority);
+            $empathyMessage = $this->getEmpathyMessage($priority);
+            
+            $fulfillmentMessage = "✅ {$empathyMessage}<br><br>" . 
+                                   "I've successfully created a support ticket for you. Your ticket number is: <strong>{$finalTicketNo}</strong><br><br>" . 
+                                   "⏱️ You can expect a response within <strong>{$responseTimeInfo['initialResponse']}</strong>.<br><br>" . 
+                                   $responseTimeInfo['closingMessage'];
+            
+            // Save bot response to chat history
+            if ($conversationId) {
+                try {
+                    ChatMessage::create([
+                        'ticket_no' => $finalTicketNo,
+                        'sender' => 'bot',
+                        'message' => $fulfillmentMessage,
+                        'conversation_id' => $conversationId
+                    ]);
+                    Log::info("✅ Fallback escalation message saved to chat history", ['conversation_id' => $conversationId]);
+                } catch (\Exception $chatError) {
+                    Log::warning('Failed to save fallback escalation message: ' . $chatError->getMessage());
+                }
+            }
+            
             return response()->json([
                 'status' => 'escalated',
-                'fulfillmentText' => "✅ I've created a support ticket for you. Our HR team will contact you soon. Your ticket number is: **{$finalTicketNo}**",
+                'fulfillmentText' => $fulfillmentMessage,
                 'ticket_no' => $finalTicketNo,
                 'escalated' => true,
-                'fallback_created' => true
+                'fallback_created' => true,
+                'priority' => $priority,
+                'response_time' => $responseTimeInfo,
+                'conversation_id' => $conversationId
             ]);
         }
     }
@@ -1103,6 +1149,58 @@ class DialogflowController extends Controller
         // Default to Low for escalations with no confidence data
         Log::info('Priority: Low (default - no confidence data)');
         return 'Low';
+    }
+
+    /**
+     * 🆕 NEW: Get response time information based on ticket priority
+     * This sets customer expectations about when they'll hear back
+     */
+    private function getResponseTimeInfo(string $priority): array
+    {
+        $timeframes = [
+            'Urgent' => [
+                'initialResponse' => '15-30 minutes',
+                'resolution' => '2-4 hours',
+                'description' => 'Critical issues requiring immediate attention',
+                'closingMessage' => 'Our HR team is treating this as urgent and will reach out to you very soon. You\'re not alone in this. 💙'
+            ],
+            'High' => [
+                'initialResponse' => '1 hour',
+                'resolution' => '4-8 hours',
+                'description' => 'Important issues that need prompt attention',
+                'closingMessage' => 'Our HR team will prioritize your concern and get back to you shortly. We\'re here to help! 🤝'
+            ],
+            'Medium' => [
+                'initialResponse' => '8 hours',
+                'resolution' => '24-48 hours',
+                'description' => 'Standard inquiries with normal processing time',
+                'closingMessage' => 'Our HR team will review your query and respond within the timeframe above. Thank you for your patience! 😊'
+            ],
+            'Low' => [
+                'initialResponse' => '24 hours',
+                'resolution' => '72 hours',
+                'description' => 'General inquiries with standard response time',
+                'closingMessage' => 'Our HR team will get back to you as soon as possible. We appreciate your understanding! 🙏'
+            ]
+        ];
+
+        return $timeframes[$priority] ?? $timeframes['Medium'];
+    }
+
+    /**
+     * 🆕 NEW: Get empathetic opening message based on priority
+     * Adds human touch to automated responses
+     */
+    private function getEmpathyMessage(string $priority): string
+    {
+        $messages = [
+            'Urgent' => 'I understand this is urgent and important to you. Let me get you the help you need right away.',
+            'High' => 'Thank you for reaching out. I can see this is important, and I want to make sure you get the right support.',
+            'Medium' => 'I appreciate you sharing this with me. Let me connect you with our HR team who can help you with this.',
+            'Low' => 'Thank you for your question! I\'m happy to connect you with our HR team for assistance.'
+        ];
+
+        return $messages[$priority] ?? $messages['Medium'];
     }
 
     /**

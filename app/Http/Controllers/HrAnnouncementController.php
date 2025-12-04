@@ -13,7 +13,8 @@ class HrAnnouncementController extends Controller
         $request->validate([
             'title' => 'required|string|max:50',
             'description' => 'required|string',
-            'image' => 'nullable|image|max:2048', // optional image up to 2MB
+            'image' => 'nullable|image|max:10240', // optional image up to 10MB
+            'expiry_date' => 'required|date|after_or_equal:today',
         ]);
 
         $employeeNum = Auth::user()->employeeNum ?? null;
@@ -30,6 +31,7 @@ class HrAnnouncementController extends Controller
             'image' => $imageData,
             'createdAt' => now(),
             'isActive' => 1,
+            'expiry_date' => $request->expiry_date,
         ]);
 
         return redirect()->back()->with('success', 'Announcement posted successfully!');

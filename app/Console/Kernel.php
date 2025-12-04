@@ -17,6 +17,13 @@ class Kernel extends ConsoleKernel
             $service = new \App\Services\TicketExpirationService();
             $service->checkExpiredTickets();
         })->everyFifteenMinutes();
+
+        // Delete expired announcements daily at midnight
+        $schedule->call(function () {
+            \Illuminate\Support\Facades\DB::table('announcements')
+                ->where('expiry_date', '<', now()->toDateString())
+                ->delete();
+        })->daily();
     }
 
     /**

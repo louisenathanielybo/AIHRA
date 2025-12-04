@@ -17,6 +17,10 @@ class EmployeeController extends Controller
     {
         $announcements = DB::table('announcements')
             ->where('isActive', 1)
+            ->where(function($query) {
+                $query->whereNull('expiry_date')
+                      ->orWhere('expiry_date', '>=', now()->toDateString());
+            })
             ->orderBy('id', 'desc')
             ->get();
 
