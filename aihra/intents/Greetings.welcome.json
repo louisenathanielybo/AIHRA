@@ -1,0 +1,37 @@
+{
+  "id": "b5752c02-2e85-45a6-95ab-16d06cee80b4",
+  "name": "Greetings.welcome",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "“Hello! 👋 I’m AIHRA, your HR assistant. How can I help you today?”",
+            "“Hi there! I can assist you with HR inquiries like employment, benefits, promotion, or development.”",
+            "“Good day! What HR-related concern would you like me to check for you?”"
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

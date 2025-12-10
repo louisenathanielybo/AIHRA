@@ -1,0 +1,37 @@
+{
+  "id": "d287279e-bd1f-4fe5-8ddd-1214fb8a6739",
+  "name": "Greetings.goodbye",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "“Goodbye! Have a productive day at DWCC.”",
+            "“Take care! If you need more HR help, just come back anytime.”",
+            "“See you next time. Don’t hesitate to ask if you have more HR-related questions!”"
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

@@ -1,0 +1,35 @@
+{
+  "id": "220942c5-42f4-46fb-a7cb-cc0de3a8f6be",
+  "name": "development_trainings_seminars",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "\"DWCC encourages employees to attend seminars, conventions, workshops, and technical trainings for skill enhancement. A request for travel and cash advance must be submitted, with a maximum support of Php 6,500 for employees and Php 7,500 for faculty per year. Meetings have a Php 3,000 limit.\""
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

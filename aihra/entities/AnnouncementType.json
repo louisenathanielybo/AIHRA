@@ -1,0 +1,9 @@
+{
+  "id": "cb8f1390-d6c0-48ac-b60b-8252f33554ba",
+  "name": "AnnouncementType",
+  "isOverridable": true,
+  "isEnum": false,
+  "isRegexp": false,
+  "automatedExpansion": true,
+  "allowFuzzyExtraction": true
+}

@@ -1,0 +1,9 @@
+{
+  "id": "df47e6a4-d416-4eae-b1af-7c86ce0514af",
+  "name": "CompensationType",
+  "isOverridable": true,
+  "isEnum": false,
+  "isRegexp": false,
+  "automatedExpansion": false,
+  "allowFuzzyExtraction": true
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "value": "faculty",
+    "synonyms": [
+      "faculty",
+      "lecturer",
+      "instructor",
+      "professor"
+    ]
+  },
+  {
+    "value": "staff",
+    "synonyms": [
+      "staff",
+      "office staff",
+      "non-teaching staff",
+      "personnel"
+    ]
+  },
+  {
+    "value": "admin",
+    "synonyms": [
+      "admin",
+      "manager",
+      "dean",
+      "director",
+      "administrator"
+    ]
+  }
+]

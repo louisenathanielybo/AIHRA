@@ -1,0 +1,35 @@
+{
+  "id": "c5f9d87e-adc9-4870-9ecf-023468193ebd",
+  "name": "benefits_government_mandated",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "\"DWCC employees receive government-mandated benefits such as SSS (sickness, disability, funeral, maternity, paternity, loans), PAG-IBIG (multi-purpose loans, housing, retirement), and PhilHealth (hospitalization benefits for employees and dependents).\""
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": true,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

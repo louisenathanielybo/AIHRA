@@ -1,0 +1,35 @@
+{
+  "id": "6717a77a-d800-4c8a-9b3e-00a80eb00162",
+  "name": "compensation_salary_structure",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "\"Employee salaries at DWCC comply with labor laws. Non-teaching staff follow the school’s salary scale, while teaching staff salaries depend on their teaching load and rank. Promotions and step increases affect salary adjustments.\""
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

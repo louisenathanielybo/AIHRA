@@ -1,0 +1,47 @@
+[
+  {
+    "value": "salary",
+    "synonyms": [
+      "salary",
+      "pay",
+      "payroll",
+      "wages"
+    ]
+  },
+  {
+    "value": "overtime",
+    "synonyms": [
+      "overtime",
+      "OT",
+      "Extra Hours",
+      "Extra Work Hours"
+    ]
+  },
+  {
+    "value": "allowance",
+    "synonyms": [
+      "allowance",
+      "Transport allowance",
+      "meal allowance"
+    ]
+  },
+  {
+    "value": "bonus",
+    "synonyms": [
+      "bonus",
+      "performance bonus",
+      "incentive",
+      "13th month pay"
+    ]
+  },
+  {
+    "value": "deduction",
+    "synonyms": [
+      "deduction",
+      "Pag-IBIG",
+      "PhilHealth",
+      "SSS",
+      "tax"
+    ]
+  }
+]
