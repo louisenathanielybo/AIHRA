@@ -18,6 +18,16 @@ class AdminController extends Controller
     {
         $admin = Auth::user();
 
+        // Get sort parameters
+        $ticketsSort = $request->get('tickets_sort', 'created_at');
+        $ticketsDir = $request->get('tickets_dir', 'desc');
+        $feedbackSort = $request->get('feedback_sort', 'timeStamp');
+        $feedbackDir = $request->get('feedback_dir', 'desc');
+        $interactionsSort = $request->get('interactions_sort', 'questionTime');
+        $interactionsDir = $request->get('interactions_dir', 'desc');
+        $flagsSort = $request->get('flags_sort', 'timeStamp');
+        $flagsDir = $request->get('flags_dir', 'desc');
+
         // Delete expired announcements
         DB::table('announcements')
             ->where('expiry_date', '<', now()->toDateString())
@@ -32,10 +42,20 @@ class AdminController extends Controller
         
         // 🆕 GET HR_INBOX DATA FOR CHATBOT TICKETS with pagination
         $ticketsForKPI = DB::table('hr_inbox')->get(); // For KPI calculations
+        $ticketsSortColumn = in_array($ticketsSort, ['ticket_no', 'from_user', 'priority', 'status', 'created_at']) ? $ticketsSort : 'created_at';
         $tickets = DB::table('hr_inbox')
             ->select('*')
-            ->orderBy('created_at', 'desc')
+            ->orderBy($ticketsSortColumn, $ticketsDir)
             ->paginate(20, ['*'], 'tickets_page');
+        
+        // Get all tickets data for JavaScript (date, priority, status)
+        $allTicketsData = DB::table('hr_inbox')
+            ->select(
+                DB::raw('DATE(created_at) as ticket_date'),
+                'priority',
+                'status'
+            )
+            ->get();
         
         // Calculate ticket KPIs
         $totalTickets = $ticketsForKPI->count();
@@ -77,43 +97,50 @@ class AdminController extends Controller
         $escalatedCount = $escalatedQueries;
         
         // 🆕 NEW: Get feedback data for feedback tab with pagination
+        $feedbackSortColumn = in_array($feedbackSort, ['feedbackID', 'rating', 'timeStamp']) ? $feedbackSort : 'timeStamp';
+        
         $feedbackData = DB::table('feedback')
             ->join('users', 'feedback.employeeNum', '=', 'users.employeeNum')
             ->select('feedback.*', 'users.firstName', 'users.lastName')
-            ->orderBy('feedback.timeStamp', 'desc')
+            ->orderBy('feedback.' . $feedbackSortColumn, $feedbackDir)
             ->paginate(20);
 
-        // Add displayID to feedback items
-        $feedbackData->getCollection()->transform(function ($item, $index) use ($feedbackData) {
-            $item->displayID = ($feedbackData->currentPage() - 1) * $feedbackData->perPage() + $index + 1;
-            return $item;
-        });
-
         // 🆕 NEW: Get data for performance tab - paginate interactions
+        $interactionsSortColumn = in_array($interactionsSort, ['question', 'questionTime', 'isEscalated']) ? $interactionsSort : 'questionTime';
         $recentInteractions = DB::table('queries')
             ->join('users', 'queries.employeeNum', '=', 'users.employeeNum')
             ->select('queries.*', 'users.firstName', 'users.lastName', 
-                DB::raw('ABS(TIMESTAMPDIFF(MICROSECOND, queries.questionTime, IFNULL(queries.responseTime, queries.questionTime))) / 1000.0 as response_time_ms'))
-            ->orderBy('queries.questionTime', 'desc')
+                DB::raw('TIMESTAMPDIFF(MICROSECOND, queries.questionTime, IFNULL(queries.responseTime, queries.questionTime)) / 1000000.0 as response_time_seconds'))
+            ->orderBy('queries.' . $interactionsSortColumn, $interactionsDir)
             ->paginate(20, ['*'], 'interactions_page');
 
+        // Get all interactions data for JavaScript (date + response time only)
+        $allInteractionsData = DB::table('queries')
+            ->select(
+                DB::raw('DATE(questionTime) as query_date'),
+                DB::raw('TIMESTAMPDIFF(MICROSECOND, questionTime, IFNULL(responseTime, questionTime)) / 1000000.0 as response_time_seconds')
+            )
+            ->get();
+
+        $flagsSortColumn = in_array($flagsSort, ['flaggedID', 'reasonID', 'timeStamp', 'status']) ? $flagsSort : 'timeStamp';
+        
         $flaggedResponses = DB::table('flaggedresponse')
             ->join('users', 'flaggedresponse.employeeNum', '=', 'users.employeeNum')
             ->join('queries', 'flaggedresponse.queryID', '=', 'queries.queryID')
             ->select('flaggedresponse.*', 'users.firstName', 'users.lastName', 'queries.question')
-            ->orderBy('flaggedresponse.timeStamp', 'desc')
+            ->orderBy('flaggedresponse.' . $flagsSortColumn, $flagsDir)
             ->paginate(20, ['*'], 'flags_page');
 
-        // Add displayID to flagged responses
-        $flaggedResponses->getCollection()->transform(function ($item, $index) use ($flaggedResponses) {
-            $item->displayID = ($flaggedResponses->currentPage() - 1) * $flaggedResponses->perPage() + $index + 1;
-            return $item;
-        });
+        // Calculate average response time from all queries
+        $avgResponseTime = DB::table('queries')
+            ->select(DB::raw('AVG(TIMESTAMPDIFF(MICROSECOND, questionTime, IFNULL(responseTime, questionTime)) / 1000000.0) as avg_seconds'))
+            ->value('avg_seconds');
 
-        // Get users with pagination and search
+        // Get users with pagination and search (exclude archived accounts)
         $search = request('search', '');
         $users = DB::table('users')
             ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'profile_picture', 'about', 'status', 'dob')
+            ->where('is_archived', false) // Exclude archived accounts
             ->when($search, function($query, $search) {
                 return $query->where(function($q) use ($search) {
                     $q->where('employeeNum', 'like', "%{$search}%")
@@ -167,7 +194,7 @@ class AdminController extends Controller
             ->values();
 
         // Get active tab from URL parameter, session, or default to dashboard
-        $active_tab = $request->get('active_tab', session('active_tab', 'dashboard'));
+        $active_tab = $request->get('active_tab', 'dashboard');
         
         // Store in session for form submissions
         session(['active_tab' => $active_tab]);
@@ -178,7 +205,10 @@ class AdminController extends Controller
             'totalTicketsChange', 'unresolvedTicketsChange', 'resolvedTicketsChange',
             'activeUsers', 'totalInteractions', 'escalatedQueries',
             'resolvedQueries', 'pendingQueries', 'escalatedCount',
-            'feedbackData', 'recentInteractions', 'flaggedResponses', 'mostAskedTopics'
+            'feedbackData', 'recentInteractions', 'flaggedResponses', 'mostAskedTopics', 'avgResponseTime',
+            'allInteractionsData', 'allTicketsData',
+            'ticketsSort', 'ticketsDir', 'feedbackSort', 'feedbackDir', 
+            'interactionsSort', 'interactionsDir', 'flagsSort', 'flagsDir'
         ));
     }
 
@@ -233,15 +263,83 @@ class AdminController extends Controller
     {
         $admin = Auth::user();
 
+        // Check if this is a password change request
+        if ($request->filled('change_password')) {
+            // Validate password change
+            $request->validate([
+                'current_password' => 'required',
+                'password' => 'required|min:8|confirmed',
+            ]);
+
+            // Verify current password
+            if (!Hash::check($request->current_password, $admin->password)) {
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'Current password is incorrect.')
+                    ->with('active_tab', 'account-settings');
+            }
+
+            // Update password
+            DB::table('users')
+                ->where('employeeNum', $admin->employeeNum)
+                ->update(['password' => Hash::make($request->password)]);
+
+            return redirect()->route('admin.dashboard')
+                ->with('success', 'Password changed successfully!')
+                ->with('active_tab', 'account-settings');
+        }
+
+        // Handle regular profile update
         $data = [];
-        if ($request->hasFile('profile_pic')) {
-            $file = $request->file('profile_pic');
+        
+        // Handle profile picture upload
+        if ($request->hasFile('profile_picture')) {
+            $file = $request->file('profile_picture');
             $filename = time() . '.' . $file->getClientOriginalExtension();
             $file->move(public_path('uploads'), $filename);
             $data['profile_picture'] = $filename;
         }
 
-        if ($request->filled('about')) {
+        // Handle other profile fields
+        if ($request->filled('firstName')) {
+            $data['firstName'] = $request->firstName;
+        }
+        
+        if ($request->filled('lastName')) {
+            $data['lastName'] = $request->lastName;
+        }
+        
+        if ($request->has('middleName')) {
+            $data['middleName'] = $request->middleName;
+        }
+        
+        if ($request->filled('email')) {
+            // Check if email is unique (excluding current user)
+            $existingEmail = DB::table('users')
+                ->where('email', $request->email)
+                ->where('employeeNum', '!=', $admin->employeeNum)
+                ->first();
+                
+            if ($existingEmail) {
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'Email already in use.')
+                    ->with('active_tab', 'account-settings');
+            }
+            
+            $data['email'] = $request->email;
+        }
+        
+        if ($request->filled('dob')) {
+            $birthDate = \Carbon\Carbon::parse($request->dob);
+            $age = $birthDate->diffInYears(now());
+            $data['dob'] = $birthDate->format('Y-m-d');
+            $data['age'] = $age;
+        }
+        
+        if ($request->filled('sex')) {
+            $data['sex'] = $request->sex;
+        }
+
+        if ($request->has('about')) {
             $data['about'] = $request->about;
         }
 
@@ -249,7 +347,9 @@ class AdminController extends Controller
             DB::table('users')->where('employeeNum', $admin->employeeNum)->update($data);
         }
 
-        return redirect()->route('admin.dashboard')->with('success', 'Profile updated!');
+        return redirect()->route('admin.dashboard')
+            ->with('success', 'Profile updated successfully!')
+            ->with('active_tab', 'account-settings');
     }
 
     // 🆕 CREATE ACCOUNT - Updated to work with users table
@@ -317,6 +417,14 @@ class AdminController extends Controller
             'data' => $request->all()
         ]);
         
+        // Check if the account being edited is an admin (and not the current user)
+        $targetUser = DB::table('users')->where('employeeNum', $employeeNum)->first();
+        if ($targetUser && $targetUser->role === 'Admin' && $targetUser->employeeNum != Auth::user()->employeeNum) {
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'You cannot edit other admin accounts.')
+                ->with('active_tab', 'account-management');
+        }
+        
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|unique:users,email,' . $employeeNum . ',employeeNum',
             'firstName' => 'required|string|max:255',
@@ -379,10 +487,10 @@ class AdminController extends Controller
         }
     }
 
-    // 🆕 DELETE ACCOUNT - Updated to work with users table
+    // 🆕 DELETE (ARCHIVE) ACCOUNT - Updated to archive instead of delete
     public function deleteAccount($employeeNum)
     {
-        \Log::info('Deleting account:', ['employeeNum' => $employeeNum]);
+        \Log::info('Archiving account:', ['employeeNum' => $employeeNum]);
         
         // Prevent admin from deleting their own account
         if ($employeeNum == Auth::user()->employeeNum) {
@@ -396,33 +504,47 @@ class AdminController extends Controller
             $user = DB::table('users')->where('employeeNum', $employeeNum)->first();
             
             if (!$user) {
-                \Log::warning('User not found for deletion:', ['employeeNum' => $employeeNum]);
+                \Log::warning('User not found for archiving:', ['employeeNum' => $employeeNum]);
                 return redirect()->route('admin.dashboard')
                     ->with('error', 'User not found.')
                     ->with('active_tab', 'account-management');
             }
 
-            $deleted = DB::table('users')->where('employeeNum', $employeeNum)->delete();
+            // Prevent admin from deleting other admins
+            if ($user->role === 'Admin') {
+                \Log::warning('Attempt to delete another admin:', ['employeeNum' => $employeeNum]);
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'You cannot delete admin accounts.')
+                    ->with('active_tab', 'account-management');
+            }
+
+            // Archive the account and deactivate it to prevent login
+            $archived = DB::table('users')
+                ->where('employeeNum', $employeeNum)
+                ->update([
+                    'is_archived' => true,
+                    'status' => 'Deactivated'
+                ]);
             
-            if ($deleted) {
-                \Log::info('Account deleted successfully:', ['employeeNum' => $employeeNum]);
-                return redirect()->route('admin.dashboard')
+            if ($archived) {
+                \Log::info('Account archived successfully:', ['employeeNum' => $employeeNum]);
+                return redirect()->route('admin.dashboard', ['active_tab' => 'account-management'])
                     ->with('success', 'Account deleted successfully!')
-                    ->with('active_tab', 'account-management');
+                    ->withFragment('account-management');
             } else {
-                \Log::error('Delete query returned 0 rows affected:', ['employeeNum' => $employeeNum]);
-                return redirect()->route('admin.dashboard')
+                \Log::error('Archive query returned 0 rows affected:', ['employeeNum' => $employeeNum]);
+                return redirect()->route('admin.dashboard', ['active_tab' => 'account-management'])
                     ->with('error', 'No account was deleted. User may not exist.')
-                    ->with('active_tab', 'account-management');
+                    ->withFragment('account-management');
             }
             
         } catch (\Exception $e) {
-            \Log::error('Failed to delete account:', [
+            \Log::error('Failed to archive account:', [
                 'employeeNum' => $employeeNum,
                 'error' => $e->getMessage()
             ]);
             return redirect()->route('admin.dashboard')
-                ->with('error', 'Failed to delete account: ' . $e->getMessage())
+                ->with('error', 'Failed to archive account: ' . $e->getMessage())
                 ->with('active_tab', 'account-management');
         }
     }
@@ -435,6 +557,7 @@ class AdminController extends Controller
         try {
             $user = DB::table('users')
                 ->where('employeeNum', $employeeNum)
+                ->where('is_archived', false) // Exclude archived accounts
                 ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'dob', 'profile_picture', 'about', 'status')
                 ->first();
             
@@ -464,6 +587,14 @@ class AdminController extends Controller
     public function resetPassword(Request $request, $employeeNum)
     {
         \Log::info('Resetting password for:', ['employeeNum' => $employeeNum]);
+        
+        // Check if the account being reset is an admin (and not the current user)
+        $targetUser = DB::table('users')->where('employeeNum', $employeeNum)->first();
+        if ($targetUser && $targetUser->role === 'Admin' && $targetUser->employeeNum != Auth::user()->employeeNum) {
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'You cannot reset passwords for other admin accounts.')
+                ->with('active_tab', 'account-management');
+        }
         
         $validator = Validator::make($request->all(), [
             'password' => 'required|min:8|confirmed',
@@ -509,6 +640,7 @@ class AdminController extends Controller
     {
         $users = DB::table('users')
             ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'dob', 'status')
+            ->where('is_archived', false) // Exclude archived accounts
             ->orderBy('employeeNum', 'asc')
             ->get();
 
@@ -578,7 +710,6 @@ class AdminController extends Controller
             $imported = 0;
             $failed = 0;
             $errors = [];
-            $defaultPassword = 'Welcome@123'; // Default password for imported accounts
             
             foreach ($csv as $index => $row) {
                 $rowNumber = $index + 2; // +2 because we removed header and array is 0-indexed
@@ -665,7 +796,11 @@ class AdminController extends Controller
                         $status = 'Active';
                     }
                     
-                    // Insert user
+                    // Generate default password: LastName + BirthYear (e.g., Smith1990)
+                    $birthYear = \Carbon\Carbon::parse($dob)->format('Y');
+                    $defaultPassword = str_replace(' ', '', $lastName) . $birthYear;
+                    
+                    // Insert user (without created_at/updated_at as they don't exist in the table)
                     DB::table('users')->insert([
                         'employeeNum' => $employeeNum,
                         'email' => $email,
@@ -678,9 +813,9 @@ class AdminController extends Controller
                         'age' => $age,
                         'dob' => $dob,
                         'status' => $status,
-                        'profile_picture' => 'default.png',
-                        'created_at' => now(),
-                        'updated_at' => now()
+                        'profile_picture' => DB::raw("'default.png'"), // Store as string in BLOB
+                        'name' => $firstName . ' ' . $lastName, // Combine names for the name field
+                        'birth_date' => $dob // Some records use birth_date instead of dob
                     ]);
                     
                     $imported++;
@@ -788,6 +923,82 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch ticket details: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getFilteredKPIs(Request $request)
+    {
+        try {
+            $range = $request->input('range', 'overall');
+            $startDate = null;
+            $endDate = null;
+
+            // Calculate date range based on selection
+            $today = now();
+            
+            switch($range) {
+                case 'daily':
+                    $startDate = $today->copy()->startOfDay();
+                    $endDate = $today->copy()->endOfDay();
+                    break;
+                    
+                case 'weekly':
+                    $startDate = $today->copy()->startOfWeek();
+                    $endDate = $today->copy()->endOfWeek();
+                    break;
+                    
+                case 'monthly':
+                    $startDate = $today->copy()->startOfMonth();
+                    $endDate = $today->copy()->endOfMonth();
+                    break;
+                    
+                case 'annually':
+                    $startDate = $today->copy()->startOfYear();
+                    $endDate = $today->copy()->endOfYear();
+                    break;
+                    
+                case 'overall':
+                default:
+                    // No date filtering for overall
+                    break;
+            }
+
+            // Build queries with optional date filtering
+            $queriesQuery = DB::table('queries');
+            $ticketsQuery = DB::table('hr_inbox');
+
+            if ($startDate && $endDate) {
+                $queriesQuery->whereBetween('questionTime', [$startDate, $endDate]);
+                $ticketsQuery->whereBetween('created_at', [$startDate, $endDate]);
+            }
+
+            // Calculate KPIs
+            $totalInteractions = $queriesQuery->count();
+            $ticketsData = $ticketsQuery->get();
+            $escalatedQueries = $ticketsData->count(); // All tickets are escalated queries
+            $pendingQueries = $ticketsData->whereIn('status', ['Open', 'Waiting for HR'])->count();
+            $resolvedQueries = $totalInteractions - $pendingQueries;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'totalInteractions' => $totalInteractions,
+                    'escalatedQueries' => $escalatedQueries,
+                    'pendingQueries' => $pendingQueries,
+                    'resolvedQueries' => $resolvedQueries,
+                    'resolutionRate' => $totalInteractions > 0 ? round(($resolvedQueries / $totalInteractions) * 100, 1) : 0
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to fetch filtered KPIs', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch filtered KPIs: ' . $e->getMessage()
             ], 500);
         }
     }

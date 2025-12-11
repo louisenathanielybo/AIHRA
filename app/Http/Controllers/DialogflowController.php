@@ -25,7 +25,7 @@ class DialogflowController extends Controller
             Log::info('🔍 Dialogflow Webhook Called', ['input' => $request->all()]);
 
             // Capture question time at the very start for accurate response time calculation
-            $questionTime = now();
+            $questionTimeFormatted = \Carbon\Carbon::now()->format('Y-m-d H:i:s.u');
             
             // 🆕 FIXED: Handle multiple input formats
             $queryText = $this->extractQueryText($request);
@@ -284,8 +284,8 @@ class DialogflowController extends Controller
                     'response' => $fulfillmentText,
                     'confidenceScore' => $confidence,
                     'queryType' => 'Dialogflow',
-                    'questionTime' => $questionTime,
-                    'responseTime' => now(),
+                    'questionTime' => $questionTimeFormatted,
+                    'responseTime' => \Carbon\Carbon::now()->format('Y-m-d H:i:s.u'),
                     'isEscalated' => false,
                     'handledBy' => 'Bot',
                 ]);
@@ -958,7 +958,7 @@ class DialogflowController extends Controller
                         'priority' => strtolower($priority),
                         'category' => $category,
                         'intent' => substr('Escalated: ' . $reason, 0, 50),
-                        'confidence' => 0.0,
+                        'confidence' => $originalConfidence ?? 0.0,
                         'response_deadline' => $deadlines['response_deadline'],
                         'resolution_deadline' => $deadlines['resolution_deadline'],
                         'created_at' => now(),
@@ -972,7 +972,7 @@ class DialogflowController extends Controller
                     
                     if ($attempt === $maxAttempts) {
                         // Last attempt failed, try alternative creation method
-                        $inbox = $this->createTicketAlternativeMethod($ticketNo, $employeeNum, $queryText, $priority, $category, $reason);
+                        $inbox = $this->createTicketAlternativeMethod($ticketNo, $employeeNum, $queryText, $priority, $category, $reason, $originalConfidence);
                         if ($inbox) {
                             Log::info("✅ HR Inbox created via alternative method", ['ticket_no' => $ticketNo]);
                             break;
@@ -994,8 +994,8 @@ class DialogflowController extends Controller
                     'response' => 'Escalated to HR - ' . $ticketNo,
                     'confidenceScore' => 0.0,
                     'queryType' => 'Escalated',
-                    'questionTime' => $questionTime,
-                    'responseTime' => now(),
+                    'questionTime' => $questionTimeFormatted,
+                    'responseTime' => \Carbon\Carbon::now()->format('Y-m-d H:i:s.u'),
                     'isEscalated' => true,
                     'handledBy' => 'HR',
                 ]);
@@ -1295,7 +1295,7 @@ class DialogflowController extends Controller
     /**
      * 🆕 NEW: Alternative ticket creation method using DB facade
      */
-    private function createTicketAlternativeMethod(string $ticketNo, $employeeNum, string $queryText, string $priority, string $category, string $reason)
+    private function createTicketAlternativeMethod(string $ticketNo, $employeeNum, string $queryText, string $priority, string $category, string $reason, float $originalConfidence = null)
     {
         try {
             Log::info("🔄 Trying alternative ticket creation method", ['ticket_no' => $ticketNo]);
@@ -1313,7 +1313,7 @@ class DialogflowController extends Controller
                 'priority' => strtolower($priority),
                 'category' => $category,
                 'intent' => substr('Escalated: ' . $reason, 0, 50),
-                'confidence' => 0.0,
+                'confidence' => $originalConfidence ?? 0.0,
                 'response_deadline' => $deadlines['response_deadline'],
                 'resolution_deadline' => $deadlines['resolution_deadline'],
                 'created_at' => $now,
@@ -1412,8 +1412,8 @@ class DialogflowController extends Controller
                                 'response' => 'EMERGENCY Escalated to HR - ' . $ticketNo,
                                 'confidenceScore' => 0.0,
                                 'queryType' => 'Escalated',
-                                'questionTime' => $questionTime,
-                                'responseTime' => now(),
+                                'questionTime' => $questionTimeFormatted,
+                                'responseTime' => \Carbon\Carbon::now()->format('Y-m-d H:i:s.u'),
                                 'isEscalated' => true,
                                 'handledBy' => 'HR',
                             ]);

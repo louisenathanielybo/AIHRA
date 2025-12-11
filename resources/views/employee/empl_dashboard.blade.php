@@ -946,7 +946,7 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2 style="display: flex; align-items: center; gap: 8px;">
+            <h2 style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 AIHRA
                 <img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA Logo" style="width: 50px; height: 50px;"> 
             </h2>
@@ -1135,41 +1135,41 @@
 
     <!-- Account Section -->
     <div id="account" class="section" style="display:none;">
-        <div style="display: flex; gap: 30px; max-width: 1200px; margin: 0 auto;">
+        <div style="display: flex; gap: 20px; max-width: 1100px; margin: 0 auto;">
             <!-- Left Panel - Profile -->
-            <div style="flex: 1; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: bold;">Profile</h3>
+            <div style="flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold;">Profile</h3>
                 
-                <div style="text-align: center; margin-bottom: 30px;">
+                <div style="text-align: center; margin-bottom: 20px;">
                     <img src="{{ asset('uploads/' . Auth::user()->profile_picture) }}" alt="Profile Picture" 
-                         style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;">
+                         style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;">
                 </div>
 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Name</label>
-                    <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #333; font-size: 13px;">Name</label>
+                    <div style="padding: 10px; background: #e6f7f0; border-radius: 8px; color: #333; font-size: 14px;">
                         {{ Auth::user()->name }}
                     </div>
                 </div>
 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Email</label>
-                    <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #333; font-size: 13px;">Email</label>
+                    <div style="padding: 10px; background: #e6f7f0; border-radius: 8px; color: #333; font-size: 14px;">
                         {{ Auth::user()->email }}
                     </div>
                 </div>
 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Employee number</label>
-                    <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #333; font-size: 13px;">Employee number</label>
+                    <div style="padding: 10px; background: #e6f7f0; border-radius: 8px; color: #333; font-size: 14px;">
                         {{ Auth::user()->employeeNum }}
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 15px;">
+                <div style="display: flex; gap: 12px;">
                     <div style="flex: 1;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Age</label>
-                        <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
+                        <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #333; font-size: 13px;">Age</label>
+                        <div style="padding: 10px; background: #e6f7f0; border-radius: 8px; color: #333; font-size: 14px;">
                             @php
                                 if (Auth::user()->dob) {
                                     $dob = new DateTime(Auth::user()->dob);
@@ -1183,8 +1183,8 @@
                         </div>
                     </div>
                     <div style="flex: 1;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Sex</label>
-                        <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
+                        <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #333; font-size: 13px;">Sex</label>
+                        <div style="padding: 10px; background: #e6f7f0; border-radius: 8px; color: #333; font-size: 14px;">
                             {{ Auth::user()->sex ?? 'N/A' }}
                         </div>
                     </div>
@@ -1192,27 +1192,27 @@
             </div>
 
             <!-- Right Panel - Account Settings -->
-            <div style="flex: 1; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: bold;">Account Settings</h3>
+            <div style="flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold;">Account Settings</h3>
 
-                <button onclick="showEditProfileModal()" style="width: 100%; padding: 15px; margin-bottom: 15px; background: #e6f7f0; border: none; border-radius: 8px; text-align: left; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.3s;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
+                <button onclick="showEditProfileModal()" style="width: 100%; padding: 12px; margin-bottom: 12px; background: #e6f7f0; border: none; border-radius: 8px; text-align: left; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.3s;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
                     Edit Profile
                 </button>
 
-                <button onclick="showChangePasswordModal()" style="width: 100%; padding: 15px; margin-bottom: 15px; background: #e6f7f0; border: none; border-radius: 8px; text-align: left; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.3s;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
+                <button onclick="showChangePasswordModal()" style="width: 100%; padding: 12px; margin-bottom: 12px; background: #e6f7f0; border: none; border-radius: 8px; text-align: left; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.3s;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
                     Change Password
                 </button>
 
-                <div style="margin-bottom: 30px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">About</label>
-                    <div onclick="showAboutModal()" style="padding: 15px; background: #e6f7f0; border-radius: 8px; color: #333; cursor: pointer; min-height: 60px; transition: background 0.3s;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #333; font-size: 13px;">About</label>
+                    <div onclick="showAboutModal()" style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333; cursor: pointer; min-height: 50px; transition: background 0.3s; font-size: 14px;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
                         {{ Auth::user()->about ?: 'Click to add information about yourself...' }}
                     </div>
                 </div>
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" style="width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">
+                    <button type="submit" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">
                         Log out
                     </button>
                 </form>
@@ -1252,6 +1252,11 @@
                         <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Last name</label>
                         <input type="text" name="lastName" value="{{ Auth::user()->lastName }}" required style="width: 100%; padding: 12px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0;">
                     </div>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Middle name</label>
+                    <input type="text" name="middleName" value="{{ Auth::user()->middleName }}" style="width: 100%; padding: 12px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0;">
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -1428,6 +1433,7 @@ let currentSessionId = '{{ session()->getId() }}';
 let currentConversationId = null;
 let lastEscalatedTicketNo = null;
 let lastEscalationMessage = null;
+let isChangingSection = false; // Flag to prevent recursive hash updates
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', async function() {
@@ -1450,6 +1456,24 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     } catch (e) { console.debug('No last conversation to restore or failed restore', e); }
     requestNotificationPermission();
+    
+    // Restore the active section based on URL hash
+    const hash = window.location.hash.substring(1); // Remove the # character
+    if (hash && ['home', 'chat', 'feedback', 'account'].includes(hash)) {
+        showSection(hash);
+    }
+});
+
+// Handle hash changes (browser back/forward or direct hash changes)
+window.addEventListener('hashchange', function() {
+    if (isChangingSection) {
+        isChangingSection = false;
+        return; // Ignore hash changes triggered by showSection
+    }
+    const hash = window.location.hash.substring(1);
+    if (hash && ['home', 'chat', 'feedback', 'account'].includes(hash)) {
+        showSection(hash);
+    }
 });
 
 // Toggle between Conversations and Tickets in left panel
@@ -1496,6 +1520,12 @@ function showMainChat() {
 
 // Section Navigation
 function showSection(id) {
+    // Update URL hash to preserve tab state
+    if (window.location.hash !== '#' + id) {
+        isChangingSection = true;
+        window.location.hash = id;
+    }
+    
     // Scroll to top smoothly
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
@@ -3217,8 +3247,8 @@ function handleProfileUpdate(event) {
         if (data.success) {
             showNotification('✅ Profile updated successfully!');
             closeEditProfileModal();
-            // Reload page to show updated info
-            setTimeout(() => location.reload(), 1000);
+            // Reload page to show updated info, preserving the current tab
+            setTimeout(() => window.location.href = window.location.href, 1000);
         } else {
             showNotification('❌ ' + (data.message || 'Failed to update profile'));
         }
@@ -3270,8 +3300,8 @@ function handleAboutUpdate(event) {
         if (data.success) {
             showNotification('✅ About section updated!');
             closeAboutModal();
-            // Reload page to show updated info
-            setTimeout(() => location.reload(), 1000);
+            // Reload page to show updated info, preserving the current tab
+            setTimeout(() => window.location.href = window.location.href, 1000);
         } else {
             showNotification('❌ Failed to update about section');
         }

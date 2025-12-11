@@ -28,28 +28,6 @@
             margin-bottom: 20px; 
             text-align: center;
         }
-        .sidebar ul { 
-            list-style: none; 
-            padding: 0; 
-        }
-        .sidebar ul li { 
-            margin-bottom: 15px; 
-            padding: 10px;
-            border-radius: 5px;
-            transition: background 0.3s ease;
-        }
-        .sidebar ul li:hover { 
-            background: rgba(255,255,255,0.1);
-        }
-        .sidebar ul li.active { 
-            background: rgba(255,255,255,0.2);
-        }
-        .sidebar ul li a { 
-            color: white; 
-            text-decoration: none; 
-            font-weight: bold; 
-            display: block;
-        }
         
         .main-content { 
             flex: 1;
@@ -83,12 +61,15 @@
             padding: 0 20px 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
         }
         
         .sb-brand h2 {
             font-size: 1.5rem;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 10px;
             color: #e8f5e8;
         }
@@ -112,16 +93,20 @@
             display: flex;
             align-items: center;
             padding: 12px 20px;
+            padding-left: 20px;
             color: #e8f5e8;
             text-decoration: none;
             transition: all 0.3s;
-            border-radius: 0;
-            margin: 0;
+            border-radius: 0 8px 8px 0;
+            margin-right: 10px;
+            border-left: 4px solid transparent;
         }
         
         .sb-link:hover, 
         .sb-link.active {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15);
+            border-left: 4px solid #1A6B61;
+            padding-left: 20px;
             color: white;
         }
         
@@ -131,6 +116,41 @@
             text-align: center;
             color: #a8d5b5;
         }
+        
+        .top-nav {
+            display: flex;
+            gap: 8px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 25px;
+            box-shadow: 0 2px 8px rgba(22, 74, 74, 0.08);
+            border: 1px solid #c7e5e0;
+        }
+        
+        .top-nav-link {
+            padding: 10px 24px;
+            border-radius: 20px;
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+        
+        .top-nav-link:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .top-nav-link.active {
+            background: #1A6B61;
+            color: white;
+            border-color: #1A6B61;
+            transform: scale(1.05);
+        }
+        
         .sb-bottom {
             margin-top: auto;
             padding: 8px;
@@ -166,7 +186,8 @@
         }
 
         /* Top Navigation Ribbon */
-        .top-nav {
+        /* Top nav ribbon - REMOVED */
+        /* .top-nav {
             display: flex;
             gap: 8px;
             background: white;
@@ -198,7 +219,7 @@
             color: white;
             border-color: #28a745;
             transform: scale(1.05);
-        }
+        } */
 
         /* Split tabs (match employee UI) */
         .split-tabs {
@@ -595,67 +616,69 @@
         /* ===== ACCOUNT SECTION STYLES ===== */
         .account-layout {
             display: flex;
-            gap: 30px;
-            max-width: 1200px;
+            gap: 15px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
         .profile-panel, .settings-panel {
             flex: 1;
             background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
 
         .profile-panel h3, .settings-panel h3 {
-            margin: 0 0 20px 0;
-            font-size: 20px;
+            margin: 0 0 10px 0;
+            font-size: 17px;
             font-weight: bold;
             color: #333;
         }
 
         .profile-image-container {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 12px;
         }
 
         .profile-image {
-            width: 120px;
-            height: 120px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             object-fit: cover;
-            border: 3px solid #ddd;
+            border: 2px solid #ddd;
         }
 
         .profile-field {
-            margin-bottom: 20px;
+            margin-bottom: 8px;
         }
 
         .profile-field label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
             font-weight: 500;
             color: #333;
+            font-size: 12px;
         }
 
         .profile-value {
-            padding: 12px;
+            padding: 8px;
             background: #e6f7f0;
-            border-radius: 8px;
+            border-radius: 6px;
             color: #333;
+            font-size: 13px;
         }
 
         .settings-button {
             width: 100%;
-            padding: 15px;
-            margin-bottom: 15px;
+            padding: 10px;
+            margin-bottom: 8px;
             background: #e6f7f0;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             text-align: left;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             color: #2d5a3d;
             transition: background 0.3s;
@@ -666,24 +689,26 @@
         }
 
         .about-section {
-            margin-bottom: 30px;
+            margin-bottom: 12px;
         }
 
         .about-section label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             font-weight: 500;
             color: #333;
+            font-size: 12px;
         }
 
         .about-content {
-            padding: 15px;
+            padding: 10px;
             background: #e6f7f0;
-            border-radius: 8px;
+            border-radius: 6px;
             color: #333;
             cursor: pointer;
-            min-height: 60px;
+            min-height: 40px;
             transition: background 0.3s;
+            font-size: 13px;
         }
 
         .about-content:hover {
@@ -692,12 +717,12 @@
 
         .logout-button {
             width: 100%;
-            padding: 15px;
+            padding: 10px;
             background: #28a745;
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 6px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
             transition: background 0.3s;
@@ -1129,7 +1154,7 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sb-brand">
-            <h2 style="display: flex; align-items: center; gap: 8px;">
+            <h2 style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 AIHRA
                 <img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA" class="sb-logo" style="width: 50px; height: 50px; margin-bottom: 0;">
             </h2>
@@ -1166,17 +1191,15 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <div class="header">
-            <h1 class="welcome-message" style="margin: 0;">Welcome, <span>{{ Auth::user()->name }}</span>!</h1>
+        <div style="background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(22, 74, 74, 0.08); display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border: 1px solid #c7e5e0;">
+            <h1 class="welcome-message" style="margin: 0; font-size: 1.8rem; font-weight: 600;">Welcome, <span>{{ Auth::user()->name }}</span>!</h1>
             
-            <div class="top-nav">
-                <a href="#announcements" onclick="showSection('announcements')" class="top-nav-link active" id="top-link-announcements">Home</a>
+            <nav class="top-nav">
+                <a href="#announcements" onclick="showSection('announcements')" class="top-nav-link active" id="top-link-announcements">Announcements</a>
                 <a href="#inbox" onclick="showSection('inbox')" class="top-nav-link" id="top-link-inbox">Inbox</a>
                 <a href="#account" onclick="showSection('account')" class="top-nav-link" id="top-link-account">Account</a>
-            </div>
+            </nav>
         </div>
-
-        
 
         <!-- Announcements Section -->
         <div id="announcements" class="section active">
@@ -1705,6 +1728,11 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label>Middle Name</label>
+                <input type="text" name="middleName" value="{{ $user->middleName ?? '' }}">
+            </div>
+
             <div class="form-row">
                 <div class="form-group">
                     <label>Email</label>
@@ -1888,6 +1916,11 @@
         document.querySelectorAll('.sb-link').forEach(link => link.classList.remove('active'));
         const activeLink = document.getElementById('link-' + id);
         if (activeLink) activeLink.classList.add('active');
+        
+        // Update top-nav active state
+        document.querySelectorAll('.top-nav-link').forEach(link => link.classList.remove('active'));
+        const activeTopLink = document.getElementById('top-link-' + id);
+        if (activeTopLink) activeTopLink.classList.add('active');
     }
 
     async function resolveTicket(ticketNo) {
@@ -2263,7 +2296,7 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
     }
 
     // ===== NAVIGATION FIX =====
-    // Ensure sidebar and top nav link clicks switch sections reliably
+    // Ensure sidebar link clicks switch sections reliably
     (function() {
         const bindNav = (selectorPrefix) => {
             document.querySelectorAll(selectorPrefix + ' a').forEach(link => {
@@ -2281,9 +2314,6 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
         // Bind sidebar nav
         const sidebarNav = document.querySelector('.sb-nav');
         if (sidebarNav) bindNav('.sb-nav');
-        // Bind top nav
-        const topNav = document.querySelector('.top-nav');
-        if (topNav) bindNav('.top-nav');
     })();
 
     function handlePasswordChange(event) {

@@ -98,17 +98,19 @@ Route::prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
     
     // Account management routes
-    Route::get('/accounts/{employeeNum}', [AdminController::class, 'getAccount'])->name('admin.accounts.get');
-    Route::put('/accounts/{employeeNum}', [AdminController::class, 'updateAccount'])->name('admin.accounts.update');
-    Route::post('/accounts/{employeeNum}/reset-password', [AdminController::class, 'resetPassword'])->name('admin.accounts.reset-password');
-    Route::delete('/accounts/{employeeNum}', [AdminController::class, 'deleteAccount'])->name('admin.accounts.delete');
+    
+    // Export and Import accounts - MUST be before parameterized routes
+    Route::get('/accounts/export', [AdminController::class, 'exportAccounts'])->name('admin.accounts.export');
+    Route::post('/accounts/import', [AdminController::class, 'importAccounts'])->name('admin.accounts.import');
     
     // Create account - POST to /admin/accounts (not /admin/dashboard)
     Route::post('/accounts', [AdminController::class, 'createAccount'])->name('admin.accounts.create');
     
-    // Export and Import accounts
-    Route::get('/accounts/export', [AdminController::class, 'exportAccounts'])->name('admin.accounts.export');
-    Route::post('/accounts/import', [AdminController::class, 'importAccounts'])->name('admin.accounts.import');
+    // Parameterized account routes - MUST be after specific routes like export/import
+    Route::get('/accounts/{employeeNum}', [AdminController::class, 'getAccount'])->name('admin.accounts.get');
+    Route::put('/accounts/{employeeNum}', [AdminController::class, 'updateAccount'])->name('admin.accounts.update');
+    Route::post('/accounts/{employeeNum}/reset-password', [AdminController::class, 'resetPassword'])->name('admin.accounts.reset-password');
+    Route::delete('/accounts/{employeeNum}', [AdminController::class, 'deleteAccount'])->name('admin.accounts.delete');
     
     // Other admin routes...
     Route::post('/knowledge', [AdminController::class, 'addKnowledge'])->name('admin.knowledge.add');
@@ -119,6 +121,9 @@ Route::prefix('admin')->group(function () {
     // Add this route for AJAX ticket data
     Route::get('/tickets/data', [AdminController::class, 'getTickets'])->name('admin.tickets.data');
     Route::get('/tickets/{ticketId}', [AdminController::class, 'getTicketDetails'])->name('admin.tickets.details');
+    
+    // Date range filter for KPIs
+    Route::get('/kpis/filter', [AdminController::class, 'getFilteredKPIs'])->name('admin.kpis.filter');
     
     // Flagged responses routes
     Route::post('/flags/{id}/update-status', [FlagController::class, 'updateStatus'])->name('admin.flags.update-status');
