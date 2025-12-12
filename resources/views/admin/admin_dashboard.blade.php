@@ -4,6 +4,7 @@ use Illuminate\Support\Str;
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AlHRA Admin Dashboard</title>
@@ -1347,6 +1348,7 @@ use Illuminate\Support\Str;
             <div class="dashboard-cards">
                 <div class="card stat-card">
                     <h3>Active Users</h3>
+
                     <div class="value">{{ $activeUsers }}</div>
                     <div class="trend">Total Active</div>
                 </div>
@@ -1519,6 +1521,39 @@ use Illuminate\Support\Str;
                     </div>
                 </div>
 
+                <!-- KPI: Average Feedback Rating -->
+                <div id="avgFeedbackKPI" style="background: white; padding: 18px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.07); margin-bottom: 18px; display: flex; align-items: center; gap: 18px; max-width: 400px;">
+                    <div style="font-size: 2.2rem; color: #f39c12;">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.1rem; color: var(--primary); font-weight: 600;">Average Feedback Rating</div>
+                        <div id="avgFeedbackValue" style="font-size: 2rem; font-weight: bold; color: var(--secondary);">N/A</div>
+                        <div id="avgFeedbackCount" style="font-size: 0.95rem; color: #666;">Based on 0 feedbacks</div>
+                    </div>
+                </div>
+        <script>
+        // Store all feedback data for KPI calculation
+        // Use all feedbacks if available, otherwise fallback to paginated feedbacks
+        const allFeedbackData = @json((isset($allFeedbackData) && count($allFeedbackData)) ? $allFeedbackData : (isset($feedbackData) ? $feedbackData->items() : []));
+
+
+        function updateAverageFeedbackKPI() {
+            // Deprecated: now handled by fetchFilteredKPIs for accuracy
+        }
+
+        // Update KPI on date range change
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAverageFeedbackKPI();
+        });
+        window.applyDateRangeFilter = (function(orig){
+            return function() {
+                orig && orig.apply(this, arguments);
+                updateAverageFeedbackKPI();
+            }
+        })(window.applyDateRangeFilter);
+        </script>
+
                 <div class="data-table">
                     <h3>User Feedback</h3>
                     <table id="feedbackDashTable">
@@ -1563,12 +1598,12 @@ use Illuminate\Support\Str;
                             @endforelse
                         </tbody>
                     </table>
-                    @if($feedbackData->hasPages())
                     <div style="margin-top: 20px;">
-                        <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;">
+                        <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;" data-pagify="feedback-info">
                             Showing {{ $feedbackData->firstItem() }} to {{ $feedbackData->lastItem() }} of {{ $feedbackData->total() }} results
                         </div>
-                        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
+                        @if($feedbackData->hasPages())
+                        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;" data-pagify="feedback-nav">
                             @if ($feedbackData->onFirstPage())
                                 <span style="padding: 8px 12px; color: #ccc;">« Previous</span>
                             @else
@@ -1691,6 +1726,17 @@ use Illuminate\Support\Str;
         
         <!-- Feedback Section -->
         <div id="feedback-section" class="section-content">
+            <!-- KPI: Average Feedback Rating (Feedback Section) -->
+            <div id="avgFeedbackKPISection" style="background: white; padding: 18px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.07); margin-bottom: 18px; display: flex; align-items: center; gap: 18px; max-width: 400px;">
+                <div style="font-size: 2.2rem; color: #f39c12;">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div>
+                    <div style="font-size: 1.1rem; color: var(--primary); font-weight: 600;">Average Feedback Rating</div>
+                    <div id="avgFeedbackValueSection" style="font-size: 2rem; font-weight: bold; color: var(--secondary);">N/A</div>
+                    <div id="avgFeedbackCountSection" style="font-size: 0.95rem; color: #666;">Based on 0 feedbacks</div>
+                </div>
+            </div>
             <div class="data-table">
                 <h3>User Feedback</h3>
                 <table id="feedbackSectionTable">
@@ -3406,24 +3452,91 @@ use Illuminate\Support\Str;
 
         // Filter feedback by date range
         function filterFeedbackByDate(startDate, endDate) {
-            const feedbackRows = document.querySelectorAll('#feedbackDashTable tbody tr:not([colspan]), #feedbackSectionTable tbody tr:not([colspan])');
-            
+            // Only count rows in the currently visible table (feedbackDashTable or feedbackSectionTable)
+            let table = document.getElementById('feedbackDashTable');
+            if (!table || table.offsetParent === null) {
+                table = document.getElementById('feedbackSectionTable');
+            }
+            const feedbackRows = table.querySelectorAll('tbody tr');
+            let visibleCount = 0;
             feedbackRows.forEach(row => {
-                const dateCell = row.cells[3]; // Date is in 4th column (index 3)
-                if (!dateCell || !dateCell.textContent.trim()) {
+                // Skip empty state rows (with colspan)
+                if (row.querySelector('td[colspan]')) {
+                    row.style.display = 'none';
                     return;
                 }
-                
+                const dateCell = row.cells[3];
+                if (!dateCell || !dateCell.textContent.trim()) {
+                    row.style.display = 'none';
+                    return;
+                }
                 const rowDate = parseDateFromCell(dateCell.textContent);
-                
                 if (startDate === null && endDate === null) {
                     row.style.display = '';
+                    visibleCount++;
                 } else if (rowDate >= startDate && rowDate <= endDate) {
                     row.style.display = '';
+                    visibleCount++;
                 } else {
                     row.style.display = 'none';
                 }
             });
+            updatePagificationDisplay('feedback', visibleCount);
+        }
+
+        // Ensure pagification is updated on load and tab switch
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial pagification update for feedback tables
+            setTimeout(function() {
+                const feedbackRows = document.querySelectorAll('#feedbackDashTable tbody tr:not([colspan]), #feedbackSectionTable tbody tr:not([colspan])');
+                let visibleCount = 0;
+                feedbackRows.forEach(row => { if (row.style.display !== 'none') visibleCount++; });
+                updatePagificationDisplay('feedback', visibleCount);
+            }, 200);
+        });
+
+        // Also update pagification after tab switch (if using tabs)
+        document.querySelectorAll('.dashboard-tab-btn, [data-tab]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                setTimeout(function() {
+                    const feedbackRows = document.querySelectorAll('#feedbackDashTable tbody tr:not([colspan]), #feedbackSectionTable tbody tr:not([colspan])');
+                    let visibleCount = 0;
+                    feedbackRows.forEach(row => { if (row.style.display !== 'none') visibleCount++; });
+                    updatePagificationDisplay('feedback', visibleCount);
+                }, 200);
+            });
+        });
+
+        // Hide/show pagification info and navigation based on visible count and per-page
+        function updatePagificationDisplay(type, visibleCount) {
+            // type: 'feedback'
+            let perPage = 20;
+            let infoSelector = '';
+            let navSelector = '';
+            switch(type) {
+                case 'feedback':
+                    infoSelector = '[data-pagify="feedback-info"]';
+                    navSelector = '[data-pagify="feedback-nav"]';
+                    break;
+            }
+            const info = document.querySelectorAll(infoSelector);
+            const nav = document.querySelectorAll(navSelector);
+            // Always update info text to match visible rows
+            info.forEach(el => {
+                if (visibleCount === 0) {
+                    el.textContent = 'No results found';
+                    el.style.display = '';
+                } else {
+                    el.textContent = `Showing 1 to ${visibleCount} of ${visibleCount} results`;
+                    el.style.display = '';
+                }
+            });
+            // Hide nav if no results or only one page
+            if (visibleCount === 0 || visibleCount <= perPage) {
+                nav.forEach(el => el.style.display = 'none');
+            } else {
+                nav.forEach(el => el.style.display = '');
+            }
         }
 
         // Filter interactions by date range
@@ -3881,26 +3994,30 @@ use Illuminate\Support\Str;
                 .then(result => {
                     if (result.success) {
                         const data = result.data;
-                        
                         // Update KPI cards in dashboard section
                         const dashboardCards = document.querySelectorAll('#dashboard .dashboard-cards .stat-card');
                         if (dashboardCards.length >= 4) {
                             // Update Interactions (Total)
                             const interactionsValue = dashboardCards[1].querySelector('.value');
                             if (interactionsValue) interactionsValue.textContent = data.totalInteractions;
-                            
                             // Update Escalated Queries
                             const escalatedValue = dashboardCards[2].querySelector('.value');
                             if (escalatedValue) escalatedValue.textContent = data.escalatedQueries;
-                            
                             // Update Resolution Rate
                             const resolutionValue = dashboardCards[3].querySelector('.value');
                             if (resolutionValue) resolutionValue.textContent = data.resolutionRate + '%';
                         }
-                        
+                        // Update Feedback KPIs (dashboard and feedback section)
+                        if (document.getElementById('avgFeedbackValue')) {
+                            document.getElementById('avgFeedbackValue').textContent = data.feedbackAvg !== null ? data.feedbackAvg : 'N/A';
+                            document.getElementById('avgFeedbackCount').textContent = `Based on ${data.feedbackCount} feedback${data.feedbackCount === 1 ? '' : 's'}`;
+                        }
+                        if (document.getElementById('avgFeedbackValueSection')) {
+                            document.getElementById('avgFeedbackValueSection').textContent = data.feedbackAvg !== null ? data.feedbackAvg : 'N/A';
+                            document.getElementById('avgFeedbackCountSection').textContent = `Based on ${data.feedbackCount} feedback${data.feedbackCount === 1 ? '' : 's'}`;
+                        }
                         // Update chart
                         updateChart(data.resolvedQueries, data.pendingQueries, data.escalatedQueries);
-                        
                         console.log('KPIs updated from server:', data);
                     } else {
                         console.error('Failed to fetch filtered KPIs:', result.message);

@@ -240,7 +240,7 @@ class DialogflowController extends Controller
                     'timestamp' => now()->toIso8601String()
                 ]);
 
-                if ($retryCount >= $this->maxRetries) {
+                if ($retryCount > $this->maxRetries) {
                     return $this->offerHREscalation($queryText, $employeeNum, $confidence);
                 }
 
@@ -541,38 +541,44 @@ class DialogflowController extends Controller
         $retryCount = Session::get('retry_count', 0);
         
         if ($retryCount > 0) {
+            // If user previously confirmed escalation, but we need more details
+            $pendingEscalation = Session::get('pending_escalation');
+            if ($pendingEscalation && isset($pendingEscalation['awaiting_clarification']) && $pendingEscalation['awaiting_clarification'] === true) {
+                // User's current message is the clarification
+                $clarification = trim($queryText);
+                if (mb_strlen($clarification) < 10) {
+                    return response()->json([
+                        'status' => 'need_more_clarity',
+                        'fulfillmentText' => 'To help HR assist you better, please provide a bit more detail (at least 10 characters) about your issue.'
+                    ]);
+                }
+                // Escalate with the clarified message
+                $originalQuery = $pendingEscalation['query'] ?? '';
+                $originalConfidence = $pendingEscalation['confidence'] ?? 0.0;
+                Log::info('✅ Escalating with user-provided clarification', [
+                    'original_query' => $originalQuery,
+                    'clarification' => $clarification,
+                    'original_confidence' => $originalConfidence
+                ]);
+                Session::forget('pending_escalation');
+                return $this->escalateToHR(
+                    $clarification,
+                    $employeeNum,
+                    "User provided clarification after escalation confirmation.",
+                    $originalConfidence,
+                    $conversation ? $conversation->id : null
+                );
+            }
             // Check if user wants to escalate
             if ($this->wantsEscalation($queryText)) {
-                $this->resetRetryCount();
-                
-                // 🎯 FIXED: Use stored pending escalation data (original failed query)
-                $pendingEscalation = Session::get('pending_escalation');
-                
-                if ($pendingEscalation && isset($pendingEscalation['query'])) {
-                    $originalQuery = $pendingEscalation['query'];
-                    $originalConfidence = $pendingEscalation['confidence'] ?? 0.0;
-                    
-                    Log::info('✅ Escalating with ORIGINAL query data', [
-                        'original_query' => $originalQuery,
-                        'original_confidence' => $originalConfidence,
-                        'user_confirmation' => $queryText
-                    ]);
-                    
-                    // Clear pending escalation from session
-                    Session::forget('pending_escalation');
-                    
-                    // Use original query and confidence for ticket priority
-                    return $this->escalateToHR(
-                        $originalQuery, 
-                        $employeeNum, 
-                        "User chose escalation after {$retryCount} retries",
-                        $originalConfidence,
-                        $conversation ? $conversation->id : null
-                    );
-                } else {
-                    Log::warning('⚠️ No pending escalation data found, using current query');
-                    return $this->escalateToHR($queryText, $employeeNum, "User chose escalation after {$retryCount} retries", null, $conversation ? $conversation->id : null);
-                }
+                // Instead of escalating immediately, prompt for more details
+                Session::put('pending_escalation', array_merge(Session::get('pending_escalation', []), [
+                    'awaiting_clarification' => true
+                ]));
+                return response()->json([
+                    'status' => 'ask_for_clarity',
+                    'fulfillmentText' => 'Before I escalate this to HR, could you please provide a bit more detail about your issue? (Please describe your concern in at least 10 characters.)'
+                ]);
             }
 
             // Check if user wants to rephrase
@@ -1105,24 +1111,19 @@ class DialogflowController extends Controller
      */
     private function determinePriority(string $queryText, float $confidence = null): string
     {
-        // Critical/Urgent keywords - override confidence score
-        // Only actual urgent situations, not informational questions
+        // HR-related keywords for all priorities
         $urgentKeywords = [
             'harass', 'discriminat', 'wrongful termination', 'fired unfairly',
             'legal action', 'lawyer', 'sue', 'court', 'police',
             'unsafe', 'danger', 'threat', 'violence', 'assault',
             'suicide', 'self-harm', 'abuse', 'safety concern', 'bully', 'bullied'
         ];
-
-        // High priority keywords - salary, benefits, employment status issues
         $highPriorityKeywords = [
             'salary discrepancy', 'not paid', 'unpaid', 'missing pay', 'wrong salary',
             'benefit claim', 'urgent benefit', 'benefit denied', 'benefit issue',
             'promotion dispute', 'ranking dispute', 'demotion', 'unfair ranking',
             'compensation issue', 'payroll error'
         ];
-
-        // Medium priority keywords - non-urgent HR questions
         $mediumPriorityKeywords = [
             'leave credit', 'vacation leave', 'sick leave', 'leave balance',
             'benefit polic', 'insurance polic', 'health benefit',
@@ -1130,6 +1131,20 @@ class DialogflowController extends Controller
             'training opportunit', 'employee development', 'career development',
             'performance review'
         ];
+        $allKeywords = array_merge($urgentKeywords, $highPriorityKeywords, $mediumPriorityKeywords);
+
+        // If the message does not contain any HR-related keywords, always assign Low
+        $hasKeyword = false;
+        foreach ($allKeywords as $keyword) {
+            if (stripos($queryText, $keyword) !== false) {
+                $hasKeyword = true;
+                break;
+            }
+        }
+        if (!$hasKeyword) {
+            Log::info('No HR keywords detected, assigning Low priority', ['query' => substr($queryText, 0, 50)]);
+            return 'Low';
+        }
 
         // Check critical keywords first (always Urgent regardless of confidence)
         foreach ($urgentKeywords as $keyword) {
@@ -1138,46 +1153,35 @@ class DialogflowController extends Controller
                 return 'Urgent';
             }
         }
-
-        // Check high priority keywords (salary, benefits, employment disputes)
         foreach ($highPriorityKeywords as $keyword) {
             if (stripos($queryText, $keyword) !== false) {
                 Log::info('⚠️ High priority keyword detected', ['keyword' => $keyword, 'query' => substr($queryText, 0, 50)]);
                 return 'High';
             }
         }
-
-        // Check medium priority keywords (leave, policies, training)
         foreach ($mediumPriorityKeywords as $keyword) {
             if (stripos($queryText, $keyword) !== false) {
                 Log::info('📋 Medium priority keyword detected', ['keyword' => $keyword, 'query' => substr($queryText, 0, 50)]);
                 return 'Medium';
             }
         }
-
-        // Use confidence-based categorization
+        // Use confidence-based categorization (should not be reached if keywords are present, but fallback just in case)
         if ($confidence !== null) {
             Log::info('📊 Using confidence-based priority', ['confidence' => $confidence]);
             if ($confidence < 0.50) {
-                // Below 50% confidence = Urgent
                 Log::info('Priority: Urgent (confidence < 50%)');
                 return 'Urgent';
             } elseif ($confidence < 0.70) {
-                // 50-70% confidence = High
                 Log::info('Priority: High (confidence 50-70%)');
                 return 'High';
             } elseif ($confidence < 0.85) {
-                // 70-85% confidence = Medium
                 Log::info('Priority: Medium (confidence 70-85%)');
                 return 'Medium';
             } else {
-                // Above 85% confidence = Low
                 Log::info('Priority: Low (confidence > 85%)');
                 return 'Low';
             }
         }
-
-        // Default to Low for escalations with no confidence data
         Log::info('Priority: Low (default - no confidence data)');
         return 'Low';
     }

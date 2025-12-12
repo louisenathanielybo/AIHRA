@@ -99,11 +99,24 @@ class AdminController extends Controller
         // 🆕 NEW: Get feedback data for feedback tab with pagination
         $feedbackSortColumn = in_array($feedbackSort, ['feedbackID', 'rating', 'timeStamp']) ? $feedbackSort : 'timeStamp';
         
+
         $feedbackData = DB::table('feedback')
             ->join('users', 'feedback.employeeNum', '=', 'users.employeeNum')
             ->select('feedback.*', 'users.firstName', 'users.lastName')
             ->orderBy('feedback.' . $feedbackSortColumn, $feedbackDir)
             ->paginate(20);
+
+        // Get all feedbacks for KPI (not paginated)
+        $allFeedbackData = DB::table('feedback')
+            ->join('users', 'feedback.employeeNum', '=', 'users.employeeNum')
+            ->select('feedback.*', 'users.firstName', 'users.lastName')
+            ->orderBy('feedback.' . $feedbackSortColumn, $feedbackDir)
+            ->get()
+            ->map(function($feedback) {
+                // Add a formatted date field for JavaScript date parsing
+                $feedback->formatted_date = \Carbon\Carbon::parse($feedback->timeStamp)->format('Y-m-d');
+                return $feedback;
+            });
 
         // 🆕 NEW: Get data for performance tab - paginate interactions
         $interactionsSortColumn = in_array($interactionsSort, ['question', 'questionTime', 'isEscalated']) ? $interactionsSort : 'questionTime';
@@ -205,7 +218,7 @@ class AdminController extends Controller
             'totalTicketsChange', 'unresolvedTicketsChange', 'resolvedTicketsChange',
             'activeUsers', 'totalInteractions', 'escalatedQueries',
             'resolvedQueries', 'pendingQueries', 'escalatedCount',
-            'feedbackData', 'recentInteractions', 'flaggedResponses', 'mostAskedTopics', 'avgResponseTime',
+            'feedbackData', 'allFeedbackData', 'recentInteractions', 'flaggedResponses', 'mostAskedTopics', 'avgResponseTime',
             'allInteractionsData', 'allTicketsData',
             'ticketsSort', 'ticketsDir', 'feedbackSort', 'feedbackDir', 
             'interactionsSort', 'interactionsDir', 'flagsSort', 'flagsDir'
@@ -967,10 +980,12 @@ class AdminController extends Controller
             // Build queries with optional date filtering
             $queriesQuery = DB::table('queries');
             $ticketsQuery = DB::table('hr_inbox');
+            $feedbackQuery = DB::table('feedback');
 
             if ($startDate && $endDate) {
                 $queriesQuery->whereBetween('questionTime', [$startDate, $endDate]);
                 $ticketsQuery->whereBetween('created_at', [$startDate, $endDate]);
+                $feedbackQuery->whereBetween('timeStamp', [$startDate, $endDate]);
             }
 
             // Calculate KPIs
@@ -980,6 +995,11 @@ class AdminController extends Controller
             $pendingQueries = $ticketsData->whereIn('status', ['Open', 'Waiting for HR'])->count();
             $resolvedQueries = $totalInteractions - $pendingQueries;
 
+            // Feedback KPIs
+            $feedbacks = $feedbackQuery->get();
+            $feedbackCount = $feedbacks->count();
+            $feedbackAvg = $feedbackCount > 0 ? round($feedbacks->avg('rating'), 2) : null;
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -987,7 +1007,9 @@ class AdminController extends Controller
                     'escalatedQueries' => $escalatedQueries,
                     'pendingQueries' => $pendingQueries,
                     'resolvedQueries' => $resolvedQueries,
-                    'resolutionRate' => $totalInteractions > 0 ? round(($resolvedQueries / $totalInteractions) * 100, 1) : 0
+                    'resolutionRate' => $totalInteractions > 0 ? round(($resolvedQueries / $totalInteractions) * 100, 1) : 0,
+                    'feedbackAvg' => $feedbackAvg,
+                    'feedbackCount' => $feedbackCount
                 ]
             ]);
         } catch (\Exception $e) {

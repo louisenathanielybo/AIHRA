@@ -1120,10 +1120,10 @@
                 <p id="ratingDescription" style="text-align: center; color: #666; font-size: 16px; font-weight: 500; margin-bottom: 25px; min-height: 24px;">Select a rating</p>
                 <input type="hidden" name="rating" id="ratingValue" required>
 
-                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">Subject *</label>
+                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">Subject</label>
                 <input type="text" name="subject" id="feedbackSubject" placeholder="Brief subject line..." style="width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;" required>
 
-                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">Comment *</label>
+                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">Comment</label>
                 <textarea name="suggestion" id="suggestion" placeholder="We would like to know what you think ..." 
                     style="width: 100%; height: 120px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; box-sizing: border-box;" required></textarea>
 
@@ -1782,7 +1782,7 @@ async function sendMessage() {
         // Reload conversation list to update title with first message
         try {
             await loadConversations();
-            // To prevent the just-shown message from disappearing due to immediate reload,
+            // To prevent the just-shown  from disappearing due to immediate reload,
             // do NOT auto-reload the conversation here. The persisted message will be visible
             // the next time the user opens or switches conversations.
             // We keep the local bubble, and rely on conversation reloads initiated by the user.
