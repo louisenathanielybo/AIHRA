@@ -1509,6 +1509,32 @@ use Illuminate\Support\Str;
 
             <!-- Feedback Tab -->
             <div id="feedback" class="dashboard-tab-content">
+                <!-- KPI: Average Feedback Rating -->
+                <div style="display: flex; gap: 24px; margin-bottom: 18px; flex-wrap: wrap;">
+                    <!-- Average Feedback Rating KPI -->
+                    <div id="avgFeedbackKPI" style="background: white; padding: 18px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.07); display: flex; align-items: center; gap: 18px; max-width: 400px; min-width: 260px;">
+                        <div style="font-size: 2.2rem; color: #f39c12;">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.1rem; color: var(--primary); font-weight: 600;">Average Feedback Rating</div>
+                            <div id="avgFeedbackValue" style="font-size: 2rem; font-weight: bold; color: var(--secondary);">N/A</div>
+                            <div id="avgFeedbackCount" style="font-size: 0.95rem; color: #666;">Based on 0 feedbacks</div>
+                        </div>
+                    </div>
+                    <!-- Most Common Flagged Reason KPI -->
+                    <div id="commonFlaggedReasonKPI" style="background: white; padding: 18px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(220, 53, 69, 0.07); display: flex; align-items: center; gap: 18px; max-width: 400px; min-width: 260px;">
+                        <div style="font-size: 2.2rem; color: #dc3545;">
+                            <i class="fas fa-flag"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.1rem; color: var(--danger); font-weight: 600;">Most Common Flagged Reason</div>
+                            <div id="commonFlaggedReasonValue" style="font-size: 1.2rem; font-weight: bold; color: var(--danger);">N/A</div>
+                            <div id="commonFlaggedReasonCount" style="font-size: 0.95rem; color: #666;">Based on 0 flags</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Feedback Analytics Charts -->
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
                     <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
@@ -1520,36 +1546,55 @@ use Illuminate\Support\Str;
                         <canvas id="flaggedReasonChart" style="max-height: 300px;"></canvas>
                     </div>
                 </div>
-
-                <!-- KPI: Average Feedback Rating -->
-                <div id="avgFeedbackKPI" style="background: white; padding: 18px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.07); margin-bottom: 18px; display: flex; align-items: center; gap: 18px; max-width: 400px;">
-                    <div style="font-size: 2.2rem; color: #f39c12;">
-                        <i class="fas fa-star"></i>
-                    </div>
-                    <div>
-                        <div style="font-size: 1.1rem; color: var(--primary); font-weight: 600;">Average Feedback Rating</div>
-                        <div id="avgFeedbackValue" style="font-size: 2rem; font-weight: bold; color: var(--secondary);">N/A</div>
-                        <div id="avgFeedbackCount" style="font-size: 0.95rem; color: #666;">Based on 0 feedbacks</div>
-                    </div>
-                </div>
         <script>
-        // Store all feedback data for KPI calculation
-        // Use all feedbacks if available, otherwise fallback to paginated feedbacks
+        // Store all flagged data for KPI calculation
+        let allFlaggedData = @json(isset($allFlaggedData) ? $allFlaggedData : (isset($flaggedResponses) ? $flaggedResponses : []));
+        // If flaggedResponses is a Laravel Collection, convert to array
+        if (allFlaggedData && typeof allFlaggedData === 'object' && allFlaggedData.data) {
+            allFlaggedData = allFlaggedData.data;
+        }
+        // ...existing allFeedbackData code...
         const allFeedbackData = @json((isset($allFeedbackData) && count($allFeedbackData)) ? $allFeedbackData : (isset($feedbackData) ? $feedbackData->items() : []));
 
+        // Update both KPIs on date range change
+        function updateFlaggedReasonKPI() {
+            // Use only visible rows in flaggedDashTable for KPI, matching the chart and table
+            const flaggedRows = document.querySelectorAll('#flaggedDashTable tbody tr');
+            const reasonCounts = {};
+            let visibleCount = 0;
+            flaggedRows.forEach(row => {
+                if (row.style.display === 'none' || row.querySelector('td[colspan]')) return;
+                const reasonCell = row.cells[2];
+                let reason = reasonCell ? reasonCell.textContent.trim() : 'Unknown';
+                if (!reason) reason = 'Unknown';
+                reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+                visibleCount++;
+            });
+            let mostCommon = 'N/A', mostCount = 0;
+            for (const [reason, count] of Object.entries(reasonCounts)) {
+                if (count > mostCount) {
+                    mostCommon = reason;
+                    mostCount = count;
+                }
+            }
+            document.getElementById('commonFlaggedReasonValue').textContent = mostCommon;
+            document.getElementById('commonFlaggedReasonCount').textContent = `Based on ${visibleCount} flag${visibleCount === 1 ? '' : 's'}`;
+        }
 
         function updateAverageFeedbackKPI() {
             // Deprecated: now handled by fetchFilteredKPIs for accuracy
         }
 
-        // Update KPI on date range change
+        // Update KPIs on date range change
         document.addEventListener('DOMContentLoaded', function() {
             updateAverageFeedbackKPI();
+            updateFlaggedReasonKPI();
         });
         window.applyDateRangeFilter = (function(orig){
             return function() {
                 orig && orig.apply(this, arguments);
                 updateAverageFeedbackKPI();
+                updateFlaggedReasonKPI();
             }
         })(window.applyDateRangeFilter);
         </script>
@@ -3587,6 +3632,8 @@ use Illuminate\Support\Str;
                     row.style.display = 'none';
                 }
             });
+            // Update flagged reason KPI after filtering
+            if (typeof updateFlaggedReasonKPI === 'function') updateFlaggedReasonKPI();
         }
 
         // Parse date from table cell (handles multiple formats)
@@ -4062,6 +4109,8 @@ use Illuminate\Support\Str;
         function markSortedColumn(tableId, columns, sortColumn, sortDir) {
             const table = document.getElementById(tableId);
             if (!table) return;
+            // Ensure flagged reason KPI is always updated after all filtering
+            if (typeof updateFlaggedReasonKPI === 'function') updateFlaggedReasonKPI();
             
             const columnIndex = columns.indexOf(sortColumn);
             if (columnIndex === -1) return;
