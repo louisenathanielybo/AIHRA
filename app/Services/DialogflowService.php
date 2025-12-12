@@ -12,11 +12,12 @@ class DialogflowService
     protected $sessionsClient;
     protected $projectId;
 
-    public function __construct()
+    public function __construct($credentialsPath = null)
     {
         $this->projectId = 'aihra-472311';
+        $credentials = $credentialsPath ?? (function_exists('base_path') ? base_path('aihra-key.json') : dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'aihra-key.json');
         $this->sessionsClient = new SessionsClient([
-            'credentials' => base_path('aihra-key.json'),
+            'credentials' => $credentials,
         ]);
     }
 

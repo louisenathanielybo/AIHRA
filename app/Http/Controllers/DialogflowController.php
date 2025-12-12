@@ -355,34 +355,56 @@ class DialogflowController extends Controller
                 'line' => $e->getLine()
             ]);
 
-            // 🆕 FIXED: Better error response that doesn't break the frontend
-            $fallbackReply = "I encountered an error processing that request. Let me help you by creating a support ticket for HR, or you can browse our guided topics to find what you need.";
-            // Ensure a conversation exists for this session so replies are persisted
-            try {
-                $sessionId = $request->input('sessionId') ?? session()->getId();
-                $userId = Auth::id();
-
-                $conv = null;
-                if (class_exists(Conversation::class)) {
-                    $conv = Conversation::where('session_id', $sessionId)
-                        ->orderBy('created_at', 'desc')
-                        ->first();
-
-                    if ($conv && empty($conv->user_id) && $userId) {
-                        $conv->user_id = $userId;
-                        $conv->save();
-                    }
-
-                    if (!$conv) {
-                        $conv = Conversation::create([
-                            'user_id' => $userId,
-                            'session_id' => $sessionId,
-                            'first_message' => $queryText ?? null,
-                            'title' => null,
+            // Retry logic for exceptions: only show fallback after 3 failures
+            $retryCount = Session::get('retry_count', 0) + 1;
+            Session::put('retry_count', $retryCount);
+            $sessionId = $request->input('sessionId') ?? session()->getId();
+            $userId = Auth::id();
+            $conv = null;
+            if (class_exists(Conversation::class)) {
+                $conv = Conversation::where('session_id', $sessionId)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                if ($conv && empty($conv->user_id) && $userId) {
+                    $conv->user_id = $userId;
+                    $conv->save();
+                }
+                if (!$conv) {
+                    $conv = Conversation::create([
+                        'user_id' => $userId,
+                        'session_id' => $sessionId,
+                        'first_message' => $queryText ?? null,
+                        'title' => null,
+                    ]);
+                }
+            }
+            if ($retryCount < $this->maxRetries) {
+                $retryText = $this->getRetryMessage($retryCount);
+                if ($conv) {
+                    try {
+                        ChatMessage::create([
+                            'ticket_no' => null,
+                            'sender' => 'bot',
+                            'message' => $retryText,
+                            'conversation_id' => $conv->id
                         ]);
+                        if (empty($conv->title)) {
+                            $conv->title = now()->toDateString() . ' - ' . Str::limit($conv->first_message ?? $queryText, 80);
+                            $conv->save();
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to save retry bot message (exception): ' . $e->getMessage());
                     }
                 }
-
+                return response()->json([
+                    'status' => 'retry',
+                    'fulfillmentText' => $retryText,
+                    'retryCount' => $retryCount,
+                    'needs_clarification' => true
+                ]);
+            } else {
+                // After 3 failures, show fallback
+                $fallbackReply = "I encountered an error processing that request. Let me help you by creating a support ticket for HR, or you can browse our guided topics to find what you need.";
                 if ($conv) {
                     try {
                         ChatMessage::create([
@@ -391,7 +413,6 @@ class DialogflowController extends Controller
                             'message' => $fallbackReply,
                             'conversation_id' => $conv->id
                         ]);
-
                         if (empty($conv->title)) {
                             $conv->title = now()->toDateString() . ' - ' . Str::limit($conv->first_message ?? $queryText, 80);
                             $conv->save();
@@ -400,15 +421,14 @@ class DialogflowController extends Controller
                         Log::warning('Failed to save fallback bot message: ' . $e->getMessage());
                     }
                 }
-            } catch (\Throwable $e) {
-                Log::warning('Failed to ensure conversation for fallback message: ' . $e->getMessage());
+                // Reset retry count after fallback
+                Session::forget('retry_count');
+                return response()->json([
+                    'status' => 'success',
+                    'fulfillmentText' => $fallbackReply,
+                    'fallback' => true
+                ]);
             }
-
-            return response()->json([
-                'status' => 'success', // Use success to prevent frontend errors
-                'fulfillmentText' => $fallbackReply,
-                'fallback' => true
-            ]);
         }
     }
 
@@ -577,7 +597,7 @@ class DialogflowController extends Controller
                 ]));
                 return response()->json([
                     'status' => 'ask_for_clarity',
-                    'fulfillmentText' => 'Before I escalate this to the HR team, could you please provide a bit more detail about your issue?'
+                    'fulfillmentText' => 'Before I escalate this to HR, could you please provide a bit more detail about your issue? (Please describe your concern in at least 10 characters.)'
                 ]);
             }
 
@@ -1111,20 +1131,24 @@ class DialogflowController extends Controller
      */
     private function determinePriority(string $queryText, float $confidence = null): string
     {
-        // HR-related keywords for all priorities
+        // Critical/Urgent keywords - override confidence score
+        // Only actual urgent situations, not informational questions
         $urgentKeywords = [
             'harass', 'discriminat', 'wrongful termination', 'fired unfairly',
             'legal action', 'lawyer', 'sue', 'court', 'police',
             'unsafe', 'danger', 'threat', 'violence', 'assault',
-            'suicide', 'self-harm', 'abuse', 'safety concern', 'bully', 'bullied',
-            'emergency', 'urgent', 'immediate attention', 'life-threatening', 'crisis', 'critical situation'
+            'suicide', 'self-harm', 'abuse', 'safety concern', 'bully', 'bullied'
         ];
+
+        // High priority keywords - salary, benefits, employment status issues
         $highPriorityKeywords = [
             'salary discrepancy', 'not paid', 'unpaid', 'missing pay', 'wrong salary',
             'benefit claim', 'urgent benefit', 'benefit denied', 'benefit issue',
             'promotion dispute', 'ranking dispute', 'demotion', 'unfair ranking',
             'compensation issue', 'payroll error'
         ];
+
+        // Medium priority keywords - non-urgent HR questions
         $mediumPriorityKeywords = [
             'leave credit', 'vacation leave', 'sick leave', 'leave balance',
             'benefit polic', 'insurance polic', 'health benefit',
@@ -1132,20 +1156,6 @@ class DialogflowController extends Controller
             'training opportunit', 'employee development', 'career development',
             'performance review'
         ];
-        $allKeywords = array_merge($urgentKeywords, $highPriorityKeywords, $mediumPriorityKeywords);
-
-        // If the message does not contain any HR-related keywords, always assign Low
-        $hasKeyword = false;
-        foreach ($allKeywords as $keyword) {
-            if (stripos($queryText, $keyword) !== false) {
-                $hasKeyword = true;
-                break;
-            }
-        }
-        if (!$hasKeyword) {
-            Log::info('No HR keywords detected, assigning Low priority', ['query' => substr($queryText, 0, 50)]);
-            return 'Low';
-        }
 
         // Check critical keywords first (always Urgent regardless of confidence)
         foreach ($urgentKeywords as $keyword) {
@@ -1154,35 +1164,46 @@ class DialogflowController extends Controller
                 return 'Urgent';
             }
         }
+
+        // Check high priority keywords (salary, benefits, employment disputes)
         foreach ($highPriorityKeywords as $keyword) {
             if (stripos($queryText, $keyword) !== false) {
                 Log::info('⚠️ High priority keyword detected', ['keyword' => $keyword, 'query' => substr($queryText, 0, 50)]);
                 return 'High';
             }
         }
+
+        // Check medium priority keywords (leave, policies, training)
         foreach ($mediumPriorityKeywords as $keyword) {
             if (stripos($queryText, $keyword) !== false) {
                 Log::info('📋 Medium priority keyword detected', ['keyword' => $keyword, 'query' => substr($queryText, 0, 50)]);
                 return 'Medium';
             }
         }
-        // Use confidence-based categorization (should not be reached if keywords are present, but fallback just in case)
+
+        // Use confidence-based categorization
         if ($confidence !== null) {
             Log::info('📊 Using confidence-based priority', ['confidence' => $confidence]);
             if ($confidence < 0.50) {
+                // Below 50% confidence = Urgent
                 Log::info('Priority: Urgent (confidence < 50%)');
                 return 'Urgent';
             } elseif ($confidence < 0.70) {
+                // 50-70% confidence = High
                 Log::info('Priority: High (confidence 50-70%)');
                 return 'High';
             } elseif ($confidence < 0.85) {
+                // 70-85% confidence = Medium
                 Log::info('Priority: Medium (confidence 70-85%)');
                 return 'Medium';
             } else {
+                // Above 85% confidence = Low
                 Log::info('Priority: Low (confidence > 85%)');
                 return 'Low';
             }
         }
+
+        // Default to Low for escalations with no confidence data
         Log::info('Priority: Low (default - no confidence data)');
         return 'Low';
     }

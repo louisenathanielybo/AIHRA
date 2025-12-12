@@ -7,7 +7,7 @@ use App\Services\DialogflowService;
 try {
     echo "Testing Dialogflow with SSL fix...\n\n";
     
-    $dialogflow = new DialogflowService();
+    $dialogflow = new DialogflowService(__DIR__ . '/aihra-key.json');
     $result = $dialogflow->detectIntent("What are the regular working hours?", "test-session-123");
     
     echo "✅ Success!\n";
