@@ -1222,54 +1222,6 @@ use Illuminate\Support\Str;
                     </table>
                 </div>
                 
-                <div class="data-table">
-                    <h3>Flagged Responses ({{ count($flaggedResponses ?? []) }})</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Query</th>
-                                <th>Reason</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($flaggedResponses as $flagged)
-                            <tr id="flag-row-{{ $flagged->flaggedID }}">
-                                <td>{{ $flagged->firstName }} {{ $flagged->lastName }}</td>
-                                <td title="{{ $flagged->question }}">{{ \Illuminate\Support\Str::limit($flagged->question, 50) }}</td>
-                                <td>{{ $flagged->description ?? $flagged->reasonID ?? 'Unknown' }}</td>
-                                <td>{{ \Carbon\Carbon::parse($flagged->timeStamp)->format('d/m/y') }}</td>
-                                <td><span class="status {{ strtolower($flagged->status) }}">{{ $flagged->status }}</span></td>
-                                <td>
-                                    @if($flagged->status === 'Pending')
-                                    <button class="btn btn-primary" style="padding: 6px 12px; margin-right: 5px;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Reviewed')">
-                                        Review
-                                    </button>
-                                    <button class="btn" style="padding: 6px 12px; background: var(--success); color: white;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Resolved')">
-                                        Resolved
-                                    </button>
-                                    @elseif($flagged->status === 'Reviewed')
-                                    <button class="btn" style="padding: 6px 12px; background: var(--success); color: white;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Resolved')">
-                                        Resolved
-                                    </button>
-                                    @else
-                                    <span style="color: #666;">—</span>
-                                    @endif
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="6" style="text-align: center; padding: 30px; color: #666;">
-                                    No flagged responses found.
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
             </div>
 
             <!-- Feedback Tab -->
@@ -1306,6 +1258,57 @@ use Illuminate\Support\Str;
                             <tr>
                                 <td colspan="4" style="text-align: center; padding: 30px; color: #666;">
                                     No feedback received yet.
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="data-table" style="margin-top: 30px;">
+                    <h3>Flagged Responses ({{ count($flaggedResponses ?? []) }})</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Flag ID</th>
+                                <th>User</th>
+                                <th>Query</th>
+                                <th>Reason</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($flaggedResponses as $flagged)
+                            <tr id="flag-row-{{ $flagged->flaggedID }}">
+                                <td><strong>#{{ str_pad($flagged->displayID ?? 1, 6, '0', STR_PAD_LEFT) }}</strong></td>
+                                <td>{{ $flagged->firstName }} {{ $flagged->lastName }}</td>
+                                <td title="{{ $flagged->question }}">{{ \Illuminate\Support\Str::limit($flagged->question, 50) }}</td>
+                                <td>{{ $flagged->description ?? $flagged->reasonID ?? 'Unknown' }}</td>
+                                <td>{{ \Carbon\Carbon::parse($flagged->timeStamp)->format('d/m/y') }}</td>
+                                <td><span class="status {{ strtolower($flagged->status) }}">{{ $flagged->status }}</span></td>
+                                <td>
+                                    @if($flagged->status === 'Pending')
+                                    <button class="btn btn-primary" style="padding: 6px 12px; margin-right: 5px;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Reviewed')">
+                                        Review
+                                    </button>
+                                    <button class="btn" style="padding: 6px 12px; background: var(--success); color: white;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Resolved')">
+                                        Resolved
+                                    </button>
+                                    @elseif($flagged->status === 'Reviewed')
+                                    <button class="btn" style="padding: 6px 12px; background: var(--success); color: white;" onclick="updateFlagStatus('{{ $flagged->flaggedID }}', 'Resolved')">
+                                        Resolved
+                                    </button>
+                                    @else
+                                    <span style="color: #666;">—</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
+                                    No flagged responses found.
                                 </td>
                             </tr>
                             @endforelse
@@ -1350,12 +1353,57 @@ use Illuminate\Support\Str;
                     </tbody>
                 </table>
             </div>
-
+        </div>
+        
+        <!-- Feedback Section -->
+        <div id="feedback-section" class="section-content">
             <div class="data-table">
+                <h3>User Feedback</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feedback ID</th>
+                            <th>User</th>
+                            <th>Rating</th>
+                            <th>Feedback</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($feedbackData as $feedback)
+                        <tr>
+                            <td><strong>#{{ str_pad($feedback->displayID ?? 1, 6, '0', STR_PAD_LEFT) }}</strong></td>
+                            <td>{{ $feedback->firstName }} {{ $feedback->lastName }}</td>
+                            <td>
+                                @for($i = 1; $i <= 5; $i++)
+                                    @if($i <= $feedback->rating)
+                                        ⭐
+                                    @else
+                                        ☆
+                                    @endif
+                                @endfor
+                                ({{ $feedback->rating }}/5)
+                            </td>
+                            <td>{{ $feedback->suggestion ?? 'No feedback text' }}</td>
+                            <td>{{ \Carbon\Carbon::parse($feedback->timeStamp)->format('M d, Y H:i') }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 30px; color: #666;">
+                                No feedback received yet.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="data-table" style="margin-top: 30px;">
                 <h3>Flagged Responses ({{ count($flaggedResponses ?? []) }})</h3>
                 <table>
                     <thead>
                         <tr>
+                            <th>Flag ID</th>
                             <th>User</th>
                             <th>Query</th>
                             <th>Reason</th>
@@ -1367,9 +1415,10 @@ use Illuminate\Support\Str;
                     <tbody>
                         @forelse($flaggedResponses as $flagged)
                         <tr id="flag-row-{{ $flagged->flaggedID }}">
+                            <td><strong>#{{ str_pad($flagged->displayID ?? 1, 6, '0', STR_PAD_LEFT) }}</strong></td>
                             <td>{{ $flagged->firstName }} {{ $flagged->lastName }}</td>
                             <td title="{{ $flagged->question }}">{{ \Illuminate\Support\Str::limit($flagged->question, 50) }}</td>
-                            <td>{{ $flagged->reasonID ?? 'Unknown' }}</td>
+                            <td>{{ $flagged->description ?? $flagged->reasonID ?? 'Unknown' }}</td>
                             <td>{{ \Carbon\Carbon::parse($flagged->timeStamp)->format('d/m/y') }}</td>
                             <td><span class="status {{ strtolower($flagged->status) }}">{{ $flagged->status }}</span></td>
                             <td>
@@ -1391,50 +1440,8 @@ use Illuminate\Support\Str;
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" style="text-align: center; padding: 30px; color: #666;">
+                            <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
                                 No flagged responses found.
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- Feedback Section -->
-        <div id="feedback-section" class="section-content">
-            <div class="data-table">
-                <h3>User Feedback</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Rating</th>
-                            <th>Feedback</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($feedbackData as $feedback)
-                        <tr>
-                            <td>{{ $feedback->firstName }} {{ $feedback->lastName }}</td>
-                            <td>
-                                @for($i = 1; $i <= 5; $i++)
-                                    @if($i <= $feedback->rating)
-                                        ⭐
-                                    @else
-                                        ☆
-                                    @endif
-                                @endfor
-                                ({{ $feedback->rating }}/5)
-                            </td>
-                            <td>{{ $feedback->suggestion ?? 'No feedback text' }}</td>
-                            <td>{{ \Carbon\Carbon::parse($feedback->timeStamp)->format('M d, Y H:i') }}</td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="4" style="text-align: center; padding: 30px; color: #666;">
-                                No feedback received yet.
                             </td>
                         </tr>
                         @endforelse
@@ -1740,7 +1747,6 @@ use Illuminate\Support\Str;
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 25px; justify-content: flex-end;">
                     <button type="button" class="btn-secondary" onclick="closeTicketModal()">Close</button>
-                    <button type="button" class="btn-primary" onclick="resolveTicket()" id="resolveBtn">Mark as Resolved</button>
                 </div>
             </div>
         </div>
@@ -2361,86 +2367,89 @@ use Illuminate\Support\Str;
         function viewTicketModal(ticketId) {
             currentTicketId = ticketId;
             
-            // For now, using mock data. In real app, you'd fetch from server
-            const mockTicketData = {
-                ticket_no: ticketId,
-                from_user: 'emp_12345',
-                message: 'This is a detailed message about the ticket inquiry. The user is asking about leave policies and requirements for emergency leave applications.',
-                priority: 'high',
-                status: 'open',
-                category: 'Leave Policy',
-                intent: 'leave_inquiry',
-                confidence: '0.95',
-                created_at: '2025-01-23 14:30:00',
-                updated_at: '2025-01-23 14:30:00'
-            };
+            console.log('Fetching ticket details for:', ticketId);
             
-            // Populate modal with ticket data
-            const ticketContent = `
-                <div class="ticket-details-grid">
-                    <div class="ticket-detail-item">
-                        <label>Ticket Number:</label>
-                        <div class="value">${mockTicketData.ticket_no}</div>
-                    </div>
-                    <div class="ticket-detail-item">
-                        <label>From User:</label>
-                        <div class="value">${mockTicketData.from_user}</div>
-                    </div>
-                    <div class="ticket-detail-item">
-                        <label>Priority:</label>
-                        <div class="value">
-                            <span class="priority ${mockTicketData.priority}">
-                                ${mockTicketData.priority.charAt(0).toUpperCase() + mockTicketData.priority.slice(1)}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="ticket-detail-item">
-                        <label>Status:</label>
-                        <div class="value">
-                            <span class="status ${mockTicketData.status}">
-                                ${mockTicketData.status.charAt(0).toUpperCase() + mockTicketData.status.slice(1)}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="ticket-detail-item">
-                        <label>Category:</label>
-                        <div class="value">${mockTicketData.category}</div>
-                    </div>
-                    <div class="ticket-detail-item">
-                        <label>Intent:</label>
-                        <div class="value">${mockTicketData.intent}</div>
-                    </div>
-                    <div class="ticket-detail-item">
-                        <label>Confidence:</label>
-                        <div class="value">${(mockTicketData.confidence * 100).toFixed(1)}%</div>
-                    </div>
-                    <div class="ticket-detail-item">
-                        <label>Created:</label>
-                        <div class="value">${new Date(mockTicketData.created_at).toLocaleString()}</div>
-                    </div>
-                    <div class="ticket-detail-item">
-                        <label>Last Updated:</label>
-                        <div class="value">${new Date(mockTicketData.updated_at).toLocaleString()}</div>
-                    </div>
-                    <div class="ticket-detail-item ticket-message">
-                        <label>Message:</label>
-                        <div class="value">${mockTicketData.message}</div>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('ticketDetailsContent').innerHTML = ticketContent;
-            
-            // Show/hide resolve button based on current status
-            const resolveBtn = document.getElementById('resolveBtn');
-            if (mockTicketData.status === 'resolved') {
-                resolveBtn.style.display = 'none';
-            } else {
-                resolveBtn.style.display = 'block';
-            }
-            
-            // Show modal
-            document.getElementById('viewTicketModal').classList.add('active');
+            // Fetch real ticket data from server
+            fetch(`/admin/tickets/${encodeURIComponent(ticketId)}`)
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Received data:', data);
+                    if (data.success) {
+                        const ticket = data.ticket;
+                        
+                        // Populate modal with ticket data
+                        const ticketContent = `
+                            <div class="ticket-details-grid">
+                                <div class="ticket-detail-item">
+                                    <label>Ticket Number:</label>
+                                    <div class="value">${ticket.ticket_no}</div>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>From User:</label>
+                                    <div class="value">${ticket.from_user}</div>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Priority:</label>
+                                    <div class="value">
+                                        <span class="priority ${ticket.priority || 'medium'}">
+                                            ${ticket.priority ? ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1) : 'Medium'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Status:</label>
+                                    <div class="value">
+                                        <span class="status ${ticket.status ? ticket.status.toLowerCase() : 'open'}">
+                                            ${ticket.status || 'Open'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Category:</label>
+                                    <div class="value">${ticket.category || 'N/A'}</div>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Intent:</label>
+                                    <div class="value">${ticket.intent || 'N/A'}</div>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Confidence:</label>
+                                    <div class="value">${ticket.confidence ? (ticket.confidence * 100).toFixed(1) + '%' : 'N/A'}</div>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Created:</label>
+                                    <div class="value">${new Date(ticket.created_at).toLocaleString()}</div>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <label>Last Updated:</label>
+                                    <div class="value">${new Date(ticket.updated_at).toLocaleString()}</div>
+                                </div>
+                                <div class="ticket-detail-item ticket-message">
+                                    <label>Message:</label>
+                                    <div class="value">${ticket.message}</div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.getElementById('ticketDetailsContent').innerHTML = ticketContent;
+                        
+                        // Show modal
+                        document.getElementById('viewTicketModal').classList.add('active');
+                    } else {
+                        console.error('Failed to load ticket:', data.message);
+                        alert('Failed to load ticket details: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching ticket:', error);
+                    alert('Error loading ticket details: ' + error.message + '\n\nPlease check the console for more details.');
+                });
         }
 
         function closeTicketModal() {

@@ -1027,7 +1027,7 @@
                 </div>
                 <div class="account-details">
                     <div class="account-name">{{ Auth::user()->name }}</div>
-                    <div class="account-role">Employee</div>
+                    <div class="account-role">HR</div>
                 </div>
                 <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">
                     @csrf
@@ -1042,7 +1042,7 @@
     <!-- Main Content -->
     <div class="main-content">
         <div style="background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 class="welcome-message" style="margin: 0;">Welcome back, <span>{{ Auth::user()->name }}</span>!</h1>
+            <h1 class="welcome-message" style="margin: 0;">Welcome, <span>{{ Auth::user()->name }}</span>!</h1>
             
             <nav class="top-nav">
                 <a href="#announcements" onclick="showSection('announcements')" class="top-nav-link active" id="top-link-announcements">Home</a>
@@ -1051,8 +1051,38 @@
             </nav>
         </div>
 
+        
+
         <!-- Announcements Section -->
         <div id="announcements" class="section active">
+            <!-- Inbox Summary (Home only) -->
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px;">
+                <div style="background: #ffffff; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                    <div style="font-size: 14px; color: #555;">📨 Inbox</div>
+                    <div style="font-size: 24px; font-weight: 700;">{{ $inboxStats['total'] ?? 0 }}</div>
+                    <div style="font-size: 12px; color: #888;">Total Tickets</div>
+                </div>
+                <div style="background: #fff4f4; border: 1px solid #f8c7c7; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size: 14px; color: #b00020;">Urgent Priority</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #b00020;">{{ $inboxStats['urgent'] ?? 0 }}</div>
+                </div>
+                <div style="background: #fff9f1; border: 1px solid #ffd9a5; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size: 14px; color: #e65100;">High Priority</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #e65100;">{{ $inboxStats['high'] ?? 0 }}</div>
+                </div>
+                <div style="background: #f1fff6; border: 1px solid #b8e6c3; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size: 14px; color: #2e7d32;">Medium Priority</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #2e7d32;">{{ $inboxStats['medium'] ?? 0 }}</div>
+                </div>
+                <div style="background: #f5f9ff; border: 1px solid #c6dcff; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size: 14px; color: #1565c0;">ℹLow Priority</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #1565c0;">{{ $inboxStats['low'] ?? 0 }}</div>
+                </div>
+                <div style="background: #f7f7f7; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size: 14px; color: #444;">Replied</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #444;">{{ $inboxStats['replied'] ?? 0 }}</div>
+                </div>
+            </div>
             <div class="table-container">
                 <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 20px;">
                     <h2 style="margin: 0;">🏠 Announcements</h2>
@@ -1075,6 +1105,9 @@
                             <div class="announcement-header">
                                 <h3 class="announcement-title">{{ $a->title }}</h3>
                                 <div class="announcement-actions">
+                                    <span class="edit-link" onclick="editAnnouncement({{ $a->id }})" style="margin-right: 15px; cursor: pointer; color: #4CAF50;">
+                                        <i class="fa-solid fa-edit"></i> Edit
+                                    </span>
                                     <span class="delete-link" onclick="deleteAnnouncement({{ $a->id }})">
                                         <i class="fa-solid fa-trash"></i> Delete
                                     </span>
@@ -1085,9 +1118,30 @@
                                 <img src="data:image/jpeg;base64,{{ base64_encode($a->image) }}" 
                                     class="announcement-image">
                             @endif
-                            <small style="color: #999;">
-                                {{ \Carbon\Carbon::parse($a->createdAt)->timezone('Asia/Manila')->format('M d, Y \a\t h:i A') }}
-                            </small>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                                <small style="color: #999;">
+                                    {{ \Carbon\Carbon::parse($a->createdAt)->timezone('Asia/Manila')->format('M d, Y \a\t h:i A') }}
+                                </small>
+                                @if($a->expiry_date)
+                                    @php
+                                        $expiryDate = \Carbon\Carbon::parse($a->expiry_date);
+                                        $now = \Carbon\Carbon::now();
+                                        $daysLeft = $now->diffInDays($expiryDate, false);
+                                    @endphp
+                                    <small style="padding: 4px 8px; border-radius: 4px; font-weight: 500;
+                                        {{ $daysLeft < 0 ? 'background: #f44336; color: white;' : ($daysLeft <= 3 ? 'background: #ff9800; color: white;' : 'background: #4CAF50; color: white;') }}">
+                                        @if($daysLeft < 0)
+                                            ⚠️ Expired
+                                        @elseif($daysLeft == 0)
+                                            ⏰ Expires today
+                                        @elseif($daysLeft == 1)
+                                            ⏰ Expires in 1 day
+                                        @else
+                                            ⏰ Expires in {{ $daysLeft }} days
+                                        @endif
+                                    </small>
+                                @endif
+                            </div>
                         </div>
                     @empty
                         <p style="color: #666; text-align: center; padding: 40px;">No announcements yet. Create your first announcement!</p>
@@ -1136,7 +1190,36 @@
                             <button type="button" class="split-tab active" id="btn-pending" onclick="switchTicketList('pending')">
                                 <i class="fa-regular fa-clock"></i>
                                 <span>Pending</span>
-                                <span class="tab-count">{{ $inbox->where('status','!=','Resolved')->count() }}</span>
+                                @php
+                                    $pendingCount = $inbox->filter(function($t){
+                                        if ($t->status === 'Resolved') return false;
+                                        // Determine current deadline stage
+                                        $deadline = is_null($t->responded_at) ? $t->response_deadline : $t->resolution_deadline;
+                                        if ($deadline) {
+                                            $dl = \Carbon\Carbon::parse($deadline);
+                                            return !$dl->isPast();
+                                        }
+                                        // If no deadline, treat as pending
+                                        return true;
+                                    })->count();
+                                @endphp
+                                <span class="tab-count">{{ $pendingCount }}</span>
+                            </button>
+                            <button type="button" class="split-tab" id="btn-overdue" onclick="switchTicketList('overdue')">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <span>Overdue</span>
+                                @php
+                                    $overdueCount = $inbox->filter(function($t){
+                                        if ($t->status === 'Resolved') return false;
+                                        $deadline = is_null($t->responded_at) ? $t->response_deadline : $t->resolution_deadline;
+                                        if ($deadline) {
+                                            $dl = \Carbon\Carbon::parse($deadline);
+                                            return $dl->isPast();
+                                        }
+                                        return false;
+                                    })->count();
+                                @endphp
+                                <span class="tab-count">{{ $overdueCount }}</span>
                             </button>
                             <button type="button" class="split-tab" id="btn-resolved" onclick="switchTicketList('resolved')">
                                 <i class="fa-solid fa-check"></i>
@@ -1147,7 +1230,15 @@
 
                         <h3 class="split-heading" id="heading-pending">Pending Tickets</h3>
                         <div id="list-pending">
-                        @forelse($inbox->filter(function($t){ return $t->status !== 'Resolved'; }) as $ticket)
+                        @forelse($inbox->filter(function($t){
+                            if ($t->status === 'Resolved') return false;
+                            $deadline = is_null($t->responded_at) ? $t->response_deadline : $t->resolution_deadline;
+                            if ($deadline) {
+                                $dl = \Carbon\Carbon::parse($deadline);
+                                return !$dl->isPast();
+                            }
+                            return true; // no deadline => pending
+                        }) as $ticket)
                             <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')">
                                 <strong>🎫 {{ $ticket->ticket_no }}</strong>
                                 <div class="ticket-meta">
@@ -1199,6 +1290,63 @@
                             </div>
                         @empty
                             <p>No pending tickets.</p>
+                        @endforelse
+                        </div>
+
+                        <h3 class="split-heading" style="display:none;" id="heading-overdue">Overdue Tickets</h3>
+                        <div id="list-overdue" style="display:none;">
+                        @forelse($inbox->filter(function($t){
+                            if ($t->status === 'Resolved') return false;
+                            $deadline = is_null($t->responded_at) ? $t->response_deadline : $t->resolution_deadline;
+                            if ($deadline) {
+                                $dl = \Carbon\Carbon::parse($deadline);
+                                return $dl->isPast();
+                            }
+                            return false;
+                        }) as $ticket)
+                            <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')">
+                                <strong>🎫 {{ $ticket->ticket_no }}</strong>
+                                <div class="ticket-meta">
+                                    <div>{{ Str::limit($ticket->message, 50) }}</div>
+                                    <div>
+                                        <span class="badge {{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span>
+                                        <span class="badge">{{ $ticket->category }}</span>
+                                        @php
+                                            $deadlineLabel = null;
+                                            $deadlineOverdue = false;
+                                            $action = null;
+                                            if ($t = $ticket) {
+                                                if ($t->status !== 'Resolved') {
+                                                    if (is_null($t->responded_at)) {
+                                                        $deadline = $t->response_deadline;
+                                                        $action = 'Respond';
+                                                    } else {
+                                                        $deadline = $t->resolution_deadline;
+                                                        $action = 'Resolve';
+                                                    }
+                                                    if ($deadline) {
+                                                        $dl = \Carbon\Carbon::parse($deadline);
+                                                        $deadlineOverdue = $dl->isPast();
+                                                        $diff = $dl->diffForHumans(null, ['parts' => 2, 'short' => true, 'syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE]);
+                                                        $deadlineLabel = $deadlineOverdue ? ($action . ' overdue by ' . $diff) : ($action . ' in ' . $diff);
+                                                    }
+                                                }
+                                            }
+                                        @endphp
+                                        @if(!is_null($deadlineLabel))
+                                            <span class="badge deadline overdue">{{ $deadlineLabel }}</span>
+                                        @endif
+                                    </div>
+                                    @if($ticket->status === 'Replied')
+                                        <span class="badge replied">Replied</span>
+                                    @endif
+                                    <button class="resolve-btn" onclick="event.stopPropagation(); resolveTicket('{{ $ticket->ticket_no }}')">
+                                        ✅ Resolve
+                                    </button>
+                                </div>
+                            </div>
+                        @empty
+                            <p>No overdue tickets.</p>
                         @endforelse
                         </div>
 
@@ -1365,6 +1513,15 @@
                 </small>
             </div>
 
+            <div class="form-group">
+                <label>Expiry Date <span class="required">*</span></label>
+                <input type="date" name="expiry_date" id="announcementExpiryDate" required 
+                       placeholder="Select expiry date" min="{{ date('Y-m-d') }}">
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    Announcement will be automatically deleted after this date.
+                </small>
+            </div>
+
             <div class="modal-buttons">
                 <button type="button" class="cancel-button" onclick="closeAddAnnouncementModal()">Cancel</button>
                 <button type="submit" class="submit-button">Create Announcement</button>
@@ -1516,7 +1673,6 @@
         </div>
         <form id="editAnnouncementForm" class="modal-form" onsubmit="handleAnnouncementUpdate(event)">
             @csrf
-            @method('PUT')
             <input type="hidden" name="announcement_id" id="editAnnouncementId">
             
             <div class="form-group">
@@ -1541,6 +1697,12 @@
                 <label>Update Image (optional)</label>
                 <input type="file" name="image" id="editAnnouncementImage" accept="image/*">
                 <small style="color: #666;">Leave empty to keep current image</small>
+            </div>
+
+            <div class="form-group">
+                <label>Expiry Date</label>
+                <input type="date" name="expiry_date" id="editAnnouncementExpiryDate" min="{{ date('Y-m-d') }}">
+                <small style="color: #666;">Set or clear the expiry date</small>
             </div>
 
             <div style="display: flex; gap: 10px;">
@@ -1626,29 +1788,42 @@
         }
     }
 
-    // Switch between pending and resolved ticket lists
+    // Switch between pending, overdue, and resolved ticket lists
     function switchTicketList(which){
         const pendingBtn = document.getElementById('btn-pending');
+        const overdueBtn = document.getElementById('btn-overdue');
         const resolvedBtn = document.getElementById('btn-resolved');
         const headingPending = document.getElementById('heading-pending');
+        const headingOverdue = document.getElementById('heading-overdue');
         const headingResolved = document.getElementById('heading-resolved');
         const listPending = document.getElementById('list-pending');
+        const listOverdue = document.getElementById('list-overdue');
         const listResolved = document.getElementById('list-resolved');
-        if(!pendingBtn || !resolvedBtn || !headingPending || !headingResolved || !listPending || !listResolved) return;
-        if(which === 'resolved'){
-            pendingBtn.classList.remove('active');
-            resolvedBtn.classList.add('active');
-            headingPending.style.display = 'none';
-            listPending.style.display = 'none';
-            headingResolved.style.display = '';
-            listResolved.style.display = '';
-        } else {
-            resolvedBtn.classList.remove('active');
+        if(!pendingBtn || !overdueBtn || !resolvedBtn || !headingPending || !headingOverdue || !headingResolved || !listPending || !listOverdue || !listResolved) return;
+        // Reset active
+        pendingBtn.classList.remove('active');
+        overdueBtn.classList.remove('active');
+        resolvedBtn.classList.remove('active');
+        // Hide all
+        headingPending.style.display = 'none';
+        listPending.style.display = 'none';
+        headingOverdue.style.display = 'none';
+        listOverdue.style.display = 'none';
+        headingResolved.style.display = 'none';
+        listResolved.style.display = 'none';
+        // Show selected
+        if(which === 'pending'){
             pendingBtn.classList.add('active');
-            headingResolved.style.display = 'none';
-            listResolved.style.display = 'none';
             headingPending.style.display = '';
             listPending.style.display = '';
+        } else if(which === 'overdue'){
+            overdueBtn.classList.add('active');
+            headingOverdue.style.display = '';
+            listOverdue.style.display = '';
+        } else {
+            resolvedBtn.classList.add('active');
+            headingResolved.style.display = '';
+            listResolved.style.display = '';
         }
     }
 
@@ -1751,8 +1926,21 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
     
     function editAnnouncement(id) {
         // Fetch announcement data
-        fetch(`/hr/announcements/${id}`)
-            .then(response => response.json())
+        fetch(`/hr/announcements/${id}`, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+            .then(async (response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    throw new Error('Invalid content-type');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     const announcement = data.announcement;
@@ -1761,6 +1949,12 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
                     document.getElementById('editAnnouncementId').value = announcement.id;
                     document.getElementById('editAnnouncementTitle').value = announcement.title;
                     document.getElementById('editAnnouncementDescription').value = announcement.description;
+                    // Populate expiry date if exists
+                    if (announcement.expiry_date) {
+                        document.getElementById('editAnnouncementExpiryDate').value = announcement.expiry_date;
+                    } else {
+                        document.getElementById('editAnnouncementExpiryDate').value = '';
+                    }
                     
                     // Handle image display
                     const imageElement = document.getElementById('currentAnnouncementImage');
@@ -1924,6 +2118,30 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
             showNotification('❌ Failed to update profile');
         });
     }
+
+    // ===== NAVIGATION FIX =====
+    // Ensure sidebar and top nav link clicks switch sections reliably
+    (function() {
+        const bindNav = (selectorPrefix) => {
+            document.querySelectorAll(selectorPrefix + ' a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const href = link.getAttribute('href') || '';
+                    const hash = href.startsWith('#') ? href.substring(1) : null;
+                    const target = link.dataset.target || hash;
+                    if (target) {
+                        showSection(target);
+                    }
+                });
+            });
+        };
+        // Bind sidebar nav
+        const sidebarNav = document.querySelector('.sb-nav');
+        if (sidebarNav) bindNav('.sb-nav');
+        // Bind top nav
+        const topNav = document.querySelector('.top-nav');
+        if (topNav) bindNav('.top-nav');
+    })();
 
     function handlePasswordChange(event) {
         event.preventDefault();
