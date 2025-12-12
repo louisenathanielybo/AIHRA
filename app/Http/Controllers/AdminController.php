@@ -51,7 +51,11 @@ class AdminController extends Controller
             ->join('users', 'feedback.employeeNum', '=', 'users.employeeNum')
             ->select('feedback.*', 'users.firstName', 'users.lastName')
             ->orderBy('feedback.timeStamp', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($item, $index) {
+                $item->displayID = $index + 1;
+                return $item;
+            });
 
         // 🆕 NEW: Get data for performance tab
         $recentInteractions = DB::table('queries')
@@ -66,7 +70,11 @@ class AdminController extends Controller
             ->join('queries', 'flaggedresponse.queryID', '=', 'queries.queryID')
             ->select('flaggedresponse.*', 'users.firstName', 'users.lastName', 'queries.question')
             ->orderBy('flaggedresponse.timeStamp', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($item, $index) {
+                $item->displayID = $index + 1; // Add sequential display ID
+                return $item;
+            });
 
         // Get users with pagination and search
         $search = request('search', '');
@@ -183,7 +191,7 @@ class AdminController extends Controller
             'middleName' => 'nullable|string|max:255',
             'role' => 'required|in:Employee,Admin,HR',
             'sex' => 'required|in:Male,Female',
-            'birth_date' => 'required|date|after_or_equal:'.$minBirth.'|before_or_equal:'.$maxBirth,
+            'dob' => 'required|date|after_or_equal:'.$minBirth.'|before_or_equal:'.$maxBirth,
             'about' => 'nullable|string|max:255',
             'status' => 'required|in:Active,Deactivated'
         ]);
@@ -196,8 +204,8 @@ class AdminController extends Controller
         }
 
         try {
-            // Compute age from birth_date
-            $birthDate = \Carbon\Carbon::parse($request->birth_date);
+            // Compute age from dob
+            $birthDate = \Carbon\Carbon::parse($request->dob);
             $age = $birthDate->diffInYears(now());
             DB::table('users')->insert([
                 'employeeNum' => $request->employeeNum,
@@ -209,7 +217,7 @@ class AdminController extends Controller
                 'role' => $request->role,
                 'sex' => $request->sex,
                 'age' => $age,
-                'birth_date' => $birthDate->format('Y-m-d'),
+                'dob' => $birthDate->format('Y-m-d'),
                 'about' => $request->about,
                 'status' => $request->status,
                 'profile_picture' => 'default.png'
@@ -492,6 +500,60 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to fetch tickets: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getTicketDetails($ticketId)
+    {
+        try {
+            \Log::info('Fetching ticket details', ['ticketId' => $ticketId]);
+            
+            // Clean the ticket ID
+            $ticketId = trim($ticketId);
+            
+            $ticket = DB::table('hr_inbox')
+                ->where('ticket_no', $ticketId)
+                ->orWhere('id', $ticketId)
+                ->first();
+
+            \Log::info('Ticket query result', ['found' => !is_null($ticket), 'ticketId' => $ticketId]);
+
+            if (!$ticket) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ticket not found with ID: ' . $ticketId
+                ], 404);
+            }
+
+            // Ensure all fields are properly set with defaults
+            $ticketData = [
+                'ticket_no' => $ticket->ticket_no ?? $ticketId,
+                'from_user' => $ticket->from_user ?? 'Unknown',
+                'message' => $ticket->message ?? 'No message',
+                'priority' => $ticket->priority ?? 'medium',
+                'status' => $ticket->status ?? 'Open',
+                'category' => $ticket->category ?? 'General',
+                'intent' => $ticket->intent ?? 'N/A',
+                'confidence' => $ticket->confidence ?? 0.0,
+                'created_at' => $ticket->created_at ?? now(),
+                'updated_at' => $ticket->updated_at ?? now(),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'ticket' => $ticketData
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to fetch ticket details', [
+                'ticketId' => $ticketId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch ticket details: ' . $e->getMessage()
             ], 500);
         }
     }

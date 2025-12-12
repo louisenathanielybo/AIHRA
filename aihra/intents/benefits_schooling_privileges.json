@@ -1,0 +1,35 @@
+{
+  "id": "8e84a168-79e1-40a8-bcab-c72021a4fb5f",
+  "name": "benefits_schooling_privileges",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "\"Full-time regular employees may receive a 50% tuition discount, while probationary employees receive a 15% discount. After 3 years of residency, faculty may also receive a 50% discount. If the degree is not offered by DWCC, employees may receive equivalent benefits such as an Official Business (OB) status or a monetary grant.\""
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

@@ -1,0 +1,35 @@
+{
+  "id": "8d29f065-4851-4b47-b59c-b8e57b95a944",
+  "name": "compensation_increments",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "\"Non-teaching personnel scoring 65–85 points in evaluations may receive a one-step salary increase, while those scoring 86–100 points may receive a two-step increase. Salary increases may also be granted via merit, promotion, or temporary assignments.\""
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

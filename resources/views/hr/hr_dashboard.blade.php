@@ -181,6 +181,52 @@
             transform: scale(1.05);
         }
 
+        /* Split tabs (match employee UI) */
+        .split-tabs {
+            display: flex;
+            gap: 8px;
+            background: #fff;
+            padding: 6px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .split-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 16px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: #444;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all .18s ease;
+        }
+        .split-tab:hover { background: #f2f2f2; }
+        .split-tab.active {
+            background: #28a745;
+            color: #fff;
+            border-color: #28a745;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
+        }
+        .split-tab .tab-count {
+            background: rgba(255,255,255,.2);
+            color: inherit;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+        .split-heading {
+            margin-top: 10px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #0F3936;
+        }
+
         /* Account Section */
         .account {
             position: absolute;
@@ -429,6 +475,85 @@
             margin-bottom: 15px;
         }
 
+        /* Sidebar Footer */
+        .sidebar-footer {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            padding: 0 20px;
+        }
+
+        .account-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .account-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #1fbf8e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .account-details {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .account-name {
+            font-weight: 500;
+            font-size: 14px;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .account-role {
+            font-size: 12px;
+            color: #a8d5b5;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #a8d5b5;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
         /* ===== ACCOUNT SECTION STYLES ===== */
         .account-layout {
             display: flex;
@@ -558,13 +683,14 @@
         }
 
         .modal-content {
-            background: #e6fbf5;
+            background: white;
             padding: 30px;
             border-radius: 15px;
-            max-width: 420px;
+            max-width: 500px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
         .modal-header {
@@ -590,8 +716,9 @@
 
         .modal-title {
             margin: 0;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
+            color: #0F3936;
         }
 
         /* Form Styles */
@@ -600,11 +727,20 @@
         .modal-form textarea {
             width: 100%;
             padding: 12px;
-            border: none;
+            border: 1px solid #ddd;
             border-radius: 8px;
             box-sizing: border-box;
-            background: #d0f0e0;
+            background: white;
             font-family: inherit;
+            font-size: 14px;
+        }
+
+        .modal-form input:focus,
+        .modal-form select:focus,
+        .modal-form textarea:focus {
+            outline: none;
+            border-color: #28a745;
+            box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
         }
 
         .form-row {
@@ -624,7 +760,8 @@
         .form-group label {
             display: block;
             margin-bottom: 5px;
-            font-size: 13px;
+            font-size: 14px;
+            font-weight: 600;
             color: #333;
         }
 
@@ -636,15 +773,12 @@
             background: none;
             border: none;
             cursor: pointer;
-        }
-
-        .password-toggle i {
-            color: #28a745;
+            color: #666;
         }
 
         .submit-button {
             width: 100%;
-            padding: 15px;
+            padding: 12px;
             background: #28a745;
             color: white;
             border: none;
@@ -652,20 +786,30 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .submit-button:hover {
+            background: #218838;
         }
 
         .cancel-button {
             width: 100%;
-            padding: 15px;
-            background: #d3d3d3;
-            color: #666;
+            padding: 12px;
+            background: #6c757d;
+            color: white;
             border: none;
             border-radius: 8px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+
+        .cancel-button:hover {
+            background: #5a6268;
         }
 
         /* Profile Picture Upload */
@@ -762,6 +906,96 @@
         #editAnnouncementModal .modal-content {
             max-width: 600px;
         }
+        
+        /* Add Announcement Button */
+        .add-announcement-btn {
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 8px;
+        }
+        
+        .add-announcement-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Add Announcement Modal specific styles */
+        #addAnnouncementModal .modal-content {
+            max-width: 500px;
+        }
+        
+        #addAnnouncementModal .form-group label {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        #addAnnouncementModal input[type="text"],
+        #addAnnouncementModal textarea,
+        #addAnnouncementModal input[type="file"] {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        #addAnnouncementModal textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        #addAnnouncementModal input[type="file"] {
+            padding: 8px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-buttons button {
+            flex: 1;
+        }
+        
+        /* Status Messages */
+        .status-message {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+            display: none;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        .required {
+            color: #dc3545;
+        }
     </style>
 </head>
 <body class="forAll">
@@ -786,20 +1020,29 @@
             </a>
         </nav>
 
-        <div class="sb-bottom">
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-                <button type="submit" class="sb-link sb-btn">
-                    <i class="fa-solid fa-right-from-bracket"></i><span>Log Out</span>
+        <div class="sidebar-footer">
+            <div class="account-info">
+                <div class="account-avatar">
+                    {{ substr(Auth::user()->name, 0, 1) }}
+                </div>
+                <div class="account-details">
+                    <div class="account-name">{{ Auth::user()->name }}</div>
+                    <div class="account-role">HR</div>
+                </div>
+                <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">
+                    @csrf
+                </form>
+                <button class="logout-btn" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" title="Log Out">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
-            </form>
+            </div>
         </div>
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
         <div style="background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 class="welcome-message" style="margin: 0;">Welcome back, <span>{{ Auth::user()->name }}</span>!</h1>
+            <h1 class="welcome-message" style="margin: 0;">Welcome, <span>{{ Auth::user()->name }}</span>!</h1>
             
             <nav class="top-nav">
                 <a href="#announcements" onclick="showSection('announcements')" class="top-nav-link active" id="top-link-announcements">Home</a>
@@ -808,46 +1051,48 @@
             </nav>
         </div>
 
+        
+
         <!-- Announcements Section -->
         <div id="announcements" class="section active">
+            <!-- Inbox Summary (Home only) -->
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px;">
+                <div style="background: #ffffff; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                    <div style="font-size: 14px; color: #555;">📨 Inbox</div>
+                    <div style="font-size: 24px; font-weight: 700;">{{ $inboxStats['total'] ?? 0 }}</div>
+                    <div style="font-size: 12px; color: #888;">Total Tickets</div>
+                </div>
+                <div style="background: #fff4f4; border: 1px solid #f8c7c7; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size: 14px; color: #b00020;">Urgent Priority</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #b00020;">{{ $inboxStats['urgent'] ?? 0 }}</div>
+                </div>
+                <div style="background: #fff9f1; border: 1px solid #ffd9a5; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size: 14px; color: #e65100;">High Priority</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #e65100;">{{ $inboxStats['high'] ?? 0 }}</div>
+                </div>
+                <div style="background: #f1fff6; border: 1px solid #b8e6c3; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size: 14px; color: #2e7d32;">Medium Priority</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #2e7d32;">{{ $inboxStats['medium'] ?? 0 }}</div>
+                </div>
+                <div style="background: #f5f9ff; border: 1px solid #c6dcff; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size: 14px; color: #1565c0;">ℹLow Priority</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #1565c0;">{{ $inboxStats['low'] ?? 0 }}</div>
+                </div>
+                <div style="background: #f7f7f7; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size: 14px; color: #444;">Replied</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #444;">{{ $inboxStats['replied'] ?? 0 }}</div>
+                </div>
+            </div>
             <div class="table-container">
-                <h2>🏠 Announcements</h2>
-
-                {{-- Toggle Button --}}
-                <button id="toggleAnnouncementForm" class="btn" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 15px;">
-                    + Add an Announcement
-                </button>
-
-                {{-- Announcement Form (hidden by default) --}}
-                <form id="announcementForm" action="{{ route('hr.announcements.store') }}" method="POST" enctype="multipart/form-data" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: none;">
-                    @csrf
-                    <div class="form-group">
-                        <label>Title</label>
-                        <input type="text" name="title" class="form-control" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Description</label>
-                        <textarea name="description" rows="4" class="form-control" required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Image (optional)</label>
-                        <input type="file" name="image" class="form-control">
-                    </div>
-
-                    <div style="display: flex; gap: 10px;">
-                        <button type="submit" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
-                            Proceed
-                        </button>
-                        <button type="button" id="cancelAnnouncement" style="background: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
+                <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">🏠 Announcements</h2>
+                    <button class="add-announcement-btn" onclick="showAddAnnouncementModal()">
+                        + Add Announcement
+                    </button>
+                </div>
 
                 {{-- Display announcements --}}
-                <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="display: flex; flex-direction: column; gap: 15px;" id="announcementsList">
                     @php
                         $announcements = DB::table('announcements')
                             ->where('isActive', 1)
@@ -856,10 +1101,13 @@
                     @endphp
 
                     @forelse ($announcements as $a)
-                        <div class="announcement-card">
+                        <div class="announcement-card" id="announcement-{{ $a->id }}">
                             <div class="announcement-header">
                                 <h3 class="announcement-title">{{ $a->title }}</h3>
                                 <div class="announcement-actions">
+                                    <span class="edit-link" onclick="editAnnouncement({{ $a->id }})" style="margin-right: 15px; cursor: pointer; color: #4CAF50;">
+                                        <i class="fa-solid fa-edit"></i> Edit
+                                    </span>
                                     <span class="delete-link" onclick="deleteAnnouncement({{ $a->id }})">
                                         <i class="fa-solid fa-trash"></i> Delete
                                     </span>
@@ -870,12 +1118,33 @@
                                 <img src="data:image/jpeg;base64,{{ base64_encode($a->image) }}" 
                                     class="announcement-image">
                             @endif
-                            <small style="color: #999;">
-                                {{ \Carbon\Carbon::parse($a->createdAt)->timezone('Asia/Manila')->format('M d, Y \a\t h:i A') }}
-                            </small>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                                <small style="color: #999;">
+                                    {{ \Carbon\Carbon::parse($a->createdAt)->timezone('Asia/Manila')->format('M d, Y \a\t h:i A') }}
+                                </small>
+                                @if($a->expiry_date)
+                                    @php
+                                        $expiryDate = \Carbon\Carbon::parse($a->expiry_date);
+                                        $now = \Carbon\Carbon::now();
+                                        $daysLeft = $now->diffInDays($expiryDate, false);
+                                    @endphp
+                                    <small style="padding: 4px 8px; border-radius: 4px; font-weight: 500;
+                                        {{ $daysLeft < 0 ? 'background: #f44336; color: white;' : ($daysLeft <= 3 ? 'background: #ff9800; color: white;' : 'background: #4CAF50; color: white;') }}">
+                                        @if($daysLeft < 0)
+                                            ⚠️ Expired
+                                        @elseif($daysLeft == 0)
+                                            ⏰ Expires today
+                                        @elseif($daysLeft == 1)
+                                            ⏰ Expires in 1 day
+                                        @else
+                                            ⏰ Expires in {{ $daysLeft }} days
+                                        @endif
+                                    </small>
+                                @endif
+                            </div>
                         </div>
                     @empty
-                        <p style="color: #666; text-align: center;">No announcements yet.</p>
+                        <p style="color: #666; text-align: center; padding: 40px;">No announcements yet. Create your first announcement!</p>
                     @endforelse
                 </div>
             </div>
@@ -915,10 +1184,61 @@
                 </div>
 
                 <div class="ticket-container">
-                    <!-- Ticket List -->
+                    <!-- Ticket List with Pending/Resolved toggle -->
                     <div class="ticket-list">
-                        <h3 style="margin-top: 0;">Pending Tickets</h3>
-                        @forelse($inbox as $ticket)
+                        <div class="split-tabs">
+                            <button type="button" class="split-tab active" id="btn-pending" onclick="switchTicketList('pending')">
+                                <i class="fa-regular fa-clock"></i>
+                                <span>Pending</span>
+                                @php
+                                    $pendingCount = $inbox->filter(function($t){
+                                        if ($t->status === 'Resolved') return false;
+                                        // Determine current deadline stage
+                                        $deadline = is_null($t->responded_at) ? $t->response_deadline : $t->resolution_deadline;
+                                        if ($deadline) {
+                                            $dl = \Carbon\Carbon::parse($deadline);
+                                            return !$dl->isPast();
+                                        }
+                                        // If no deadline, treat as pending
+                                        return true;
+                                    })->count();
+                                @endphp
+                                <span class="tab-count">{{ $pendingCount }}</span>
+                            </button>
+                            <button type="button" class="split-tab" id="btn-overdue" onclick="switchTicketList('overdue')">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <span>Overdue</span>
+                                @php
+                                    $overdueCount = $inbox->filter(function($t){
+                                        if ($t->status === 'Resolved') return false;
+                                        $deadline = is_null($t->responded_at) ? $t->response_deadline : $t->resolution_deadline;
+                                        if ($deadline) {
+                                            $dl = \Carbon\Carbon::parse($deadline);
+                                            return $dl->isPast();
+                                        }
+                                        return false;
+                                    })->count();
+                                @endphp
+                                <span class="tab-count">{{ $overdueCount }}</span>
+                            </button>
+                            <button type="button" class="split-tab" id="btn-resolved" onclick="switchTicketList('resolved')">
+                                <i class="fa-solid fa-check"></i>
+                                <span>Resolved</span>
+                                <span class="tab-count">{{ $inbox->where('status','Resolved')->count() }}</span>
+                            </button>
+                        </div>
+
+                        <h3 class="split-heading" id="heading-pending">Pending Tickets</h3>
+                        <div id="list-pending">
+                        @forelse($inbox->filter(function($t){
+                            if ($t->status === 'Resolved') return false;
+                            $deadline = is_null($t->responded_at) ? $t->response_deadline : $t->resolution_deadline;
+                            if ($deadline) {
+                                $dl = \Carbon\Carbon::parse($deadline);
+                                return !$dl->isPast();
+                            }
+                            return true; // no deadline => pending
+                        }) as $ticket)
                             <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')">
                                 <strong>🎫 {{ $ticket->ticket_no }}</strong>
                                 <div class="ticket-meta">
@@ -969,8 +1289,89 @@
                                 </div>
                             </div>
                         @empty
-                            <p>No tickets available.</p>
+                            <p>No pending tickets.</p>
                         @endforelse
+                        </div>
+
+                        <h3 class="split-heading" style="display:none;" id="heading-overdue">Overdue Tickets</h3>
+                        <div id="list-overdue" style="display:none;">
+                        @forelse($inbox->filter(function($t){
+                            if ($t->status === 'Resolved') return false;
+                            $deadline = is_null($t->responded_at) ? $t->response_deadline : $t->resolution_deadline;
+                            if ($deadline) {
+                                $dl = \Carbon\Carbon::parse($deadline);
+                                return $dl->isPast();
+                            }
+                            return false;
+                        }) as $ticket)
+                            <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')">
+                                <strong>🎫 {{ $ticket->ticket_no }}</strong>
+                                <div class="ticket-meta">
+                                    <div>{{ Str::limit($ticket->message, 50) }}</div>
+                                    <div>
+                                        <span class="badge {{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span>
+                                        <span class="badge">{{ $ticket->category }}</span>
+                                        @php
+                                            $deadlineLabel = null;
+                                            $deadlineOverdue = false;
+                                            $action = null;
+                                            if ($t = $ticket) {
+                                                if ($t->status !== 'Resolved') {
+                                                    if (is_null($t->responded_at)) {
+                                                        $deadline = $t->response_deadline;
+                                                        $action = 'Respond';
+                                                    } else {
+                                                        $deadline = $t->resolution_deadline;
+                                                        $action = 'Resolve';
+                                                    }
+                                                    if ($deadline) {
+                                                        $dl = \Carbon\Carbon::parse($deadline);
+                                                        $deadlineOverdue = $dl->isPast();
+                                                        $diff = $dl->diffForHumans(null, ['parts' => 2, 'short' => true, 'syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE]);
+                                                        $deadlineLabel = $deadlineOverdue ? ($action . ' overdue by ' . $diff) : ($action . ' in ' . $diff);
+                                                    }
+                                                }
+                                            }
+                                        @endphp
+                                        @if(!is_null($deadlineLabel))
+                                            <span class="badge deadline overdue">{{ $deadlineLabel }}</span>
+                                        @endif
+                                    </div>
+                                    @if($ticket->status === 'Replied')
+                                        <span class="badge replied">Replied</span>
+                                    @endif
+                                    <button class="resolve-btn" onclick="event.stopPropagation(); resolveTicket('{{ $ticket->ticket_no }}')">
+                                        ✅ Resolve
+                                    </button>
+                                </div>
+                            </div>
+                        @empty
+                            <p>No overdue tickets.</p>
+                        @endforelse
+                        </div>
+
+                        <h3 class="split-heading" style="display:none;" id="heading-resolved">Resolved Tickets</h3>
+                        <div id="list-resolved" style="display:none;">
+                        @forelse($inbox->filter(function($t){ return $t->status === 'Resolved'; }) as $ticket)
+                            <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')">
+                                <strong>🎫 {{ $ticket->ticket_no }}</strong>
+                                <div class="ticket-meta">
+                                    <div>{{ Str::limit($ticket->message, 50) }}</div>
+                                    <div>
+                                        <span class="badge {{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span>
+                                        <span class="badge">{{ $ticket->category }}</span>
+                                        <span class="badge resolved">Resolved</span>
+                                        @if($ticket->is_expired)
+                                            <span class="badge expired">Expired</span>
+                                        @endif
+                                    </div>
+                                    <span class="resolved-badge">✅ Resolved</span>
+                                </div>
+                            </div>
+                        @empty
+                            <p>No resolved tickets.</p>
+                        @endforelse
+                        </div>
                     </div>
 
                     <!-- Chat Container -->
@@ -1001,7 +1402,7 @@
                         <h3>Profile</h3>
                         
                         <div class="profile-image-container">
-                            <img src="{{ isset($user) && $user->profile_picture ? asset('uploads/'.$user->profile_picture) : asset('admin/assets/default-profile.png') }}" 
+                            <img src="{{ isset($user) && $user->profile_picture ? asset('uploads/'.$user->profile_picture) : asset('assets/Logo.png') }}" 
                                  alt="Profile Picture" class="profile-image">
                         </div>
 
@@ -1083,6 +1484,52 @@
     </div>
 </div>
 
+<!-- Add Announcement Modal -->
+<div id="addAnnouncementModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Add New Announcement</h3>
+        </div>
+        <div id="announcementStatus" class="status-message"></div>
+        <form id="addAnnouncementForm" class="modal-form" action="{{ route('hr.announcements.store') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="form-group">
+                <label>Title <span class="required">*</span></label>
+                <input type="text" name="title" id="announcementTitle" required 
+                       placeholder="Enter announcement title" maxlength="200">
+            </div>
+
+            <div class="form-group">
+                <label>Description <span class="required">*</span></label>
+                <textarea name="description" id="announcementDescription" rows="4" required 
+                          placeholder="Enter announcement description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Image (optional)</label>
+                <input type="file" name="image" id="announcementImage" accept="image/*">
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    Supported formats: JPG, PNG, GIF. Max size: 64KB.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label>Expiry Date <span class="required">*</span></label>
+                <input type="date" name="expiry_date" id="announcementExpiryDate" required 
+                       placeholder="Select expiry date" min="{{ date('Y-m-d') }}">
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    Announcement will be automatically deleted after this date.
+                </small>
+            </div>
+
+            <div class="modal-buttons">
+                <button type="button" class="cancel-button" onclick="closeAddAnnouncementModal()">Cancel</button>
+                <button type="submit" class="submit-button">Create Announcement</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Edit Profile Modal -->
 <div id="editProfileModal" class="modal-overlay">
     <div class="modal-content">
@@ -1098,7 +1545,7 @@
             <div class="form-group" style="text-align: center; margin-bottom: 20px;">
                 <div class="profile-upload-container">
                     <img id="profilePreview" class="profile-preview" 
-                         src="{{ isset($user) && $user->profile_picture ? asset('uploads/'.$user->profile_picture) : asset('admin/assets/default-profile.png') }}">
+                         src="{{ isset($user) && $user->profile_picture ? asset('uploads/'.$user->profile_picture) : asset('assets/Logo.png') }}">
                     <label for="profilePictureInput" class="upload-label">
                         <i class="fa-solid fa-camera"></i>
                     </label>
@@ -1226,7 +1673,6 @@
         </div>
         <form id="editAnnouncementForm" class="modal-form" onsubmit="handleAnnouncementUpdate(event)">
             @csrf
-            @method('PUT')
             <input type="hidden" name="announcement_id" id="editAnnouncementId">
             
             <div class="form-group">
@@ -1251,6 +1697,12 @@
                 <label>Update Image (optional)</label>
                 <input type="file" name="image" id="editAnnouncementImage" accept="image/*">
                 <small style="color: #666;">Leave empty to keep current image</small>
+            </div>
+
+            <div class="form-group">
+                <label>Expiry Date</label>
+                <input type="date" name="expiry_date" id="editAnnouncementExpiryDate" min="{{ date('Y-m-d') }}">
+                <small style="color: #666;">Set or clear the expiry date</small>
             </div>
 
             <div style="display: flex; gap: 10px;">
@@ -1336,6 +1788,45 @@
         }
     }
 
+    // Switch between pending, overdue, and resolved ticket lists
+    function switchTicketList(which){
+        const pendingBtn = document.getElementById('btn-pending');
+        const overdueBtn = document.getElementById('btn-overdue');
+        const resolvedBtn = document.getElementById('btn-resolved');
+        const headingPending = document.getElementById('heading-pending');
+        const headingOverdue = document.getElementById('heading-overdue');
+        const headingResolved = document.getElementById('heading-resolved');
+        const listPending = document.getElementById('list-pending');
+        const listOverdue = document.getElementById('list-overdue');
+        const listResolved = document.getElementById('list-resolved');
+        if(!pendingBtn || !overdueBtn || !resolvedBtn || !headingPending || !headingOverdue || !headingResolved || !listPending || !listOverdue || !listResolved) return;
+        // Reset active
+        pendingBtn.classList.remove('active');
+        overdueBtn.classList.remove('active');
+        resolvedBtn.classList.remove('active');
+        // Hide all
+        headingPending.style.display = 'none';
+        listPending.style.display = 'none';
+        headingOverdue.style.display = 'none';
+        listOverdue.style.display = 'none';
+        headingResolved.style.display = 'none';
+        listResolved.style.display = 'none';
+        // Show selected
+        if(which === 'pending'){
+            pendingBtn.classList.add('active');
+            headingPending.style.display = '';
+            listPending.style.display = '';
+        } else if(which === 'overdue'){
+            overdueBtn.classList.add('active');
+            headingOverdue.style.display = '';
+            listOverdue.style.display = '';
+        } else {
+            resolvedBtn.classList.add('active');
+            headingResolved.style.display = '';
+            listResolved.style.display = '';
+        }
+    }
+
     async function openTicket(ticketNo) {
         currentTicket = ticketNo;
         document.querySelectorAll('.ticket-item').forEach(item => item.classList.remove('active'));
@@ -1405,33 +1896,51 @@
         }
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
-        showSection('announcements');
-        
-        // Toggle announcement form
-        const toggleBtn = document.getElementById('toggleAnnouncementForm');
-        const form = document.getElementById('announcementForm');
-        const cancelBtn = document.getElementById('cancelAnnouncement');
-
-        if (toggleBtn && form && cancelBtn) {
-            toggleBtn.addEventListener('click', () => {
-                form.style.display = 'block';
-                toggleBtn.style.display = 'none';
-            });
-
-            cancelBtn.addEventListener('click', () => {
-                form.style.display = 'none';
-                toggleBtn.style.display = 'inline-block';
-            });
-        }
-    });
-
-    // ===== ANNOUNCEMENT EDIT/DELETE FUNCTIONS =====
+    // ===== ANNOUNCEMENT MODAL FUNCTIONS =====
+    function showAddAnnouncementModal() {
+        document.getElementById('addAnnouncementModal').style.display = 'flex';
+        document.getElementById('addAnnouncementForm').reset();
+        document.getElementById('announcementStatus').className = 'status-message';
+        document.getElementById('announcementStatus').innerHTML = '';
+        document.getElementById('announcementStatus').style.display = 'none';
+    }
+    
+    function closeAddAnnouncementModal() {
+        document.getElementById('addAnnouncementModal').style.display = 'none';
+    }
+    
+document.getElementById('addAnnouncementForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const form = this;
+    const statusElement = document.getElementById('announcementStatus');
+    const submitButton = form.querySelector('.submit-button');
+    
+    const originalText = submitButton.textContent;
+    submitButton.innerHTML = 'Creating...';
+    submitButton.disabled = true;
+    
+    form.submit();
+    
+});
     
     function editAnnouncement(id) {
         // Fetch announcement data
-        fetch(`/hr/announcements/${id}`)
-            .then(response => response.json())
+        fetch(`/hr/announcements/${id}`, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+            .then(async (response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    throw new Error('Invalid content-type');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     const announcement = data.announcement;
@@ -1440,6 +1949,12 @@
                     document.getElementById('editAnnouncementId').value = announcement.id;
                     document.getElementById('editAnnouncementTitle').value = announcement.title;
                     document.getElementById('editAnnouncementDescription').value = announcement.description;
+                    // Populate expiry date if exists
+                    if (announcement.expiry_date) {
+                        document.getElementById('editAnnouncementExpiryDate').value = announcement.expiry_date;
+                    } else {
+                        document.getElementById('editAnnouncementExpiryDate').value = '';
+                    }
                     
                     // Handle image display
                     const imageElement = document.getElementById('currentAnnouncementImage');
@@ -1604,6 +2119,30 @@
         });
     }
 
+    // ===== NAVIGATION FIX =====
+    // Ensure sidebar and top nav link clicks switch sections reliably
+    (function() {
+        const bindNav = (selectorPrefix) => {
+            document.querySelectorAll(selectorPrefix + ' a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const href = link.getAttribute('href') || '';
+                    const hash = href.startsWith('#') ? href.substring(1) : null;
+                    const target = link.dataset.target || hash;
+                    if (target) {
+                        showSection(target);
+                    }
+                });
+            });
+        };
+        // Bind sidebar nav
+        const sidebarNav = document.querySelector('.sb-nav');
+        if (sidebarNav) bindNav('.sb-nav');
+        // Bind top nav
+        const topNav = document.querySelector('.top-nav');
+        if (topNav) bindNav('.top-nav');
+    })();
+
     function handlePasswordChange(event) {
         event.preventDefault();
         const form = event.target;
@@ -1665,6 +2204,29 @@
         document.body.appendChild(notification);
         setTimeout(() => notification.remove(), 3000);
     }
+
+    // Close modals when clicking outside
+    document.addEventListener('DOMContentLoaded', function() {
+        showSection('announcements');
+        
+        // Close modal when clicking on overlay
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay').forEach(modal => {
+                    modal.style.display = 'none';
+                });
+            }
+        });
+    });
 </script>
 
 @include('includes.footer')

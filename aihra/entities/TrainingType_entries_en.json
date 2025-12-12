@@ -1,0 +1,27 @@
+[
+  {
+    "value": "seminar",
+    "synonyms": [
+      "seminar",
+      "workshop",
+      "training"
+    ]
+  },
+  {
+    "value": "scholarship",
+    "synonyms": [
+      "seminar",
+      "study grant",
+      "tuition assistance"
+    ]
+  },
+  {
+    "value": "certification",
+    "synonyms": [
+      "certification",
+      "exam",
+      "lincense",
+      "credentialing"
+    ]
+  }
+]

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "c456447d-1d1c-4102-9c76-780649496546",
+    "data": [
+      {
+        "text": "\"What is the policy on scholarships?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "4cd860aa-affc-49aa-b132-cc1e19d76191",
+    "data": [
+      {
+        "text": "\"Are study grants available?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

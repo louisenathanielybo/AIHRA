@@ -1,0 +1,67 @@
+[
+  {
+    "id": "407e2d77-f896-4a0c-9fc2-2642aa4c0979",
+    "data": [
+      {
+        "text": "Are there flexible time arrangements?",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "aebfab78-7a92-49a5-9ebd-09b0aee81e4f",
+    "data": [
+      {
+        "text": "how long is the work per day?",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "df220d77-bfdd-466e-8fa2-2474be0e04ee",
+    "data": [
+      {
+        "text": "work hours?",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "db765bdc-7cdd-43de-8bb2-cba639a72220",
+    "data": [
+      {
+        "text": "\"What is the work schedule?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "99087ae0-73c3-4520-be56-3bf4b4b79bf2",
+    "data": [
+      {
+        "text": "\"What are the working hours?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

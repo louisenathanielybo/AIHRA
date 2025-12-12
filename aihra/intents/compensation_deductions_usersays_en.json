@@ -1,0 +1,28 @@
+[
+  {
+    "id": "201c11f4-6c06-4b23-a30e-05fc8346ce51",
+    "data": [
+      {
+        "text": "\"Why is my salary deducted?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "966604d1-db5c-43d5-9422-662fb7e337d8",
+    "data": [
+      {
+        "text": "\"What are salary deductions?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

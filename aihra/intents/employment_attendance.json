@@ -1,0 +1,35 @@
+{
+  "id": "0dd2b7ba-2929-4b7d-92e6-4034d276eb66",
+  "name": "employment_attendance",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "Employees must report on time and attend assigned duties. Attendance is monitored by immediate heads and the HR office, with semestral reports submitted. Tardiness and undertime may lead to salary deductions or disciplinary action."
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

@@ -1,0 +1,35 @@
+{
+  "id": "641f711f-7b08-4b61-a788-69a5a519fcdf",
+  "name": "development_continuous_learning",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "\"DWCC promotes a culture of continuous learning. Employees are encouraged to attend trainings, workshops, and seminars, and to share new knowledge with colleagues through reports and echo sessions.\""
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

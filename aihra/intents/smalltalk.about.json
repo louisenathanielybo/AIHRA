@@ -1,0 +1,44 @@
+{
+  "id": "2152a637-c4cc-4f50-9201-93dc4b651524",
+  "name": "smalltalk.about",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "“I’m AIHRA — the AI Human Resource Assistant of Divine Word College of Calapan.”",
+            "“I’m your virtual HR assistant. I can answer questions about employment, benefits, promotion, and employee development.”",
+            "“I assist employees by answering HR-related queries and forwarding complex ones to HR personnel.”"
+          ],
+          "condition": ""
+        },
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": true,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

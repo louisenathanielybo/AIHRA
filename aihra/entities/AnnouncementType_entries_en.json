@@ -1,0 +1,35 @@
+[
+  {
+    "value": "memo",
+    "synonyms": [
+      "memo",
+      "policy update",
+      "memorandum"
+    ]
+  },
+  {
+    "value": "event",
+    "synonyms": [
+      "event",
+      "seminar training",
+      "workshop",
+      "program"
+    ]
+  },
+  {
+    "value": "holiday",
+    "synonyms": [
+      "holiday",
+      "school holiday",
+      "non-working day"
+    ]
+  },
+  {
+    "value": "policy",
+    "synonyms": [
+      "policy",
+      "guidelines",
+      "new rules"
+    ]
+  }
+]

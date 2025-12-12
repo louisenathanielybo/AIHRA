@@ -1,0 +1,35 @@
+{
+  "id": "f54087c3-739d-4828-8487-3936dc5a3018",
+  "name": "employment_leave_credits",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "Leave credits vary: College faculty have 2 vacation, 2 sick leave, and 1 emergency leave credits for each semester, Basic Education teachers have 4 vacation, 4 sick leave, and 2 emergency leave credits, while office and general services staff have 12.5  vacation, 3 sick leave, and 2 emergency leave credits per year."
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

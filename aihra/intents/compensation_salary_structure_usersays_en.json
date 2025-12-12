@@ -1,0 +1,28 @@
+[
+  {
+    "id": "4b5a69fe-8d1b-4dd0-95a8-007b33160822",
+    "data": [
+      {
+        "text": "\"What is the salary structure?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "c22dc0fb-0771-4b81-b249-0b91292b1ce9",
+    "data": [
+      {
+        "text": " \"How are salaries determined?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

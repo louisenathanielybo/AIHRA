@@ -1,0 +1,28 @@
+[
+  {
+    "id": "ec0500de-82ec-4e10-a57e-4061de3a9abc",
+    "data": [
+      {
+        "text": "\"What are schooling privileges?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "ca1cd053-3c02-4473-9b15-dc0ae794b39e",
+    "data": [
+      {
+        "text": "\"Do employees get tuition discounts?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

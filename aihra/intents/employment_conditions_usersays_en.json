@@ -1,0 +1,28 @@
+[
+  {
+    "id": "eb023b16-e6be-47bb-bb1c-607b0994069e",
+    "data": [
+      {
+        "text": "\"What rules govern employees?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "329256af-f56a-4cdd-96a5-e3e6b1034f1e",
+    "data": [
+      {
+        "text": "\"What are the employment conditions?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

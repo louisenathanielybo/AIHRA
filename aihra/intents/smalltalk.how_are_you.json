@@ -1,0 +1,37 @@
+{
+  "id": "655e643f-9617-4d65-a13b-2d6978603b62",
+  "name": "smalltalk.how_are_you",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "“I’m doing great, thank you for asking! Ready to assist you with HR concerns.”",
+            "“I’m functioning well 😊 How can I help you today?”",
+            "“I’m here and ready to help! What HR information do you need?”"
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": true,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

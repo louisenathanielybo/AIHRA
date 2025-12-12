@@ -1,0 +1,28 @@
+[
+  {
+    "id": "17a35093-e248-4e78-ae2c-48a164c45ee7",
+    "data": [
+      {
+        "text": "what\u0027s up",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "ee61654d-7446-4aea-9762-5a479716eba1",
+    "data": [
+      {
+        "text": "how are you  how\u0027s it going  how are you doing",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "6868a1d9-8f65-4c87-8c26-3b71ebc08ae8",
+    "data": [
+      {
+        "text": "\"Can we have planning activities?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "f561e051-6645-40ed-a1fe-8c86fffc042d",
+    "data": [
+      {
+        "text": "\"Does the school support team building?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

@@ -900,7 +900,7 @@
     <!-- Main Content -->
     <div class="main-content">
         <div style="background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 1px solid #e0efe5;">
-            <h1 class="welcome-message" style="margin: 0;">Welcome back, <span>{{ Auth::user()->name }}</span>!</h1>
+            <h1 class="welcome-message" style="margin: 0;">Welcome, <span>{{ Auth::user()->name }}</span>!</h1>
             
             <nav class="top-nav">
                 <a href="#home" onclick="showSection('home')" class="top-nav-link active" id="top-link-home">Home</a>
@@ -1262,7 +1262,7 @@
     <div id="flagModal" class="flag-modal">
         <div class="flag-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="margin: 0; color: var(--primary);">🚩 Flag this response</h3>
+                <h3 style="margin: 0; color: var(--primary);">⚠️ Flag this response</h3>
                 <button onclick="closeFlagModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">&times;</button>
             </div>
             
@@ -1336,16 +1336,29 @@ let currentSelectedTicket = null;
 let sendingTicket = false;
 let currentSessionId = '{{ session()->getId() }}';
 let currentConversationId = null;
+let lastEscalatedTicketNo = null;
+let lastEscalationMessage = null;
 
 // Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     initializeStarRating();
     initializeChat();
     // Load existing conversations and tickets into the left panel
-    loadConversations();
-    loadEmployeeTickets();
+    try {
+        await loadConversations();
+    } catch (e) { console.warn('Initial conversations load failed', e); }
+    try {
+        await loadEmployeeTickets();
+    } catch (e) { console.warn('Initial tickets load failed', e); }
     // Default to chats view and main chat visible
     showChats();
+    // Auto-restore last active conversation if available
+    try {
+        const lastConvoId = localStorage.getItem('lastConversationId');
+        if (lastConvoId) {
+            await viewConversation(lastConvoId);
+        }
+    } catch (e) { console.debug('No last conversation to restore or failed restore', e); }
     requestNotificationPermission();
 });
 
@@ -1568,20 +1581,49 @@ async function sendMessage() {
 
     const data = await res.json();
         console.log('🔍 Dialogflow RAW Response:', data);
-
-        // Reload conversation list to update title with first message
-        try {
-            await loadConversations();
-        } catch (e) {
-            console.warn('Could not reload conversations after message', e);
+        // Capture conversation id from server if provided (helps persistence on reload)
+        if (data && data.conversation_id) {
+            currentConversationId = String(data.conversation_id);
+            try { localStorage.setItem('lastConversationId', String(currentConversationId)); } catch (_) {}
+        }
+        // Capture ticket number for persisted check/retry
+        if (data && data.ticket_no) {
+            lastEscalatedTicketNo = String(data.ticket_no);
+            try { localStorage.setItem('lastEscalatedTicketNo', lastEscalatedTicketNo); } catch (_) {}
+        } else if (data && data.response && data.response.ticket_no) {
+            lastEscalatedTicketNo = String(data.response.ticket_no);
+            try { localStorage.setItem('lastEscalatedTicketNo', lastEscalatedTicketNo); } catch (_) {}
+        }
+        // Also capture nested conversation id if the backend wraps response
+        if (data && data.response && data.response.conversation_id && !currentConversationId) {
+            currentConversationId = String(data.response.conversation_id);
+            try { localStorage.setItem('lastConversationId', String(currentConversationId)); } catch (_) {}
+        }
+        // If escalated but server didn't include conversation_id, try restoring last known conversation
+        if (data && data.escalated && !currentConversationId) {
+            try {
+                const last = localStorage.getItem('lastConversationId');
+                if (last) currentConversationId = String(last);
+            } catch (_) {}
         }
 
         // 🆕 FIXED: Handle different response formats (render into messagesContainer)
         if (data.fulfillmentText) {
-            // Standard Dialogflow response
+            // Always show the notification immediately so the user sees it
             addMessageToChat(messagesEl, 'bot', data.fulfillmentText, 'normal', msg);
             conversationPath.push({ type: 'bot', message: data.fulfillmentText });
+            try { localStorage.setItem('lastEscalationMessage', data.fulfillmentText); } catch (_) {}
+            lastEscalationMessage = data.fulfillmentText;
         } 
+        // If backend sent a wrapped response with message, render appropriately
+        if (data.response && data.response.message) {
+            const r = data.response;
+            // Always show the notification immediately
+            addMessageToChat(messagesEl, 'bot', r.message, 'normal', msg);
+            conversationPath.push({ type: 'bot', message: r.message });
+            try { localStorage.setItem('lastEscalationMessage', r.message); } catch (_) {}
+            lastEscalationMessage = r.message;
+        }
         else if (data.response) {
             // Custom backend response format
             handleCustomResponse(data.response, messagesEl, msg);
@@ -1595,6 +1637,17 @@ async function sendMessage() {
             // Fallback to guided questions
             console.warn('No valid response from Dialogflow, falling back to guided questions');
             await loadGuidedQuestions();
+        }
+
+        // Reload conversation list to update title with first message
+        try {
+            await loadConversations();
+            // To prevent the just-shown message from disappearing due to immediate reload,
+            // do NOT auto-reload the conversation here. The persisted message will be visible
+            // the next time the user opens or switches conversations.
+            // We keep the local bubble, and rely on conversation reloads initiated by the user.
+        } catch (e) {
+            console.warn('Could not reload conversations after message', e);
         }
 
     } catch (err) {
@@ -1924,7 +1977,7 @@ function addMessageToChat(chatBox, sender, message, type = 'normal', query = '')
         const flagBtn = document.createElement('button');
         flagBtn.className = 'flag-btn';
         flagBtn.title = 'Flag this response';
-        flagBtn.innerHTML = '🚩';
+        flagBtn.innerHTML = '⚠️';
         flagBtn.onclick = function(e) {
             e.stopPropagation();
             console.log('Flag button clicked');
@@ -2346,6 +2399,7 @@ async function viewConversation(convoId) {
         }
         console.debug('viewConversation', { convoId: convoId, session: currentSessionId });
         currentConversationId = convoId;
+        try { localStorage.setItem('lastConversationId', String(convoId)); } catch (_) {}
 
         document.getElementById('selectedTicketInfo').innerHTML = `<strong>💬 Conversation</strong> - <span id="ticketStatus"></span>`;
 
@@ -2368,6 +2422,7 @@ async function viewConversation(convoId) {
         }
 
         messagesEl.innerHTML = '';
+        let foundTicketMessage = false;
         messages.forEach(msg => {
             if (!msg || msg.is_button) return; // skip guided/button-only entries
 
@@ -2406,12 +2461,29 @@ async function viewConversation(convoId) {
                     <div class="message-time">${new Date(msg.created_at).toLocaleString()}${senderLabel}</div>
                 `;
 
+                // Detect if this message contains the last escalated ticket number
+                try {
+                    const lastTicket = lastEscalatedTicketNo || localStorage.getItem('lastEscalatedTicketNo');
+                    if (!foundTicketMessage && lastTicket && (displayMessage.includes(lastTicket))) {
+                        foundTicketMessage = true;
+                    }
+                } catch (_) {}
+
                 // Add flag button for bot messages
                 if (isBot && msg.query) {
                     const flagBtn = document.createElement('button');
                     flagBtn.className = 'flag-btn';
                     flagBtn.title = 'Flag this response';
-                    flagBtn.innerHTML = '🚩';
+                    // Inline SVG for consistent yellow exclamation icon
+                    flagBtn.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M12 2L1 21h22L12 2z" fill="#FFC107" stroke="#B8860B" stroke-width="0.5"/>
+                            <rect x="11" y="8" width="2" height="6" fill="#3F2F00"/>
+                            <circle cx="12" cy="17" r="1.5" fill="#3F2F00"/>
+                        </svg>`;
+                    flagBtn.style.padding = '0';
+                    flagBtn.style.background = 'transparent';
+                    flagBtn.style.border = 'none';
                     flagBtn.onclick = function(e) {
                         e.stopPropagation();
                         openFlagModal(msg.query, msg.message);
@@ -2422,6 +2494,26 @@ async function viewConversation(convoId) {
                 messageDiv.appendChild(bubble);
                 messagesEl.appendChild(messageDiv);
         });
+
+        // If we didn't find the persisted ticket message yet and this is the last active conversation,
+        // re-display the last escalation message from localStorage to keep it visible.
+        try {
+            const lastId = localStorage.getItem('lastConversationId');
+            const lastMsg = lastEscalationMessage || localStorage.getItem('lastEscalationMessage');
+            const lastTicket = lastEscalatedTicketNo || localStorage.getItem('lastEscalatedTicketNo');
+            if (!foundTicketMessage && lastMsg && lastId && String(lastId) === String(convoId)) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-row bot';
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-bubble';
+                bubble.innerHTML = `
+                    ${lastMsg}
+                    <div class="message-time">${new Date().toLocaleString()} (Pending sync)</div>
+                `;
+                messageDiv.appendChild(bubble);
+                messagesEl.appendChild(messageDiv);
+            }
+        } catch (_) {}
 
         scrollChat('messagesContainer');
 
@@ -2449,6 +2541,16 @@ async function deleteConversation(convoId) {
             showNotification('🗑️ Conversation removed');
             // Refresh list
             await loadConversations();
+            // If the deleted conversation was the last active, clear it
+            try {
+                const last = localStorage.getItem('lastConversationId');
+                if (last && String(last) === String(convoId)) {
+                    localStorage.removeItem('lastConversationId');
+                    if (currentConversationId && String(currentConversationId) === String(convoId)) {
+                        currentConversationId = null;
+                    }
+                }
+            } catch (_) {}
 
             // If the deleted conversation is currently displayed, clear it
             const chatBox = document.getElementById('ticketChatBox');
@@ -2831,6 +2933,7 @@ async function startNewConversation() {
         if (res.ok && data.success) {
             currentSessionId = data.session_id;
             currentConversationId = data.id;
+            try { localStorage.setItem('lastConversationId', String(currentConversationId)); } catch (_) {}
 
             // Clear containers and start the guided flow reliably
             // Ensure main chat area is visible

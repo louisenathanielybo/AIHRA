@@ -1,0 +1,41 @@
+[
+  {
+    "id": "99b66f94-188b-47c9-bf13-e4e90dcc9007",
+    "data": [
+      {
+        "text": "Loyalty awards",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "3e72a89e-34c2-4d89-9606-49a36343c085",
+    "data": [
+      {
+        "text": "\"Do we get rewards for long service?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "6c942e5f-02ee-4ae9-9d2f-f42e8992602d",
+    "data": [
+      {
+        "text": "What is the loyalty award?\"",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

@@ -1,0 +1,35 @@
+{
+  "id": "009504c3-79f7-4ece-833f-64d2a3ff8fec",
+  "name": "development_study_grants",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "action": "",
+      "affectedContexts": [],
+      "parameters": [],
+      "messages": [
+        {
+          "type": "0",
+          "title": "",
+          "textToSpeech": "",
+          "lang": "en",
+          "speech": [
+            "\"Faculty and employees writing theses or dissertations may avail of a de-loading/official business (OB) scheme or study grants. Grants from FAPE, DOST, DepEd, CHED, and other organizations are managed with guidelines from the Academic Council and Finance Office. A return service agreement of two years per semester of grant is required.\""
+          ],
+          "condition": ""
+        }
+      ],
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": [],
+  "conditionalResponses": [],
+  "condition": "",
+  "conditionalFollowupEvents": []
+}

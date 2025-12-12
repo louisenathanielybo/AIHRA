@@ -1,0 +1,41 @@
+[
+  {
+    "id": "20fd8198-3f7f-4464-bf17-53927fb763db",
+    "data": [
+      {
+        "text": "see you  talk to you later  that\u0027s all",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "da335109-835f-4f4a-8a15-2442d5a48cc2",
+    "data": [
+      {
+        "text": "bye",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  },
+  {
+    "id": "105203cf-1341-4465-af95-372af88db61f",
+    "data": [
+      {
+        "text": "goodbye",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "lang": "en",
+    "updated": 0
+  }
+]

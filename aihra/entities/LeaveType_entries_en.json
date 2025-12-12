@@ -1,0 +1,56 @@
+[
+  {
+    "value": "vacation leave",
+    "synonyms": [
+      "vacation",
+      "VL",
+      "Vacation Leave"
+    ]
+  },
+  {
+    "value": "sick",
+    "synonyms": [
+      "sick",
+      "SL",
+      "Vacational Leave",
+      "Vacation Leave"
+    ]
+  },
+  {
+    "value": "emergency",
+    "synonyms": [
+      "emergency",
+      "Emergency Leave",
+      "EL"
+    ]
+  },
+  {
+    "value": "maternity",
+    "synonyms": [
+      "maternity",
+      "maternity leave"
+    ]
+  },
+  {
+    "value": "paternity leave",
+    "synonyms": [
+      "peternity",
+      "paternity leave"
+    ]
+  },
+  {
+    "value": "bereavement",
+    "synonyms": [
+      "bereavement",
+      "bereavement leave",
+      "condolence leave"
+    ]
+  },
+  {
+    "value": "study",
+    "synonyms": [
+      "study",
+      "Study Leave"
+    ]
+  }
+]
