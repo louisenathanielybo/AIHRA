@@ -137,3 +137,38 @@ Route::prefix('admin')->group(function () {
         return response()->json($messages);
     });
 });
+// Dialogflow Intent Management Routes
+// Dialogflow Intent Management Routes
+Route::middleware(['auth', 'admin'])->prefix('admin/dialogflow')->group(function () {
+    Route::get('/intents', [DialogflowIntentController::class, 'index'])->name('admin.dialogflow.intents');
+    Route::get('/intents/api/list', [DialogflowIntentController::class, 'getIntents'])->name('admin.dialogflow.intents.list');
+    Route::get('/intents/api/all', [DialogflowIntentController::class, 'getAllIntents'])->name('admin.dialogflow.intents.all');
+    Route::get('/intents/api/{intentId}', [DialogflowIntentController::class, 'getIntent'])->name('admin.dialogflow.intents.get');
+    Route::post('/intents/api/create', [DialogflowIntentController::class, 'createIntent'])->name('admin.dialogflow.intents.create');
+    Route::put('/intents/api/{intentId}', [DialogflowIntentController::class, 'updateIntent'])->name('admin.dialogflow.intents.update');
+    Route::delete('/intents/api/{intentId}', [DialogflowIntentController::class, 'deleteIntent'])->name('admin.dialogflow.intents.delete');
+    Route::post('/intents/api/test', [DialogflowIntentController::class, 'testIntent'])->name('admin.dialogflow.intents.test');
+    Route::get('/intents/api/search', [DialogflowIntentController::class, 'searchIntents'])->name('admin.dialogflow.intents.search');
+    Route::get('/intents/api/stats', [DialogflowIntentController::class, 'getStats'])->name('admin.dialogflow.intents.stats');
+    Route::post('/intents/api/import', [DialogflowIntentController::class, 'importIntents'])->name('admin.dialogflow.intents.import');
+    Route::get('/intents/api/export', [DialogflowIntentController::class, 'exportIntents'])->name('admin.dialogflow.intents.export');
+    Route::get('/test-simple', [DialogflowIntentController::class, 'testSimple'])->name('admin.dialogflow.test.simple');
+    Route::get('/test-connection', [DialogflowIntentController::class, 'testConnection'])->name('admin.dialogflow.test.connection');
+});
+
+// routes/web.php or routes/api.php
+Route::get('/test-dialogflow', function() {
+    try {
+        $service = new \App\Services\DialogflowIntentService();
+        $result = $service->testConnection();
+        
+        return response()->json($result);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});

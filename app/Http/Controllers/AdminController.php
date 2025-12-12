@@ -11,101 +11,117 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Str;
+use App\Services\DialogflowIntentService; // Add this line
 
 class AdminController extends Controller
 {
     public function index(Request $request)
-    {
-        $admin = Auth::user();
+{
+    $admin = Auth::user();
 
-        // Existing code...
-        $kb = DB::table('knowledge_base')->orderBy('id', 'desc')->get();
-        $announcements = DB::table('announcements')->orderBy('id', 'desc')->get();
-        $feedback = DB::table('feedback')->orderBy('feedbackID', 'desc')->get();
-        $flags = DB::table('flaggedresponse')->orderBy('flaggedID', 'desc')->get();
-        
-        // 🆕 GET HR_INBOX DATA FOR CHATBOT TICKETS
-        $tickets = DB::table('hr_inbox')
-            ->select('*')
-            ->orderBy('created_at', 'desc')
-            ->get();
-        
-        // Calculate ticket KPIs
-        $totalTickets = $tickets->count();
-        $unresolvedTickets = $tickets->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
-        $resolvedTickets = $tickets->where('status', 'Resolved')->count();
-        $expiredTickets = $tickets->where('is_expired', true)->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
+    // Existing code...
+    $kb = DB::table('knowledge_base')->orderBy('id', 'desc')->get();
+    $announcements = DB::table('announcements')->orderBy('id', 'desc')->get();
+    $feedback = DB::table('feedback')->orderBy('feedbackID', 'desc')->get();
+    $flags = DB::table('flaggedresponse')->orderBy('flaggedID', 'desc')->get();
+    
+    // 🆕 GET HR_INBOX DATA FOR CHATBOT TICKETS
+    $tickets = DB::table('hr_inbox')
+        ->select('*')
+        ->orderBy('created_at', 'desc')
+        ->get();
+    
+    // Calculate ticket KPIs
+    $totalTickets = $tickets->count();
+    $unresolvedTickets = $tickets->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
+    $resolvedTickets = $tickets->where('status', 'Resolved')->count();
+    $expiredTickets = $tickets->where('is_expired', true)->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
 
-        // 🆕 NEW: Get data for dashboard KPIs
-        $activeUsers = DB::table('users')->where('status', 'Active')->count();
-        $totalInteractions = DB::table('queries')->count();
-        $escalatedQueries = $totalTickets; // Using tickets as escalated queries
-        
-        // 🆕 NEW: Get data for resolution chart
-        $resolvedQueries = DB::table('queries')->where('isEscalated', 0)->count();
-        $pendingQueries = $unresolvedTickets; // Unresolved tickets are pending
-        $escalatedCount = $totalTickets; // All tickets are escalated queries
-        
-        // 🆕 NEW: Get feedback data for feedback tab
-        $feedbackData = DB::table('feedback')
-            ->join('users', 'feedback.employeeNum', '=', 'users.employeeNum')
-            ->select('feedback.*', 'users.firstName', 'users.lastName')
-            ->orderBy('feedback.timeStamp', 'desc')
-            ->get()
-            ->map(function ($item, $index) {
-                $item->displayID = $index + 1;
-                return $item;
+    // 🆕 NEW: Get data for dashboard KPIs
+    $activeUsers = DB::table('users')->where('status', 'Active')->count();
+    $totalInteractions = DB::table('queries')->count();
+    $escalatedQueries = $totalTickets; // Using tickets as escalated queries
+    
+    // 🆕 NEW: Get data for resolution chart
+    $resolvedQueries = DB::table('queries')->where('isEscalated', 0)->count();
+    $pendingQueries = $unresolvedTickets; // Unresolved tickets are pending
+    $escalatedCount = $totalTickets; // All tickets are escalated queries
+    
+    // 🆕 NEW: Get feedback data for feedback tab
+    $feedbackData = DB::table('feedback')
+        ->join('users', 'feedback.employeeNum', '=', 'users.employeeNum')
+        ->select('feedback.*', 'users.firstName', 'users.lastName')
+        ->orderBy('feedback.timeStamp', 'desc')
+        ->get()
+        ->map(function ($item, $index) {
+            $item->displayID = $index + 1;
+            return $item;
+        });
+
+    // 🆕 NEW: Get data for performance tab
+    $recentInteractions = DB::table('queries')
+        ->join('users', 'queries.employeeNum', '=', 'users.employeeNum')
+        ->select('queries.*', 'users.firstName', 'users.lastName')
+        ->orderBy('queries.questionTime', 'desc')
+        ->limit(10)
+        ->get();
+
+    $flaggedResponses = DB::table('flaggedresponse')
+        ->join('users', 'flaggedresponse.employeeNum', '=', 'users.employeeNum')
+        ->join('queries', 'flaggedresponse.queryID', '=', 'queries.queryID')
+        ->select('flaggedresponse.*', 'users.firstName', 'users.lastName', 'queries.question')
+        ->orderBy('flaggedresponse.timeStamp', 'desc')
+        ->get()
+        ->map(function ($item, $index) {
+            $item->displayID = $index + 1; // Add sequential display ID
+            return $item;
+        });
+
+    // Get users with pagination and search
+    $search = request('search', '');
+    $users = DB::table('users')
+        ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'profile_picture', 'about', 'status')
+        ->when($search, function($query, $search) {
+            return $query->where(function($q) use ($search) {
+                $q->where('employeeNum', 'like', "%{$search}%")
+                  ->orWhere('firstName', 'like', "%{$search}%")
+                  ->orWhere('lastName', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('role', 'like', "%{$search}%");
             });
+        })
+        ->orderBy('employeeNum', 'asc')
+        ->paginate(10);
 
-        // 🆕 NEW: Get data for performance tab
-        $recentInteractions = DB::table('queries')
-            ->join('users', 'queries.employeeNum', '=', 'users.employeeNum')
-            ->select('queries.*', 'users.firstName', 'users.lastName')
-            ->orderBy('queries.questionTime', 'desc')
-            ->limit(10)
-            ->get();
+    // Get active tab from URL parameter, session, or default to dashboard
+    $active_tab = $request->get('active_tab', session('active_tab', 'dashboard'));
+    
+    // Store in session for form submissions
+    session(['active_tab' => $active_tab]);
 
-        $flaggedResponses = DB::table('flaggedresponse')
-            ->join('users', 'flaggedresponse.employeeNum', '=', 'users.employeeNum')
-            ->join('queries', 'flaggedresponse.queryID', '=', 'queries.queryID')
-            ->select('flaggedresponse.*', 'users.firstName', 'users.lastName', 'queries.question')
-            ->orderBy('flaggedresponse.timeStamp', 'desc')
-            ->get()
-            ->map(function ($item, $index) {
-                $item->displayID = $index + 1; // Add sequential display ID
-                return $item;
-            });
-
-        // Get users with pagination and search
-        $search = request('search', '');
-        $users = DB::table('users')
-            ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'profile_picture', 'about', 'status')
-            ->when($search, function($query, $search) {
-                return $query->where(function($q) use ($search) {
-                    $q->where('employeeNum', 'like', "%{$search}%")
-                      ->orWhere('firstName', 'like', "%{$search}%")
-                      ->orWhere('lastName', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('role', 'like', "%{$search}%");
-                });
-            })
-            ->orderBy('employeeNum', 'asc')
-            ->paginate(10);
-
-        // Get active tab from URL parameter, session, or default to dashboard
-        $active_tab = $request->get('active_tab', session('active_tab', 'dashboard'));
-        
-        // Store in session for form submissions
-        session(['active_tab' => $active_tab]);
-
-        return view('admin.admin_dashboard', compact(
-            'admin', 'kb', 'announcements', 'feedback', 'flags', 'users', 'search', 
-            'active_tab', 'tickets', 'totalTickets', 'unresolvedTickets', 'resolvedTickets', 'expiredTickets',
-            'activeUsers', 'totalInteractions', 'escalatedQueries',
-            'resolvedQueries', 'pendingQueries', 'escalatedCount',
-            'feedbackData', 'recentInteractions', 'flaggedResponses'
-        ));
+    // 🆕 ADD DIALOGFLOW INTENTS LOGIC
+    $intents = [];
+    
+    // If accessing content management tab, load Dialogflow intents
+    if ($request->has('tab') && $request->tab === 'content') {
+        try {
+            $dialogflowService = new DialogflowIntentService();
+            $intents = $dialogflowService->getAllIntentsBasic();
+        } catch (\Exception $e) {
+            $intents = [];
+            \Log::error('Failed to load Dialogflow intents: ' . $e->getMessage());
+        }
     }
+
+    return view('admin.admin_dashboard', compact(
+        'admin', 'kb', 'announcements', 'feedback', 'flags', 'users', 'search', 
+        'active_tab', 'tickets', 'totalTickets', 'unresolvedTickets', 'resolvedTickets', 'expiredTickets',
+        'activeUsers', 'totalInteractions', 'escalatedQueries',
+        'resolvedQueries', 'pendingQueries', 'escalatedCount',
+        'feedbackData', 'recentInteractions', 'flaggedResponses',
+        'intents' // 🆕 Add intents to the view
+    ));
+}
 
     // Add new KB entry
     public function addKnowledge(Request $request)
