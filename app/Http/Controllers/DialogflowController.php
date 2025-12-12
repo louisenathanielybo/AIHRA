@@ -577,7 +577,7 @@ class DialogflowController extends Controller
                 ]));
                 return response()->json([
                     'status' => 'ask_for_clarity',
-                    'fulfillmentText' => 'Before I escalate this to HR, could you please provide a bit more detail about your issue? (Please describe your concern in at least 10 characters.)'
+                    'fulfillmentText' => 'Before I escalate this to the HR team, could you please provide a bit more detail about your issue?'
                 ]);
             }
 
@@ -1116,7 +1116,8 @@ class DialogflowController extends Controller
             'harass', 'discriminat', 'wrongful termination', 'fired unfairly',
             'legal action', 'lawyer', 'sue', 'court', 'police',
             'unsafe', 'danger', 'threat', 'violence', 'assault',
-            'suicide', 'self-harm', 'abuse', 'safety concern', 'bully', 'bullied'
+            'suicide', 'self-harm', 'abuse', 'safety concern', 'bully', 'bullied',
+            'emergency', 'urgent', 'immediate attention', 'life-threatening', 'crisis', 'critical situation'
         ];
         $highPriorityKeywords = [
             'salary discrepancy', 'not paid', 'unpaid', 'missing pay', 'wrong salary',
