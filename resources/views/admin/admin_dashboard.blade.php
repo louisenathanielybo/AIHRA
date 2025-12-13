@@ -1771,15 +1771,27 @@ use Illuminate\Support\Str;
         
         <!-- Feedback Section -->
         <div id="feedback-section" class="section-content">
-            <!-- KPI: Average Feedback Rating (Feedback Section) -->
-            <div id="avgFeedbackKPISection" style="background: white; padding: 18px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.07); margin-bottom: 18px; display: flex; align-items: center; gap: 18px; max-width: 400px;">
-                <div style="font-size: 2.2rem; color: #f39c12;">
-                    <i class="fas fa-star"></i>
+            <!-- KPIs Row: Average Feedback Rating & Most Common Flagged Reason (Feedback Section) -->
+            <div style="display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 18px;">
+                <div id="avgFeedbackKPISection" style="background: white; padding: 18px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.07); display: flex; align-items: center; gap: 18px; max-width: 400px;">
+                    <div style="font-size: 2.2rem; color: #f39c12;">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.1rem; color: var(--primary); font-weight: 600;">Average Feedback Rating</div>
+                        <div id="avgFeedbackValueSection" style="font-size: 2rem; font-weight: bold; color: var(--secondary);">N/A</div>
+                        <div id="avgFeedbackCountSection" style="font-size: 0.95rem; color: #666;">Based on 0 feedbacks</div>
+                    </div>
                 </div>
-                <div>
-                    <div style="font-size: 1.1rem; color: var(--primary); font-weight: 600;">Average Feedback Rating</div>
-                    <div id="avgFeedbackValueSection" style="font-size: 2rem; font-weight: bold; color: var(--secondary);">N/A</div>
-                    <div id="avgFeedbackCountSection" style="font-size: 0.95rem; color: #666;">Based on 0 feedbacks</div>
+                <div id="commonFlaggedReasonKPISection" style="background: white; padding: 18px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(220, 53, 69, 0.07); display: flex; align-items: center; gap: 18px; max-width: 400px; min-width: 260px;">
+                    <div style="font-size: 2.2rem; color: #dc3545;">
+                        <i class="fas fa-flag"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.1rem; color: var(--danger); font-weight: 600;">Most Common Flagged Reason</div>
+                        <div id="commonFlaggedReasonValueSection" style="font-size: 1.2rem; font-weight: bold; color: var(--danger);">N/A</div>
+                        <div id="commonFlaggedReasonCountSection" style="font-size: 0.95rem; color: #666;">Based on 0 flags</div>
+                    </div>
                 </div>
             </div>
             <div class="data-table">
@@ -1986,6 +1998,7 @@ use Illuminate\Support\Str;
                 </table>
             </div>
         </div>
+        <script src="/assets/js/feedback_kpi.js"></script>
         
         <!-- Chatbot Ticket Details Section -->
         <div id="tickets" class="section-content">
