@@ -18,7 +18,7 @@ class FeedbackController extends Controller
         ]);
 
         Feedback::create([
-            'feedbackID' => Str::uuid(), // generates a unique ID like "5f8a3c9e..."
+            // 'feedbackID' => Str::uuid(), // Let DB auto-increment
             'employeeNum' => Auth::user()->employeeNum,
             'queryID' => null, // if not used yet
             'rating' => $request->rating,
