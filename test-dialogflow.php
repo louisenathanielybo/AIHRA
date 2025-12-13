@@ -1,5 +1,6 @@
 <?php
 
+<<<<<<< HEAD
 require __DIR__.'/vendor/autoload.php';
 
 use Google\Cloud\Dialogflow\V2\IntentsClient;
@@ -265,3 +266,30 @@ if (strpos(__DIR__, 'laragon') !== false) {
     echo "\n⚠️  Running in Laragon environment\n";
     echo "Make sure Laragon has internet access through any VPN/proxy\n";
 }
+=======
+require __DIR__ . '/vendor/autoload.php';
+
+$app = require_once __DIR__ . '/bootstrap/app.php';
+$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+use App\Services\DialogflowService;
+
+try {
+    echo "Testing Dialogflow connection...\n";
+    
+    $df = new DialogflowService();
+    $result = $df->detectIntent('What are the regular working hours?', 'test-session-' . time());
+    
+    echo "Success!\n";
+    echo "Fulfillment Text: " . $result->getFulfillmentText() . "\n";
+    echo "Intent: " . ($result->getIntent() ? $result->getIntent()->getDisplayName() : 'None') . "\n";
+    echo "Confidence: " . $result->getIntentDetectionConfidence() . "\n";
+    
+    $df->close();
+    
+} catch (\Throwable $e) {
+    echo "ERROR: " . $e->getMessage() . "\n";
+    echo "File: " . $e->getFile() . ":" . $e->getLine() . "\n";
+    echo "Trace:\n" . $e->getTraceAsString() . "\n";
+}
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+<<<<<<< HEAD
 use Google\Cloud\Dialogflow\V2\IntentsClient;
 use Google\Cloud\Dialogflow\V2\Intent;
 use Google\Cloud\Dialogflow\V2\Intent\TrainingPhrase;
@@ -19,10 +20,22 @@ class DialogflowIntentService
     protected $projectId;
     protected $languageCode;
     protected $credentialsPath;
+=======
+use Google\Cloud\Dialogflow\V2\Client\SessionsClient;
+use Google\Cloud\Dialogflow\V2\TextInput;
+use Google\Cloud\Dialogflow\V2\QueryInput;
+use Google\Cloud\Dialogflow\V2\DetectIntentRequest;
+
+class DialogflowService
+{
+    protected $sessionsClient;
+    protected $projectId;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
 
     public function __construct()
     {
         $this->projectId = 'aihra-472311';
+<<<<<<< HEAD
         $this->languageCode = 'en';
         $this->credentialsPath = base_path('aihra-key.json');
         
@@ -584,3 +597,35 @@ class DialogflowIntentService
         }
     }
 }
+=======
+        $this->sessionsClient = new SessionsClient([
+            'credentials' => base_path('aihra-key.json'),
+        ]);
+    }
+
+    public function detectIntent($queryText, $sessionId)
+    {
+        $session = $this->sessionsClient->sessionName($this->projectId, $sessionId);
+
+        $textInput = new TextInput();
+        $textInput->setText($queryText);
+        $textInput->setLanguageCode('en');
+
+        $queryInput = new QueryInput();
+        $queryInput->setText($textInput);
+
+        $request = new DetectIntentRequest();
+        $request->setSession($session);
+        $request->setQueryInput($queryInput);
+
+        $response = $this->sessionsClient->detectIntent($request);
+
+        return $response->getQueryResult();
+    }
+
+    public function close()
+    {
+        $this->sessionsClient->close();
+    }
+}
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9

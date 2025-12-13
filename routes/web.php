@@ -98,16 +98,31 @@ Route::prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
     
     // Account management routes
+<<<<<<< HEAD
     Route::get('/accounts/{employeeNum}', [AdminController::class, 'getAccount'])->name('admin.accounts.get');
     Route::put('/accounts/{employeeNum}', [AdminController::class, 'updateAccount'])->name('admin.accounts.update');
     Route::post('/accounts/{employeeNum}/reset-password', [AdminController::class, 'resetPassword'])->name('admin.accounts.reset-password');
     Route::delete('/accounts/{employeeNum}', [AdminController::class, 'deleteAccount'])->name('admin.accounts.delete');
+=======
+    
+    // Export and Import accounts - MUST be before parameterized routes
+    Route::get('/accounts/export', [AdminController::class, 'exportAccounts'])->name('admin.accounts.export');
+    Route::post('/accounts/import', [AdminController::class, 'importAccounts'])->name('admin.accounts.import');
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     
     // Create account - POST to /admin/accounts (not /admin/dashboard)
     Route::post('/accounts', [AdminController::class, 'createAccount'])->name('admin.accounts.create');
     
+<<<<<<< HEAD
     // Export accounts
     Route::get('/accounts/export', [AdminController::class, 'exportAccounts'])->name('admin.accounts.export');
+=======
+    // Parameterized account routes - MUST be after specific routes like export/import
+    Route::get('/accounts/{employeeNum}', [AdminController::class, 'getAccount'])->name('admin.accounts.get');
+    Route::put('/accounts/{employeeNum}', [AdminController::class, 'updateAccount'])->name('admin.accounts.update');
+    Route::post('/accounts/{employeeNum}/reset-password', [AdminController::class, 'resetPassword'])->name('admin.accounts.reset-password');
+    Route::delete('/accounts/{employeeNum}', [AdminController::class, 'deleteAccount'])->name('admin.accounts.delete');
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     
     // Other admin routes...
     Route::post('/knowledge', [AdminController::class, 'addKnowledge'])->name('admin.knowledge.add');
@@ -119,6 +134,12 @@ Route::prefix('admin')->group(function () {
     Route::get('/tickets/data', [AdminController::class, 'getTickets'])->name('admin.tickets.data');
     Route::get('/tickets/{ticketId}', [AdminController::class, 'getTicketDetails'])->name('admin.tickets.details');
     
+<<<<<<< HEAD
+=======
+    // Date range filter for KPIs
+    Route::get('/kpis/filter', [AdminController::class, 'getFilteredKPIs'])->name('admin.kpis.filter');
+    
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     // Flagged responses routes
     Route::post('/flags/{id}/update-status', [FlagController::class, 'updateStatus'])->name('admin.flags.update-status');
 });
@@ -136,6 +157,7 @@ Route::prefix('admin')->group(function () {
 
         return response()->json($messages);
     });
+<<<<<<< HEAD
 });
 // Dialogflow Intent Management Routes
 // Dialogflow Intent Management Routes
@@ -171,4 +193,6 @@ Route::get('/test-dialogflow', function() {
             'trace' => $e->getTraceAsString()
         ], 500);
     }
+=======
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
 });

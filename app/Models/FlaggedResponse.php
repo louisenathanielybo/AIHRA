@@ -10,11 +10,19 @@ class FlaggedResponse extends Model
     protected $table = 'flaggedresponse';
     protected $primaryKey = 'flaggedID';
     public $timestamps = false;
+<<<<<<< HEAD
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
         'flaggedID',
+=======
+    public $incrementing = true;
+    protected $keyType = 'int';
+
+    protected $fillable = [
+        // 'flaggedID', // Let DB auto-increment
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         'employeeNum',
         'queryID',
         'reasonID',
@@ -26,6 +34,7 @@ class FlaggedResponse extends Model
         'timeStamp' => 'datetime',
     ];
 
+<<<<<<< HEAD
     protected static function booted()
     {
         parent::booted();
@@ -36,6 +45,9 @@ class FlaggedResponse extends Model
             }
         });
     }
+=======
+    // No UUID logic needed; flaggedID is auto-increment integer
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
 
     public function user()
     {

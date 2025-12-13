@@ -5,6 +5,7 @@
     <title>AIHRA - HR Dashboard</title>
     @include('includes.header')
     <style>
+<<<<<<< HEAD
         /* Layout */
         .sidebar {
             background: linear-gradient(180deg, #0A2F2D 0%, #0F3936 40%, #1A6B61 100%);
@@ -20,12 +21,32 @@
             top: 0;
             left: 0;
             bottom: 0;
+=======
+        /* HR Dashboard Styles - Version 2.0 - Updated {{ date('Y-m-d H:i:s') }} */
+        /* Layout */
+        .sidebar {
+            background: linear-gradient(180deg, #164a4a 0%, #2a5547 100%);
+            box-shadow: 2px 0 10px rgba(26, 77, 77, 0.1);
+            width: 16vw;
+            color: white;
+            min-height: 100vh;
+            padding: 20px 0;
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 1000;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         }
         .sidebar h1 { 
             font-size: 22px; 
             margin-bottom: 20px; 
             text-align: center;
         }
+<<<<<<< HEAD
         .sidebar ul { 
             list-style: none; 
             padding: 0; 
@@ -48,13 +69,19 @@
             font-weight: bold; 
             display: block;
         }
+=======
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         
         .main-content { 
             flex: 1;
             margin-left: 16vw; 
             padding: 30px;
             padding-bottom: 0;
+<<<<<<< HEAD
             background: #e6fbf5;
+=======
+            background: #e6f7f0;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
@@ -78,10 +105,27 @@
             width: 100%;
         }
         .sb-brand {
+<<<<<<< HEAD
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 22px 16px 12px 16px;
+=======
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .sb-brand h2 {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #e8f5e8;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         }
         .sb-logo {
             width: 42px;
@@ -91,6 +135,7 @@
             filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
         }
         .sb-nav {
+<<<<<<< HEAD
             display: flex;
             flex-direction: column;
             padding: 8px;
@@ -122,6 +167,78 @@
             background: rgba(255,255,255,.16);
             box-shadow: inset 3px 0 0 0 #34c759;
         }
+=======
+            list-style: none;
+            padding: 0;
+        }
+        
+        .sb-nav li {
+            margin-bottom: 5px;
+        }
+        
+        .sb-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            padding-left: 20px;
+            color: #e8f5e8;
+            text-decoration: none;
+            transition: all 0.3s;
+            border-radius: 0 8px 8px 0;
+            margin-right: 10px;
+            border-left: 4px solid transparent;
+        }
+        
+        .sb-link:hover, 
+        .sb-link.active {
+            background: rgba(255,255,255,0.15);
+            border-left: 4px solid #1A6B61;
+            padding-left: 20px;
+            color: white;
+        }
+        
+        .sb-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+            color: #a8d5b5;
+        }
+        
+        .top-nav {
+            display: flex;
+            gap: 8px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 25px;
+            box-shadow: 0 2px 8px rgba(22, 74, 74, 0.08);
+            border: 1px solid #c7e5e0;
+        }
+        
+        .top-nav-link {
+            padding: 10px 24px;
+            border-radius: 20px;
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+        
+        .top-nav-link:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .top-nav-link.active {
+            background: #1A6B61;
+            color: white;
+            border-color: #1A6B61;
+            transform: scale(1.05);
+        }
+        
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         .sb-bottom {
             margin-top: auto;
             padding: 8px;
@@ -136,6 +253,7 @@
             cursor: pointer;
         }
 
+<<<<<<< HEAD
         .welcome-message {
             font-family: "Poppins", sans-serif;
             font-weight: 600;
@@ -149,20 +267,55 @@
         
         /* Top Navigation Ribbon */
         .top-nav {
+=======
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #d0e8da;
+        }
+        
+        .welcome-message {
+            font-family: "Poppins", sans-serif;
+            font-weight: 600;
+            font-size: 1.8rem;
+            color: #0A2F2D;
+        }
+        .welcome-message span {
+            color: #1A6B61;
+        }
+
+        /* Top Navigation Ribbon */
+        /* Top nav ribbon - REMOVED */
+        /* .top-nav {
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             display: flex;
             gap: 8px;
             background: white;
             padding: 8px 12px;
             border-radius: 25px;
+<<<<<<< HEAD
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .top-nav-link {
             padding: 8px 20px;
+=======
+            box-shadow: 0 2px 8px rgba(10, 47, 45, 0.08);
+            border: 1px solid #d0e8da;
+        }
+        
+        .top-nav-link {
+            padding: 10px 24px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             border-radius: 20px;
             text-decoration: none;
             color: #666;
             font-weight: 500;
+<<<<<<< HEAD
             font-size: 14px;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid transparent;
@@ -171,6 +324,16 @@
         
         .top-nav-link:hover {
             background: #f0f0f0;
+=======
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+        
+        .top-nav-link:hover {
+            background: #f0f7f2;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             color: #333;
         }
         
@@ -179,11 +342,19 @@
             color: white;
             border-color: #28a745;
             transform: scale(1.05);
+<<<<<<< HEAD
         }
+=======
+        } */
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
 
         /* Split tabs (match employee UI) */
         .split-tabs {
             display: flex;
+<<<<<<< HEAD
+=======
+            flex-wrap: nowrap;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             gap: 8px;
             background: #fff;
             padding: 6px;
@@ -195,16 +366,38 @@
         }
         .split-tab {
             display: inline-flex;
+<<<<<<< HEAD
             align-items: center;
             gap: 8px;
             padding: 8px 14px;
             border-radius: 16px;
+=======
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 6px;
+            border-radius: 16px;
+            flex: 1;
+            justify-content: center;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             border: 1px solid transparent;
             background: transparent;
             color: #444;
             cursor: pointer;
             font-weight: 500;
             transition: all .18s ease;
+<<<<<<< HEAD
+=======
+            font-size: 0.85rem;
+            min-width: 0;
+        }
+        .split-tab i {
+            font-size: 1.1rem;
+        }
+        .split-tab span:not(.tab-count) {
+            display: block;
+            text-align: center;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         }
         .split-tab:hover { background: #f2f2f2; }
         .split-tab.active {
@@ -481,14 +674,23 @@
             bottom: 20px;
             left: 0;
             right: 0;
+<<<<<<< HEAD
             padding: 0 20px;
+=======
+            padding: 0 12px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         }
 
         .account-info {
             display: flex;
             align-items: center;
+<<<<<<< HEAD
             gap: 12px;
             padding: 12px;
+=======
+            gap: 8px;
+            padding: 8px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             background: rgba(255,255,255,0.1);
             border-radius: 10px;
             backdrop-filter: blur(10px);
@@ -497,16 +699,27 @@
         }
 
         .account-avatar {
+<<<<<<< HEAD
             width: 42px;
             height: 42px;
             border-radius: 50%;
             background: #1fbf8e;
+=======
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #1A6B61;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: bold;
+<<<<<<< HEAD
             font-size: 16px;
+=======
+            font-size: 14px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             flex-shrink: 0;
         }
 
@@ -518,6 +731,7 @@
 
         .account-name {
             font-weight: 500;
+<<<<<<< HEAD
             font-size: 14px;
             color: white;
             white-space: nowrap;
@@ -531,11 +745,29 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+=======
+            font-size: 12px;
+            color: white;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .account-role {
+            font-size: 10px;
+            color: #7dd3c0;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         }
 
         .logout-btn {
             background: none;
             border: none;
+<<<<<<< HEAD
             color: #a8d5b5;
             cursor: pointer;
             padding: 8px;
@@ -547,24 +779,50 @@
             justify-content: center;
             width: 36px;
             height: 36px;
+=======
+            color: #7dd3c0;
+            cursor: pointer;
+            padding: 0;
+            border-radius: 4px;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         }
 
         .logout-btn:hover {
             background: rgba(255,255,255,0.1);
             color: white;
         }
+<<<<<<< HEAD
+=======
+        
+        .logout-btn i {
+            font-size: 13px;
+        }
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
 
         /* ===== ACCOUNT SECTION STYLES ===== */
         .account-layout {
             display: flex;
+<<<<<<< HEAD
             gap: 30px;
             max-width: 1200px;
+=======
+            gap: 15px;
+            max-width: 1000px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             margin: 0 auto;
         }
 
         .profile-panel, .settings-panel {
             flex: 1;
             background: white;
+<<<<<<< HEAD
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -573,12 +831,23 @@
         .profile-panel h3, .settings-panel h3 {
             margin: 0 0 20px 0;
             font-size: 20px;
+=======
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .profile-panel h3, .settings-panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 17px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             font-weight: bold;
             color: #333;
         }
 
         .profile-image-container {
             text-align: center;
+<<<<<<< HEAD
             margin-bottom: 30px;
         }
 
@@ -592,10 +861,26 @@
 
         .profile-field {
             margin-bottom: 20px;
+=======
+            margin-bottom: 12px;
+        }
+
+        .profile-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ddd;
+        }
+
+        .profile-field {
+            margin-bottom: 8px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         }
 
         .profile-field label {
             display: block;
+<<<<<<< HEAD
             margin-bottom: 5px;
             font-weight: 500;
             color: #333;
@@ -606,10 +891,25 @@
             background: #e6f7f0;
             border-radius: 8px;
             color: #333;
+=======
+            margin-bottom: 3px;
+            font-weight: 500;
+            color: #333;
+            font-size: 12px;
+        }
+
+        .profile-value {
+            padding: 8px;
+            background: #e6f7f0;
+            border-radius: 6px;
+            color: #333;
+            font-size: 13px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         }
 
         .settings-button {
             width: 100%;
+<<<<<<< HEAD
             padding: 15px;
             margin-bottom: 15px;
             background: #e6f7f0;
@@ -619,6 +919,18 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
+=======
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #e6f7f0;
+            border: none;
+            border-radius: 6px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #2d5a3d;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             transition: background 0.3s;
         }
 
@@ -627,11 +939,16 @@
         }
 
         .about-section {
+<<<<<<< HEAD
             margin-bottom: 30px;
+=======
+            margin-bottom: 12px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         }
 
         .about-section label {
             display: block;
+<<<<<<< HEAD
             margin-bottom: 8px;
             font-weight: 500;
             color: #333;
@@ -645,6 +962,23 @@
             cursor: pointer;
             min-height: 60px;
             transition: background 0.3s;
+=======
+            margin-bottom: 4px;
+            font-weight: 500;
+            color: #333;
+            font-size: 12px;
+        }
+
+        .about-content {
+            padding: 10px;
+            background: #e6f7f0;
+            border-radius: 6px;
+            color: #333;
+            cursor: pointer;
+            min-height: 40px;
+            transition: background 0.3s;
+            font-size: 13px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         }
 
         .about-content:hover {
@@ -653,12 +987,21 @@
 
         .logout-button {
             width: 100%;
+<<<<<<< HEAD
             padding: 15px;
             background: #28a745;
             color: white;
             border: none;
             border-radius: 8px;
             font-size: 16px;
+=======
+            padding: 10px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             font-weight: bold;
             cursor: pointer;
             transition: background 0.3s;
@@ -969,6 +1312,95 @@
         .modal-buttons button {
             flex: 1;
         }
+<<<<<<< HEAD
+=======
+
+        /* Responsive Design */
+        @media (max-width: 1600px) {
+            .sidebar {
+                width: 18vw;
+            }
+            .main-content {
+                margin-left: 18vw;
+            }
+        }
+
+        @media (max-width: 1400px) {
+            .sidebar {
+                width: 20vw;
+            }
+            .main-content {
+                margin-left: 20vw;
+                padding: 25px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 22vw;
+            }
+            .main-content {
+                margin-left: 22vw;
+                padding: 20px;
+            }
+            .split-tab {
+                font-size: 0.8rem;
+                padding: 8px 4px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 250px;
+            }
+            .main-content {
+                margin-left: 250px;
+                padding: 15px;
+            }
+            .ticket-container {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 220px;
+            }
+            .main-content {
+                margin-left: 220px;
+                padding: 12px;
+            }
+            .split-tabs {
+                gap: 4px;
+                padding: 4px;
+            }
+            .split-tab {
+                font-size: 0.75rem;
+                padding: 6px 2px;
+                gap: 2px;
+            }
+            .split-tab i {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .sidebar {
+                position: fixed;
+                left: -250px;
+                width: 250px;
+                transition: left 0.3s ease;
+            }
+            .sidebar.mobile-open {
+                left: 0;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 10px;
+                width: 100%;
+            }
+        }
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         
         /* Status Messages */
         .status-message {
@@ -1003,6 +1435,7 @@
 <div class="dashboard">
     <!-- Sidebar -->
     <div class="sidebar">
+<<<<<<< HEAD
         <div class="sb-brand" style="display: flex; align-items: center; gap: 10px;">
             <span style="color: white; font-weight: bold; font-size: 18px;">AIHRA</span>
             <img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA" class="sb-logo" style="margin-bottom: 0;">
@@ -1028,6 +1461,33 @@
                 <div class="account-details">
                     <div class="account-name">{{ Auth::user()->name }}</div>
                     <div class="account-role">HR</div>
+=======
+        <div class="sb-brand">
+            <h2 style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                AIHRA
+                <img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA" class="sb-logo" style="width: 50px; height: 50px; margin-bottom: 0;">
+            </h2>
+        </div>
+
+        <ul class="sb-nav">
+            <li><a href="#announcements" onclick="showSection('announcements')" class="sb-link active" id="link-announcements"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="#inbox" onclick="showSection('inbox')" class="sb-link" id="link-inbox"><i class="fas fa-inbox"></i> Inbox</a></li>
+            <li><a href="#account" onclick="showSection('account')" class="sb-link" id="link-account"><i class="fas fa-user"></i> Account</a></li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <div class="account-info">
+                @if(isset($user) && $user->profile_picture)
+                    <img src="{{ asset('uploads/'.$user->profile_picture) }}" alt="Profile" class="account-avatar" style="object-fit: cover;">
+                @else
+                    <div class="account-avatar">
+                        {{ substr(Auth::user()->firstName ?? Auth::user()->name, 0, 1) }}{{ substr(Auth::user()->lastName ?? '', 0, 1) }}
+                    </div>
+                @endif
+                <div class="account-details">
+                    <div class="account-name">{{ Auth::user()->firstName ?? Auth::user()->name }} {{ Auth::user()->lastName ?? '' }}</div>
+                    <div class="account-role">Human<br>Resources</div>
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                 </div>
                 <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">
                     @csrf
@@ -1041,24 +1501,39 @@
 
     <!-- Main Content -->
     <div class="main-content">
+<<<<<<< HEAD
         <div style="background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h1 class="welcome-message" style="margin: 0;">Welcome, <span>{{ Auth::user()->name }}</span>!</h1>
             
             <nav class="top-nav">
                 <a href="#announcements" onclick="showSection('announcements')" class="top-nav-link active" id="top-link-announcements">Home</a>
+=======
+        <div style="background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(22, 74, 74, 0.08); display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border: 1px solid #c7e5e0;">
+            <h1 class="welcome-message" style="margin: 0; font-size: 1.8rem; font-weight: 600;">Welcome, <span>{{ Auth::user()->name }}</span>!</h1>
+            
+            <nav class="top-nav">
+                <a href="#announcements" onclick="showSection('announcements')" class="top-nav-link active" id="top-link-announcements">Announcements</a>
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                 <a href="#inbox" onclick="showSection('inbox')" class="top-nav-link" id="top-link-inbox">Inbox</a>
                 <a href="#account" onclick="showSection('account')" class="top-nav-link" id="top-link-account">Account</a>
             </nav>
         </div>
 
+<<<<<<< HEAD
         
 
+=======
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         <!-- Announcements Section -->
         <div id="announcements" class="section active">
             <!-- Inbox Summary (Home only) -->
             <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px;">
                 <div style="background: #ffffff; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+<<<<<<< HEAD
                     <div style="font-size: 14px; color: #555;">📨 Inbox</div>
+=======
+                    <div style="font-size: 14px; color: #555;">Inbox</div>
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                     <div style="font-size: 24px; font-weight: 700;">{{ $inboxStats['total'] ?? 0 }}</div>
                     <div style="font-size: 12px; color: #888;">Total Tickets</div>
                 </div>
@@ -1075,7 +1550,11 @@
                     <div style="font-size: 24px; font-weight: 700; color: #2e7d32;">{{ $inboxStats['medium'] ?? 0 }}</div>
                 </div>
                 <div style="background: #f5f9ff; border: 1px solid #c6dcff; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+<<<<<<< HEAD
                     <div style="font-size: 14px; color: #1565c0;">ℹLow Priority</div>
+=======
+                    <div style="font-size: 14px; color: #1565c0;">Low Priority</div>
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                     <div style="font-size: 24px; font-weight: 700; color: #1565c0;">{{ $inboxStats['low'] ?? 0 }}</div>
                 </div>
                 <div style="background: #f7f7f7; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
@@ -1085,7 +1564,11 @@
             </div>
             <div class="table-container">
                 <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 20px;">
+<<<<<<< HEAD
                     <h2 style="margin: 0;">🏠 Announcements</h2>
+=======
+                    <h2 style="margin: 0;">📢 Announcements</h2>
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                     <button class="add-announcement-btn" onclick="showAddAnnouncementModal()">
                         + Add Announcement
                     </button>
@@ -1153,7 +1636,26 @@
         <!-- Inbox Section -->
         <div id="inbox" class="section">
             <div class="table-container">
+<<<<<<< HEAD
                 <h2>📨 Inbox</h2>
+=======
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">📨 Inbox</h2>
+                    <div class="date-range-filter" style="display: flex; align-items: center; gap: 10px;">
+                        <label for="inboxDateRangeSelect" style="font-weight: 500; color: var(--primary);">
+                            <i class="fas fa-calendar-alt"></i> Range:
+                        </label>
+                        <select id="inboxDateRangeSelect" onchange="applyInboxDateFilter()" style="padding: 8px 15px; border: 1px solid #e0efe5; border-radius: 20px; background: white; color: var(--primary); font-size: 0.9rem; cursor: pointer; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08);">
+                            <option value="daily">Today</option>
+                            <option value="weekly">This Week</option>
+                            <option value="monthly">This Month</option>
+                            <option value="annually">This Year</option>
+                            <option value="overall" selected>Overall</option>
+                        </select>
+                        <span id="inboxDateRangeDisplay" style="color: #666; font-size: 0.85rem;">All Time</span>
+                    </div>
+                </div>
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
 
                 <!-- Dashboard Cards -->
                 <div class="dashboard-cards">
@@ -1239,7 +1741,11 @@
                             }
                             return true; // no deadline => pending
                         }) as $ticket)
+<<<<<<< HEAD
                             <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')">
+=======
+                            <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')" data-created="{{ $ticket->created_at }}" data-priority="{{ $ticket->priority }}" data-status="{{ $ticket->status }}">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                                 <strong>🎫 {{ $ticket->ticket_no }}</strong>
                                 <div class="ticket-meta">
                                     <div>{{ Str::limit($ticket->message, 50) }}</div>
@@ -1304,7 +1810,11 @@
                             }
                             return false;
                         }) as $ticket)
+<<<<<<< HEAD
                             <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')">
+=======
+                            <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')" data-created="{{ $ticket->created_at }}" data-priority="{{ $ticket->priority }}" data-status="{{ $ticket->status }}">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                                 <strong>🎫 {{ $ticket->ticket_no }}</strong>
                                 <div class="ticket-meta">
                                     <div>{{ Str::limit($ticket->message, 50) }}</div>
@@ -1353,7 +1863,11 @@
                         <h3 class="split-heading" style="display:none;" id="heading-resolved">Resolved Tickets</h3>
                         <div id="list-resolved" style="display:none;">
                         @forelse($inbox->filter(function($t){ return $t->status === 'Resolved'; }) as $ticket)
+<<<<<<< HEAD
                             <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')">
+=======
+                            <div class="ticket-item" id="ticket-{{ $ticket->ticket_no }}" onclick="openTicket('{{ $ticket->ticket_no }}')" data-created="{{ $ticket->created_at }}" data-priority="{{ $ticket->priority }}" data-status="{{ $ticket->status }}">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                                 <strong>🎫 {{ $ticket->ticket_no }}</strong>
                                 <div class="ticket-meta">
                                     <div>{{ Str::limit($ticket->message, 50) }}</div>
@@ -1565,6 +2079,14 @@
                 </div>
             </div>
 
+<<<<<<< HEAD
+=======
+            <div class="form-group">
+                <label>Middle Name</label>
+                <input type="text" name="middleName" value="{{ $user->middleName ?? '' }}">
+            </div>
+
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             <div class="form-row">
                 <div class="form-group">
                     <label>Email</label>
@@ -1749,6 +2271,7 @@
         const activeLink = document.getElementById('link-' + id);
         if (activeLink) activeLink.classList.add('active');
         
+<<<<<<< HEAD
         // Update top navigation ribbon with animation
         document.querySelectorAll('.top-nav-link').forEach(link => {
             link.classList.remove('active');
@@ -1760,6 +2283,12 @@
             // Trigger animation
             topLink.style.transform = 'scale(1.05)';
         }
+=======
+        // Update top-nav active state
+        document.querySelectorAll('.top-nav-link').forEach(link => link.classList.remove('active'));
+        const activeTopLink = document.getElementById('top-link-' + id);
+        if (activeTopLink) activeTopLink.classList.add('active');
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     }
 
     async function resolveTicket(ticketNo) {
@@ -1788,6 +2317,24 @@
         }
     }
 
+<<<<<<< HEAD
+=======
+    // Update tab badge counts based on visible filtered tickets
+    function updateTabCounts() {
+        const pendingTickets = Array.from(document.querySelectorAll('#list-pending .ticket-item')).filter(t => t.style.display !== 'none');
+        const overdueTickets = Array.from(document.querySelectorAll('#list-overdue .ticket-item')).filter(t => t.style.display !== 'none');
+        const resolvedTickets = Array.from(document.querySelectorAll('#list-resolved .ticket-item')).filter(t => t.style.display !== 'none');
+        
+        const btnPendingCount = document.querySelector('#btn-pending .tab-count');
+        const btnOverdueCount = document.querySelector('#btn-overdue .tab-count');
+        const btnResolvedCount = document.querySelector('#btn-resolved .tab-count');
+        
+        if (btnPendingCount) btnPendingCount.textContent = pendingTickets.length;
+        if (btnOverdueCount) btnOverdueCount.textContent = overdueTickets.length;
+        if (btnResolvedCount) btnResolvedCount.textContent = resolvedTickets.length;
+    }
+
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     // Switch between pending, overdue, and resolved ticket lists
     function switchTicketList(which){
         const pendingBtn = document.getElementById('btn-pending');
@@ -2120,7 +2667,11 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
     }
 
     // ===== NAVIGATION FIX =====
+<<<<<<< HEAD
     // Ensure sidebar and top nav link clicks switch sections reliably
+=======
+    // Ensure sidebar link clicks switch sections reliably
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     (function() {
         const bindNav = (selectorPrefix) => {
             document.querySelectorAll(selectorPrefix + ' a').forEach(link => {
@@ -2138,9 +2689,12 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
         // Bind sidebar nav
         const sidebarNav = document.querySelector('.sb-nav');
         if (sidebarNav) bindNav('.sb-nav');
+<<<<<<< HEAD
         // Bind top nav
         const topNav = document.querySelector('.top-nav');
         if (topNav) bindNav('.top-nav');
+=======
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     })();
 
     function handlePasswordChange(event) {
@@ -2227,6 +2781,104 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
             }
         });
     });
+<<<<<<< HEAD
+=======
+
+    // Date range filter for inbox
+    function applyInboxDateFilter() {
+        const rangeSelect = document.getElementById('inboxDateRangeSelect');
+        const rangeDisplay = document.getElementById('inboxDateRangeDisplay');
+        const selectedRange = rangeSelect.value;
+        
+        const today = new Date();
+        let startDate, endDate, displayText;
+        
+        switch(selectedRange) {
+            case 'daily':
+                startDate = new Date(today.setHours(0, 0, 0, 0));
+                endDate = new Date(today.setHours(23, 59, 59, 999));
+                displayText = 'Today';
+                break;
+            case 'weekly':
+                const firstDayOfWeek = today.getDate() - today.getDay();
+                startDate = new Date(today.setDate(firstDayOfWeek));
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date();
+                displayText = 'This Week';
+                break;
+            case 'monthly':
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                endDate = new Date();
+                displayText = 'This Month';
+                break;
+            case 'annually':
+                startDate = new Date(today.getFullYear(), 0, 1);
+                endDate = new Date();
+                displayText = 'This Year';
+                break;
+            case 'overall':
+            default:
+                startDate = null;
+                endDate = null;
+                displayText = 'All Time';
+        }
+        
+        rangeDisplay.textContent = displayText;
+        
+        // Filter inbox ticket cards by date
+        const tickets = document.querySelectorAll('#inbox .ticket-item');
+        let visibleCount = 0;
+        
+        tickets.forEach(ticket => {
+            const createdDate = ticket.getAttribute('data-created');
+            if (!createdDate) {
+                ticket.style.display = 'none';
+                return;
+            }
+            
+            const ticketDate = new Date(createdDate);
+            
+            if (!startDate || !endDate || (ticketDate >= startDate && ticketDate <= endDate)) {
+                ticket.style.display = 'block';
+                visibleCount++;
+            } else {
+                ticket.style.display = 'none';
+            }
+        });
+        
+        // Update dashboard cards based on visible tickets
+        updateInboxCards();
+        
+        // Update tab counts
+        updateTabCounts();
+    }
+    
+    function updateInboxCards() {
+        const tickets = Array.from(document.querySelectorAll('#inbox .ticket-item'))
+            .filter(ticket => ticket.style.display !== 'none');
+        
+        const cards = document.querySelectorAll('#inbox .dashboard-cards .card');
+        if (cards.length >= 6) {
+            // Total tickets
+            cards[0].querySelector('h3').textContent = tickets.length;
+            
+            // Count by priority
+            const urgent = tickets.filter(ticket => ticket.getAttribute('data-priority') === 'urgent').length;
+            const high = tickets.filter(ticket => ticket.getAttribute('data-priority') === 'high').length;
+            const medium = tickets.filter(ticket => ticket.getAttribute('data-priority') === 'medium').length;
+            const low = tickets.filter(ticket => ticket.getAttribute('data-priority') === 'low').length;
+            
+            cards[1].querySelector('h3').textContent = urgent;
+            cards[2].querySelector('h3').textContent = high;
+            cards[3].querySelector('h3').textContent = medium;
+            cards[4].querySelector('h3').textContent = low;
+            
+            // Count replied
+            const replied = tickets.filter(ticket => ticket.getAttribute('data-status') === 'Replied').length;
+            cards[5].querySelector('h3').textContent = replied;
+        }
+    }
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
 </script>
 
 @include('includes.footer')

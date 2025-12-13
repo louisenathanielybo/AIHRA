@@ -15,6 +15,15 @@ class EmployeeController extends Controller
 {
     public function index()
     {
+<<<<<<< HEAD
+=======
+        // Delete expired announcements
+        DB::table('announcements')
+            ->where('expiry_date', '<', now()->toDateString())
+            ->whereNotNull('expiry_date')
+            ->delete();
+
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         $announcements = DB::table('announcements')
             ->where('isActive', 1)
             ->where(function($query) {

@@ -15,6 +15,10 @@ class Feedback extends Model
         'employeeNum',
         'queryID',
         'rating',
+<<<<<<< HEAD
+=======
+        'subject',
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         'suggestion',
         'timeStamp',
     ];

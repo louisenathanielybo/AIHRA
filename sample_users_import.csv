@@ -1,0 +1,11 @@
+Employee Number,Email,First Name,Last Name,Middle Name,Role,Gender,Date of Birth (YYYY-MM-DD),Status
+2024001,john.smith@company.com,John,Smith,Michael,Employee,Male,1990-05-15,Active
+2024002,jane.doe@company.com,Jane,Doe,Marie,HR,Female,1988-08-22,Active
+2024003,bob.johnson@company.com,Bob,Johnson,Lee,Employee,Male,1992-03-10,Active
+2024004,alice.williams@company.com,Alice,Williams,Grace,Admin,Female,1985-11-30,Active
+2024005,charlie.brown@company.com,Charlie,Brown,,Employee,Male,1995-07-18,Active
+2024006,diana.garcia@company.com,Diana,Garcia,Rose,HR,Female,1991-01-25,Deactivated
+2024007,edward.martinez@company.com,Edward,Martinez,James,Employee,Male,1993-09-05,Active
+2024008,fiona.lopez@company.com,Fiona,Lopez,Anne,Employee,Female,1994-12-12,Active
+2024009,george.wilson@company.com,George,Wilson,Thomas,Employee,Male,1989-04-20,Active
+2024010,hannah.davis@company.com,Hannah,Davis,Elizabeth,HR,Female,1987-06-08,Active

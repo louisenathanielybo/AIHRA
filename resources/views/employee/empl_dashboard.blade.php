@@ -17,7 +17,11 @@
         --warning: #ff9800;
         --danger: #f44336;
         --gray: #789984;
+<<<<<<< HEAD
         --sidebar-width: 250px;
+=======
+        --sidebar-width: clamp(200px, 20vw, 250px);
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         --card-bg: #ffffff;
         --hover-light: #e8f5e8;
     }
@@ -96,38 +100,70 @@
     .main-content { 
         flex: 1;
         margin-left: var(--sidebar-width); 
+<<<<<<< HEAD
         padding: 20px;
+=======
+        padding: clamp(15px, 2vw, 20px);
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         background: #f8fdf9;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
         min-height: 100vh;
+<<<<<<< HEAD
+=======
+        max-width: 100vw;
+        overflow-x: hidden;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     }
     
     .section {
         flex: 1;
+<<<<<<< HEAD
         min-height: calc(100vh - 200px);
+=======
+        min-height: 600px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     }
 
     /* Chat Container */
     .chat-container {
+<<<<<<< HEAD
         height: 400px;
         max-height: 400px;
+=======
+        height: 500px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         border: 1px solid #e0efe5;
         border-radius: 12px 12px 0 0;
         background: white;
         box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);
         overflow: hidden;
+<<<<<<< HEAD
+=======
+        display: flex;
+        flex-direction: column;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     }
 
     /* Chat Box */
     #chatBox, #ticketChatBox, .chat-box {
+<<<<<<< HEAD
         overflow-y: auto;
         overflow-x: hidden;
         padding: 20px;
         background: #f8f9fa;
         height: 100%;
         max-height: 400px;
+=======
+        overflow-y: scroll;
+        overflow-x: hidden;
+        padding: 20px;
+        background: #f8f9fa;
+        flex: 1;
+        min-height: 0;
+        max-height: 420px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     }
 
     /* Chat Rows */
@@ -218,7 +254,11 @@
         background: white;
         padding: 30px;
         border-radius: 15px;
+<<<<<<< HEAD
         max-width: 500px;
+=======
+        max-width: min(500px, 90vw);
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         width: 90%;
         max-height: 80vh;
         overflow-y: auto;
@@ -323,6 +363,11 @@
         box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);
         position: relative;
         z-index: 10;
+<<<<<<< HEAD
+=======
+        flex-shrink: 0;
+        min-height: 70px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     }
 
     /* Combined message + guided containers */
@@ -347,11 +392,20 @@
 
     .chat-input input {
         flex: 1;
+<<<<<<< HEAD
         border: 1px solid #ddd;
         border-radius: 25px;
         padding: 12px 20px;
         outline: none;
         font-size: 14px;
+=======
+        border: 2px solid #ddd;
+        border-radius: 25px;
+        padding: 14px 22px;
+        outline: none;
+        font-size: 15px;
+        min-height: 45px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     }
 
     .chat-input input:focus {
@@ -364,10 +418,19 @@
         color: white;
         border: none;
         border-radius: 25px;
+<<<<<<< HEAD
         padding: 12px 25px;
         cursor: pointer;
         transition: background 0.3s ease;
         font-weight: 500;
+=======
+        padding: 14px 28px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        font-weight: 500;
+        min-height: 45px;
+        font-size: 15px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     }
 
     .chat-input button:hover {
@@ -427,7 +490,13 @@
     }
 
     .ticket-list {
+<<<<<<< HEAD
         height: 200px;
+=======
+        height: 30%;
+        min-height: 180px;
+        max-height: 250px;
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         overflow-y: auto;
         border-bottom: 1px solid #ddd;
         padding: 15px;
@@ -833,6 +902,7 @@
     }
     
     .top-nav-link {
+<<<<<<< HEAD
         padding: 8px 20px;
         border-radius: 20px;
         text-decoration: none;
@@ -855,6 +925,100 @@
         transform: scale(1.05);
     }
     
+=======
+        padding: 10px 24px;
+        border-radius: 20px;
+        text-decoration: none;
+        color: #666;
+        font-weight: 500;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+        cursor: pointer;
+    }
+    
+    .top-nav-link:hover {
+        background: #f0f0f0;
+        color: #333;
+    }
+    
+    .top-nav-link.active {
+        background: #28a745;
+        color: white;
+        border-color: #28a745;
+        transform: scale(1.05);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1600px) {
+        :root {
+            --sidebar-width: clamp(220px, 22vw, 270px);
+        }
+    }
+
+    @media (max-width: 1400px) {
+        :root {
+            --sidebar-width: clamp(230px, 24vw, 280px);
+        }
+    }
+
+    @media (max-width: 1200px) {
+        :root {
+            --sidebar-width: 250px;
+        }
+        .top-nav-link {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+    }
+
+    @media (max-width: 992px) {
+        :root {
+            --sidebar-width: 220px;
+        }
+        .main-content {
+            padding: 15px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .sidebar {
+            width: 200px;
+        }
+        .top-nav {
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .top-nav-link {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .sidebar {
+            position: fixed;
+            left: -220px;
+            width: 220px;
+            transition: left 0.3s ease;
+        }
+        .sidebar.mobile-open {
+            left: 0;
+        }
+        .main-content {
+            margin-left: 0;
+            padding: 10px;
+            width: 100%;
+        }
+        .top-nav {
+            padding: 6px 8px;
+        }
+        .top-nav-link {
+            padding: 6px 10px;
+            font-size: 0.75rem;
+        }
+    }
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
 
 </style>
 </head>
@@ -865,7 +1029,11 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
+<<<<<<< HEAD
             <h2 style="display: flex; align-items: center; gap: 8px;">
+=======
+            <h2 style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                 AIHRA
                 <img src="{{ asset('assets/AIHRA_Logo.png') }}" alt="AIHRA Logo" style="width: 50px; height: 50px;"> 
             </h2>
@@ -880,11 +1048,23 @@
 
         <div class="sidebar-footer">
             <div class="account-info">
+<<<<<<< HEAD
                 <div class="account-avatar">
                     {{ substr(Auth::user()->name, 0, 1) }}
                 </div>
                 <div class="account-details">
                     <div class="account-name">{{ Auth::user()->name }}</div>
+=======
+                @if(isset(Auth::user()->profile_picture) && Auth::user()->profile_picture)
+                    <img src="{{ asset('uploads/' . Auth::user()->profile_picture) }}" alt="Profile" class="account-avatar" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid #a8d5b5;">
+                @else
+                    <div class="account-avatar">
+                        {{ substr(Auth::user()->firstName ?? Auth::user()->name, 0, 1) }}{{ substr(Auth::user()->lastName ?? '', 0, 1) }}
+                    </div>
+                @endif
+                <div class="account-details">
+                    <div class="account-name">{{ Auth::user()->firstName ?? Auth::user()->name }} {{ Auth::user()->lastName ?? '' }}</div>
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                     <div class="account-role">Employee</div>
                 </div>
                 <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">
@@ -899,8 +1079,13 @@
 
     <!-- Main Content -->
     <div class="main-content">
+<<<<<<< HEAD
         <div style="background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 1px solid #e0efe5;">
             <h1 class="welcome-message" style="margin: 0;">Welcome, <span>{{ Auth::user()->name }}</span>!</h1>
+=======
+        <div style="background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08); display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border: 1px solid #e0efe5;">
+            <h1 class="welcome-message" style="margin: 0; font-size: 1.8rem; font-weight: 600;">Welcome, <span>{{ Auth::user()->name }}</span>!</h1>
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             
             <nav class="top-nav">
                 <a href="#home" onclick="showSection('home')" class="top-nav-link active" id="top-link-home">Home</a>
@@ -1027,13 +1212,27 @@
             <form method="POST" action="{{ route('feedback.store') }}" onsubmit="handleFeedbackSubmit(event)">
                 @csrf
                 
+<<<<<<< HEAD
                 <div class="star-rating" style="text-align: center; margin-bottom: 30px;">
+=======
+                <div class="star-rating" style="display: flex; justify-content: center; align-items: center; margin-bottom: 15px;">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                     @for ($i = 1; $i <= 5; $i++)
                         <span class="star" data-value="{{ $i }}" style="font-size: 48px; cursor: pointer; color: #ddd; margin: 0 5px;">★</span>
                     @endfor
                 </div>
+<<<<<<< HEAD
                 <input type="hidden" name="rating" id="ratingValue" required>
 
+=======
+                <p id="ratingDescription" style="text-align: center; color: #666; font-size: 16px; font-weight: 500; margin-bottom: 25px; min-height: 24px;">Select a rating</p>
+                <input type="hidden" name="rating" id="ratingValue" required>
+
+                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">Subject</label>
+                <input type="text" name="subject" id="feedbackSubject" placeholder="Brief subject line..." style="width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;" required>
+
+                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">Comment</label>
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                 <textarea name="suggestion" id="suggestion" placeholder="We would like to know what you think ..." 
                     style="width: 100%; height: 120px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; box-sizing: border-box;" required></textarea>
 
@@ -1045,6 +1244,7 @@
 
     <!-- Account Section -->
     <div id="account" class="section" style="display:none;">
+<<<<<<< HEAD
         <div style="display: flex; gap: 30px; max-width: 1200px; margin: 0 auto;">
             <!-- Left Panel - Profile -->
             <div style="flex: 1; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
@@ -1058,28 +1258,62 @@
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Name</label>
                     <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
+=======
+        <div style="display: flex; gap: 20px; max-width: 1100px; margin: 0 auto;">
+            <!-- Left Panel - Profile -->
+            <div style="flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold;">Profile</h3>
+                
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="{{ asset('uploads/' . Auth::user()->profile_picture) }}" alt="Profile Picture" 
+                         style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;">
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #333; font-size: 13px;">Name</label>
+                    <div style="padding: 10px; background: #e6f7f0; border-radius: 8px; color: #333; font-size: 14px;">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                         {{ Auth::user()->name }}
                     </div>
                 </div>
 
+<<<<<<< HEAD
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Email</label>
                     <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
+=======
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #333; font-size: 13px;">Email</label>
+                    <div style="padding: 10px; background: #e6f7f0; border-radius: 8px; color: #333; font-size: 14px;">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                         {{ Auth::user()->email }}
                     </div>
                 </div>
 
+<<<<<<< HEAD
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Employee number</label>
                     <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
+=======
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #333; font-size: 13px;">Employee number</label>
+                    <div style="padding: 10px; background: #e6f7f0; border-radius: 8px; color: #333; font-size: 14px;">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                         {{ Auth::user()->employeeNum }}
                     </div>
                 </div>
 
+<<<<<<< HEAD
                 <div style="display: flex; gap: 15px;">
                     <div style="flex: 1;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Age</label>
                         <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
+=======
+                <div style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #333; font-size: 13px;">Age</label>
+                        <div style="padding: 10px; background: #e6f7f0; border-radius: 8px; color: #333; font-size: 14px;">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                             @php
                                 if (Auth::user()->dob) {
                                     $dob = new DateTime(Auth::user()->dob);
@@ -1093,8 +1327,13 @@
                         </div>
                     </div>
                     <div style="flex: 1;">
+<<<<<<< HEAD
                         <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">Sex</label>
                         <div style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333;">
+=======
+                        <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #333; font-size: 13px;">Sex</label>
+                        <div style="padding: 10px; background: #e6f7f0; border-radius: 8px; color: #333; font-size: 14px;">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                             {{ Auth::user()->sex ?? 'N/A' }}
                         </div>
                     </div>
@@ -1102,6 +1341,7 @@
             </div>
 
             <!-- Right Panel - Account Settings -->
+<<<<<<< HEAD
             <div style="flex: 1; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
                 <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: bold;">Account Settings</h3>
 
@@ -1116,13 +1356,33 @@
                 <div style="margin-bottom: 30px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">About</label>
                     <div onclick="showAboutModal()" style="padding: 15px; background: #e6f7f0; border-radius: 8px; color: #333; cursor: pointer; min-height: 60px; transition: background 0.3s;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
+=======
+            <div style="flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold;">Account Settings</h3>
+
+                <button onclick="showEditProfileModal()" style="width: 100%; padding: 12px; margin-bottom: 12px; background: #e6f7f0; border: none; border-radius: 8px; text-align: left; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.3s;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
+                    Edit Profile
+                </button>
+
+                <button onclick="showChangePasswordModal()" style="width: 100%; padding: 12px; margin-bottom: 12px; background: #e6f7f0; border: none; border-radius: 8px; text-align: left; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.3s;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
+                    Change Password
+                </button>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #333; font-size: 13px;">About</label>
+                    <div onclick="showAboutModal()" style="padding: 12px; background: #e6f7f0; border-radius: 8px; color: #333; cursor: pointer; min-height: 50px; transition: background 0.3s; font-size: 14px;" onmouseover="this.style.background='#d0f0e0'" onmouseout="this.style.background='#e6f7f0'">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                         {{ Auth::user()->about ?: 'Click to add information about yourself...' }}
                     </div>
                 </div>
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
+<<<<<<< HEAD
                     <button type="submit" style="width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">
+=======
+                    <button type="submit" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                         Log out
                     </button>
                 </form>
@@ -1164,6 +1424,14 @@
                     </div>
                 </div>
 
+<<<<<<< HEAD
+=======
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Middle name</label>
+                    <input type="text" name="middleName" value="{{ Auth::user()->middleName }}" style="width: 100%; padding: 12px; border: none; border-radius: 8px; box-sizing: border-box; background: #d0f0e0;">
+                </div>
+
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <div style="flex: 1;">
                         <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #333;">Email</label>
@@ -1338,6 +1606,10 @@ let currentSessionId = '{{ session()->getId() }}';
 let currentConversationId = null;
 let lastEscalatedTicketNo = null;
 let lastEscalationMessage = null;
+<<<<<<< HEAD
+=======
+let isChangingSection = false; // Flag to prevent recursive hash updates
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', async function() {
@@ -1360,6 +1632,27 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     } catch (e) { console.debug('No last conversation to restore or failed restore', e); }
     requestNotificationPermission();
+<<<<<<< HEAD
+=======
+    
+    // Restore the active section based on URL hash
+    const hash = window.location.hash.substring(1); // Remove the # character
+    if (hash && ['home', 'chat', 'feedback', 'account'].includes(hash)) {
+        showSection(hash);
+    }
+});
+
+// Handle hash changes (browser back/forward or direct hash changes)
+window.addEventListener('hashchange', function() {
+    if (isChangingSection) {
+        isChangingSection = false;
+        return; // Ignore hash changes triggered by showSection
+    }
+    const hash = window.location.hash.substring(1);
+    if (hash && ['home', 'chat', 'feedback', 'account'].includes(hash)) {
+        showSection(hash);
+    }
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
 });
 
 // Toggle between Conversations and Tickets in left panel
@@ -1406,6 +1699,15 @@ function showMainChat() {
 
 // Section Navigation
 function showSection(id) {
+<<<<<<< HEAD
+=======
+    // Update URL hash to preserve tab state
+    if (window.location.hash !== '#' + id) {
+        isChangingSection = true;
+        window.location.hash = id;
+    }
+    
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     // Scroll to top smoothly
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
@@ -1489,23 +1791,43 @@ function showChatTab(tabName) {
 function initializeStarRating() {
     const stars = document.querySelectorAll('.star-rating .star');
     const ratingInput = document.getElementById('ratingValue');
+<<<<<<< HEAD
+=======
+    const ratingDesc = document.getElementById('ratingDescription');
+    const descriptions = ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     let selectedRating = 0;
 
     stars.forEach((star, index) => {
         const value = index + 1;
 
         star.addEventListener('mouseover', function() {
+<<<<<<< HEAD
             stars.forEach((s, i) => s.style.color = i < value ? '#ffc107' : '#ccc');
         });
 
         star.addEventListener('mouseout', function() {
             stars.forEach((s, i) => s.style.color = i < selectedRating ? '#ffc107' : '#ccc');
+=======
+            stars.forEach((s, i) => s.style.color = i < value ? '#ffc107' : '#ddd');
+            if (ratingDesc) ratingDesc.textContent = descriptions[index];
+        });
+
+        star.addEventListener('mouseout', function() {
+            stars.forEach((s, i) => s.style.color = i < selectedRating ? '#ffc107' : '#ddd');
+            if (ratingDesc) ratingDesc.textContent = selectedRating > 0 ? descriptions[selectedRating - 1] : 'Select a rating';
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         });
 
         star.addEventListener('click', function() {
             selectedRating = value;
             if (ratingInput) ratingInput.value = value;
+<<<<<<< HEAD
             stars.forEach((s, i) => s.style.color = i < value ? '#ffc107' : '#ccc');
+=======
+            stars.forEach((s, i) => s.style.color = i < value ? '#ffc107' : '#ddd');
+            if (ratingDesc) ratingDesc.textContent = descriptions[index];
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         });
     });
 }
@@ -1555,6 +1877,19 @@ async function sendMessage() {
         return;
     }
 
+<<<<<<< HEAD
+=======
+    // If awaiting escalation clarity, enforce 10-character minimum
+    if (window.awaitingEscalationClarity) {
+        if (msg.length < 10) {
+            addMessageToChat(messagesEl, 'bot', 'Please provide at least 10 characters so HR can assist you better.', 'info', msg);
+            msgInput.value = '';
+            conversationPath.push({ type: 'bot', message: 'Please provide at least 10 characters so HR can assist you better.' });
+            return;
+        }
+    }
+
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
     // Add user message for normal conversations
     addMessageToChat(messagesEl, 'user', msg);
     msgInput.value = '';
@@ -1562,14 +1897,21 @@ async function sendMessage() {
 
     try {
         console.log('Sending to Dialogflow:', msg);
+<<<<<<< HEAD
         
+=======
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         const res = await fetch('{{ url("dialogflow-webhook") }}', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
+<<<<<<< HEAD
                 body: JSON.stringify({ 
+=======
+            body: JSON.stringify({ 
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
                 message: msg, // 🆕 FIXED: Use correct parameter name
                 sessionId: currentSessionId
             })
@@ -1608,15 +1950,50 @@ async function sendMessage() {
         }
 
         // 🆕 FIXED: Handle different response formats (render into messagesContainer)
+<<<<<<< HEAD
         if (data.fulfillmentText) {
+=======
+        console.log('Checking response formats:', {
+            hasFulfillmentText: !!data.fulfillmentText,
+            fulfillmentText: data.fulfillmentText,
+            hasResponse: !!data.response,
+            hasMessage: !!data.message,
+            status: data.status,
+            guidedFlow: data.guided_flow
+        });
+        
+        if (data.status === 'ask_for_clarity') {
+            // Bot is asking for more details before escalation
+            addMessageToChat(messagesEl, 'bot', data.fulfillmentText || 'Before I escalate this to HR, could you provide more details about your issue?', 'info', msg);
+            conversationPath.push({ type: 'bot', message: data.fulfillmentText });
+            // Set a flag to indicate we are waiting for user clarification
+            window.awaitingEscalationClarity = true;
+        } else if (data.status === 'need_more_clarity') {
+            // Bot says user input was too short, prompt again
+            addMessageToChat(messagesEl, 'bot', data.fulfillmentText || 'Please provide at least 10 characters so HR can assist you better.', 'info', msg);
+            conversationPath.push({ type: 'bot', message: data.fulfillmentText });
+            window.awaitingEscalationClarity = true;
+        } else if (data.fulfillmentText && data.fulfillmentText.trim()) {
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             // Always show the notification immediately so the user sees it
             addMessageToChat(messagesEl, 'bot', data.fulfillmentText, 'normal', msg);
             conversationPath.push({ type: 'bot', message: data.fulfillmentText });
             try { localStorage.setItem('lastEscalationMessage', data.fulfillmentText); } catch (_) {}
             lastEscalationMessage = data.fulfillmentText;
+<<<<<<< HEAD
         } 
         // If backend sent a wrapped response with message, render appropriately
         if (data.response && data.response.message) {
+=======
+            // If guided_flow flag is set, also load guided questions
+            if (data.guided_flow || data.status === 'guided_flow') {
+                await loadGuidedQuestions();
+            }
+            window.awaitingEscalationClarity = false;
+        }
+        // If backend sent a wrapped response with message, render appropriately
+        else if (data.response && data.response.message) {
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             const r = data.response;
             // Always show the notification immediately
             addMessageToChat(messagesEl, 'bot', r.message, 'normal', msg);
@@ -1628,7 +2005,11 @@ async function sendMessage() {
             // Custom backend response format
             handleCustomResponse(data.response, messagesEl, msg);
         }
+<<<<<<< HEAD
         else if (data.message) {
+=======
+        else if (data.message && data.message.trim()) {
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             // Alternative response format
             addMessageToChat(messagesEl, 'bot', data.message, 'normal', msg);
             conversationPath.push({ type: 'bot', message: data.message });
@@ -1636,13 +2017,21 @@ async function sendMessage() {
         else {
             // Fallback to guided questions
             console.warn('No valid response from Dialogflow, falling back to guided questions');
+<<<<<<< HEAD
+=======
+            console.warn('Response data was:', JSON.stringify(data));
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             await loadGuidedQuestions();
         }
 
         // Reload conversation list to update title with first message
         try {
             await loadConversations();
+<<<<<<< HEAD
             // To prevent the just-shown message from disappearing due to immediate reload,
+=======
+            // To prevent the just-shown  from disappearing due to immediate reload,
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
             // do NOT auto-reload the conversation here. The persisted message will be visible
             // the next time the user opens or switches conversations.
             // We keep the local bubble, and rely on conversation reloads initiated by the user.
@@ -3107,8 +3496,13 @@ function handleProfileUpdate(event) {
         if (data.success) {
             showNotification('✅ Profile updated successfully!');
             closeEditProfileModal();
+<<<<<<< HEAD
             // Reload page to show updated info
             setTimeout(() => location.reload(), 1000);
+=======
+            // Reload page to show updated info, preserving the current tab
+            setTimeout(() => window.location.href = window.location.href, 1000);
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         } else {
             showNotification('❌ ' + (data.message || 'Failed to update profile'));
         }
@@ -3160,8 +3554,13 @@ function handleAboutUpdate(event) {
         if (data.success) {
             showNotification('✅ About section updated!');
             closeAboutModal();
+<<<<<<< HEAD
             // Reload page to show updated info
             setTimeout(() => location.reload(), 1000);
+=======
+            // Reload page to show updated info, preserving the current tab
+            setTimeout(() => window.location.href = window.location.href, 1000);
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         } else {
             showNotification('❌ Failed to update about section');
         }
@@ -3192,9 +3591,22 @@ function handleFeedbackSubmit(event) {
             form.reset();
             // Reset star rating
             document.querySelectorAll('.star-rating .star').forEach(star => {
+<<<<<<< HEAD
                 star.style.color = '#ccc';
             });
             document.getElementById('ratingValue').value = '';
+=======
+                star.style.color = '#ddd';
+            });
+            document.getElementById('ratingValue').value = '';
+            const ratingDesc = document.getElementById('ratingDescription');
+            if (ratingDesc) ratingDesc.textContent = 'Select a rating';
+            // Reset selected rating
+            if (typeof initializeStarRating === 'function') {
+                const stars = document.querySelectorAll('.star-rating .star');
+                stars.forEach(star => star.style.color = '#ddd');
+            }
+>>>>>>> 21f0fed8913e61a3dc40934bf89c506deb9e72b9
         } else {
             showNotification('❌ Failed to submit feedback. Please try again.');
         }
