@@ -22,6 +22,42 @@ class DialogflowController extends Controller
     public function webhook(Request $request)
     {
         try {
+            // Always check for pending escalation requiring clarification
+            $pendingEscalation = Session::get('pending_escalation');
+            if ($pendingEscalation && isset($pendingEscalation['awaiting_clarification']) && $pendingEscalation['awaiting_clarification'] === true) {
+                $clarification = trim($request->input('message') ?? $request->input('queryText') ?? '');
+                if (mb_strlen($clarification) < 10) {
+                    return response()->json([
+                        'status' => 'need_more_clarity',
+                        'fulfillmentText' => 'To help HR assist you better, please provide a bit more detail about your issue.'
+                    ]);
+                }
+                // Escalate with the clarified message
+                $originalQuery = $pendingEscalation['query'] ?? '';
+                $employeeNum = $pendingEscalation['employeeNum'] ?? (Auth::check() ? Auth::user()->employeeNum : 0);
+                $originalConfidence = $pendingEscalation['confidence'] ?? 0.0;
+                Log::info('✅ Escalating with user-provided clarification (global check)', [
+                    'original_query' => $originalQuery,
+                    'clarification' => $clarification,
+                    'original_confidence' => $originalConfidence
+                ]);
+                Session::forget('pending_escalation');
+                // Find conversation if possible
+                $sessionId = $request->input('sessionId') ?? session()->getId();
+                $conversation = null;
+                if (class_exists(Conversation::class)) {
+                    $conversation = Conversation::where('session_id', $sessionId)
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                }
+                return $this->escalateToHR(
+                    $clarification,
+                    $employeeNum,
+                    "User provided clarification after escalation confirmation (global check).",
+                    $originalConfidence,
+                    $conversation ? $conversation->id : null
+                );
+            }
             Log::info('🔍 Dialogflow Webhook Called', ['input' => $request->all()]);
 
             // Capture question time at the very start for accurate response time calculation
@@ -202,27 +238,57 @@ class DialogflowController extends Controller
             ]);
 
             // 🆕 NEW: Check if this is HR-related but bot can't answer properly
-            $isHRRelated = $this->isHRRelatedQuestion($queryText);
             $cantAnswer = $this->cantAnswerQuestion($confidence, $intentName, $fulfillmentText);
 
+            // Only suggest escalation for HR-related questions after max retries, not immediately
             if ($isHRRelated && $cantAnswer) {
+                // Use a dedicated retry counter for HR-related escalation
+                $hrRetryCount = Session::get('hr_retry_count', 0) + 1;
+                Session::put('hr_retry_count', $hrRetryCount);
                 Log::info('HR-related question detected but bot cannot answer', [
                     'confidence' => $confidence,
-                    'intent' => $intentName
+                    'intent' => $intentName,
+                    'hrRetryCount' => $hrRetryCount
                 ]);
-                return $this->suggestHREscalation($queryText, $employeeNum, "HR-related question with low confidence");
+                // Store original query details for potential escalation
+                Session::put('pending_escalation', [
+                    'query' => $queryText,
+                    'confidence' => $confidence,
+                    'intent' => $intentName,
+                    'timestamp' => now()->toIso8601String()
+                ]);
+                if ($hrRetryCount > $this->maxRetries) {
+                    // Reset HR retry count after escalation offer
+                    Session::forget('hr_retry_count');
+                    return $this->offerHREscalation($queryText, $employeeNum, $confidence);
+                }
+                $retryText = $this->getRetryMessage($hrRetryCount);
+                if (!empty($conversation)) {
+                    try {
+                        ChatMessage::create([
+                            'ticket_no' => null,
+                            'sender' => 'bot',
+                            'message' => $retryText,
+                            'conversation_id' => $conversation->id
+                        ]);
+                        if (empty($conversation->title)) {
+                            $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+                            $conversation->save();
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to save retry bot message: ' . $e->getMessage());
+                    }
+                }
+                return response()->json([
+                    'status' => 'retry',
+                    'fulfillmentText' => $retryText,
+                    'retryCount' => $hrRetryCount,
+                    'needs_clarification' => true
+                ]);
             }
 
             // 🔥 IMPROVED: Auto-escalate based on multiple factors
-            if ($this->shouldEscalate($queryText, $confidence, $intentName)) {
-                Log::info('Auto-escalating query', [
-                    'reason' => 'Low confidence or urgent content',
-                    'confidence' => $confidence,
-                    'intent' => $intentName
-                ]);
-                $this->resetRetryCount();
-                return $this->escalateToHR($queryText, $employeeNum, "Auto-escalated: Confidence {$confidence}, Intent: {$intentName}", $confidence, $conversation ? $conversation->id : null);
-            }
+            // Auto-escalation is disabled. The bot will always ask for confirmation before escalating.
 
             // 🆕 NEW: Handle retry logic for unclear questions
             if ($this->shouldRetry($confidence, $intentName)) {
@@ -355,58 +421,69 @@ class DialogflowController extends Controller
                 'line' => $e->getLine()
             ]);
 
-            // 🆕 FIXED: Better error response that doesn't break the frontend
-            $fallbackReply = "I encountered an error processing that request. Let me help you by creating a support ticket for HR, or you can browse our guided topics to find what you need.";
-            // Ensure a conversation exists for this session so replies are persisted
-            try {
-                $sessionId = $request->input('sessionId') ?? session()->getId();
-                $userId = Auth::id();
-
-                $conv = null;
-                if (class_exists(Conversation::class)) {
-                    $conv = Conversation::where('session_id', $sessionId)
-                        ->orderBy('created_at', 'desc')
-                        ->first();
-
-                    if ($conv && empty($conv->user_id) && $userId) {
-                        $conv->user_id = $userId;
+            // Fallback retry logic: only after 3 fallback errors offer escalation
+            $sessionId = $request->input('sessionId') ?? session()->getId();
+            $userId = Auth::id();
+            $conv = null;
+            if (class_exists(Conversation::class)) {
+                $conv = Conversation::where('session_id', $sessionId)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                if ($conv && empty($conv->user_id) && $userId) {
+                    $conv->user_id = $userId;
+                    $conv->save();
+                }
+                if (!$conv) {
+                    $conv = Conversation::create([
+                        'user_id' => $userId,
+                        'session_id' => $sessionId,
+                        'first_message' => $queryText ?? null,
+                        'title' => null,
+                    ]);
+                }
+            }
+            // Use conversation id as key for fallback retry count
+            $convId = $conv ? $conv->id : 'default';
+            $fallbackCounts = Session::get('fallback_retry_counts', []);
+            $fallbackRetryCount = isset($fallbackCounts[$convId]) ? $fallbackCounts[$convId] + 1 : 1;
+            $fallbackCounts[$convId] = $fallbackRetryCount;
+            Session::put('fallback_retry_counts', $fallbackCounts);
+            if ($conv) {
+                try {
+                    ChatMessage::create([
+                        'ticket_no' => null,
+                        'sender' => 'bot',
+                        'message' => "I encountered an error processing that request. Please try rephrasing your question or use our guided topics.",
+                        'conversation_id' => $conv->id
+                    ]);
+                    if (empty($conv->title)) {
+                        $conv->title = now()->toDateString() . ' - ' . Str::limit($conv->first_message ?? $queryText, 80);
                         $conv->save();
                     }
-
-                    if (!$conv) {
-                        $conv = Conversation::create([
-                            'user_id' => $userId,
-                            'session_id' => $sessionId,
-                            'first_message' => $queryText ?? null,
-                            'title' => null,
-                        ]);
-                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to save fallback bot message: ' . $e->getMessage());
                 }
-
-                if ($conv) {
-                    try {
-                        ChatMessage::create([
-                            'ticket_no' => null,
-                            'sender' => 'bot',
-                            'message' => $fallbackReply,
-                            'conversation_id' => $conv->id
-                        ]);
-
-                        if (empty($conv->title)) {
-                            $conv->title = now()->toDateString() . ' - ' . Str::limit($conv->first_message ?? $queryText, 80);
-                            $conv->save();
-                        }
-                    } catch (\Throwable $e) {
-                        Log::warning('Failed to save fallback bot message: ' . $e->getMessage());
-                    }
-                }
-            } catch (\Throwable $e) {
-                Log::warning('Failed to ensure conversation for fallback message: ' . $e->getMessage());
             }
-
+            if ($fallbackRetryCount >= 3) {
+                // Reset fallback retry count for this conversation and offer escalation with clarification
+                unset($fallbackCounts[$convId]);
+                Session::put('fallback_retry_counts', $fallbackCounts);
+                Session::put('pending_escalation', [
+                    'query' => $queryText,
+                    'employeeNum' => $userId,
+                    'reason' => 'Error fallback, awaiting clarification',
+                    'awaiting_clarification' => true,
+                    'created_at' => now()
+                ]);
+                return response()->json([
+                    'status' => 'ask_for_clarity',
+                    'fulfillmentText' => "I encountered an error processing that request multiple times. Before I escalate to HR, could you please provide more details about your issue?",
+                    'fallback' => true
+                ]);
+            }
             return response()->json([
-                'status' => 'success', // Use success to prevent frontend errors
-                'fulfillmentText' => $fallbackReply,
+                'status' => 'fallback',
+                'fulfillmentText' => "I encountered an error processing that request. Please try rephrasing your question or use our guided topics.",
                 'fallback' => true
             ]);
         }
@@ -732,6 +809,7 @@ class DialogflowController extends Controller
     {
         Session::forget('retry_count');
         Session::forget('last_retry_time');
+        Session::forget('hr_retry_count');
     }
 
     /**
@@ -1113,24 +1191,43 @@ class DialogflowController extends Controller
     {
         // HR-related keywords for all priorities
         $urgentKeywords = [
+            // Existing
             'harass', 'discriminat', 'wrongful termination', 'fired unfairly',
             'legal action', 'lawyer', 'sue', 'court', 'police',
             'unsafe', 'danger', 'threat', 'violence', 'assault',
             'suicide', 'self-harm', 'abuse', 'safety concern', 'bully', 'bullied',
-            'emergency', 'urgent', 'immediate attention', 'life-threatening', 'crisis', 'critical situation'
+            'emergency', 'urgent', 'immediate attention', 'life-threatening', 'crisis', 'critical situation',
+            // Additions
+            'sexual harassment', 'physical abuse', 'mental abuse', 'workplace violence', 'threatened', 'stalking', 'assaulted',
+            'emergency leave', 'panic', 'hostile environment', 'intimidation', 'retaliation', 'whistleblower',
+            'medical emergency', 'fire', 'accident', 'injury', 'hospitalized', 'police report', '911', 'ambulance', 'evacuate', 'lockdown'
         ];
         $highPriorityKeywords = [
+            // Existing
             'salary discrepancy', 'not paid', 'unpaid', 'missing pay', 'wrong salary',
             'benefit claim', 'urgent benefit', 'benefit denied', 'benefit issue',
             'promotion dispute', 'ranking dispute', 'demotion', 'unfair ranking',
-            'compensation issue', 'payroll error'
+            'compensation issue', 'payroll error',
+            // Additions
+            'late salary', 'salary delay', 'salary deduction', 'overtime pay', 'underpaid', 'overpaid', 'tax issue',
+            'sss', 'pagibig', 'philhealth', 'government benefit', 'loan issue', 'retirement fund', 'separation pay',
+            'final pay', 'back pay', 'unpaid bonus', 'bonus issue', 'allowance', 'reimbursement', 'medical claim',
+            'insurance claim', 'promotion denied', 'demotion', 'unfair treatment', 'favoritism', 'unjust',
+            'wrong deduction', 'salary adjustment', 'payroll dispute', 'contract violation', 'policy violation', 'compliance issue'
         ];
         $mediumPriorityKeywords = [
+            // Existing
             'leave credit', 'vacation leave', 'sick leave', 'leave balance',
             'benefit polic', 'insurance polic', 'health benefit',
             'promotion criteria', 'ranking schedule', 'promotion process',
             'training opportunit', 'employee development', 'career development',
-            'performance review'
+            'performance review',
+            // Additions
+            'leave request', 'leave application', 'leave approval', 'leave denied', 'leave policy', 'holiday pay',
+            'attendance', 'tardiness', 'absent', 'absence', 'timekeeping', 'shift change', 'schedule change',
+            'work from home', 'remote work', 'flexitime', 'training request', 'seminar', 'workshop', 'skills development',
+            'performance improvement', 'evaluation', 'feedback', 'coaching', 'mentoring', 'probationary', 'regularization',
+            'job description', 'job role', 'transfer', 'department change', 'team change', 'workload', 'task assignment', 'project assignment'
         ];
         $allKeywords = array_merge($urgentKeywords, $highPriorityKeywords, $mediumPriorityKeywords);
 

@@ -1680,6 +1680,16 @@ async function sendMessage() {
         return;
     }
 
+    // If awaiting escalation clarity, enforce 10-character minimum
+    if (window.awaitingEscalationClarity) {
+        if (msg.length < 10) {
+            addMessageToChat(messagesEl, 'bot', 'Please provide at least 10 characters so HR can assist you better.', 'info', msg);
+            msgInput.value = '';
+            conversationPath.push({ type: 'bot', message: 'Please provide at least 10 characters so HR can assist you better.' });
+            return;
+        }
+    }
+
     // Add user message for normal conversations
     addMessageToChat(messagesEl, 'user', msg);
     msgInput.value = '';
@@ -1687,14 +1697,13 @@ async function sendMessage() {
 
     try {
         console.log('Sending to Dialogflow:', msg);
-        
         const res = await fetch('{{ url("dialogflow-webhook") }}', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
-                body: JSON.stringify({ 
+            body: JSON.stringify({ 
                 message: msg, // 🆕 FIXED: Use correct parameter name
                 sessionId: currentSessionId
             })
@@ -1742,18 +1751,29 @@ async function sendMessage() {
             guidedFlow: data.guided_flow
         });
         
-        if (data.fulfillmentText && data.fulfillmentText.trim()) {
+        if (data.status === 'ask_for_clarity') {
+            // Bot is asking for more details before escalation
+            addMessageToChat(messagesEl, 'bot', data.fulfillmentText || 'Before I escalate this to HR, could you provide more details about your issue?', 'info', msg);
+            conversationPath.push({ type: 'bot', message: data.fulfillmentText });
+            // Set a flag to indicate we are waiting for user clarification
+            window.awaitingEscalationClarity = true;
+        } else if (data.status === 'need_more_clarity') {
+            // Bot says user input was too short, prompt again
+            addMessageToChat(messagesEl, 'bot', data.fulfillmentText || 'Please provide at least 10 characters so HR can assist you better.', 'info', msg);
+            conversationPath.push({ type: 'bot', message: data.fulfillmentText });
+            window.awaitingEscalationClarity = true;
+        } else if (data.fulfillmentText && data.fulfillmentText.trim()) {
             // Always show the notification immediately so the user sees it
             addMessageToChat(messagesEl, 'bot', data.fulfillmentText, 'normal', msg);
             conversationPath.push({ type: 'bot', message: data.fulfillmentText });
             try { localStorage.setItem('lastEscalationMessage', data.fulfillmentText); } catch (_) {}
             lastEscalationMessage = data.fulfillmentText;
-            
             // If guided_flow flag is set, also load guided questions
             if (data.guided_flow || data.status === 'guided_flow') {
                 await loadGuidedQuestions();
             }
-        } 
+            window.awaitingEscalationClarity = false;
+        }
         // If backend sent a wrapped response with message, render appropriately
         else if (data.response && data.response.message) {
             const r = data.response;
