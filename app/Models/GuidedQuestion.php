@@ -2,41 +2,57 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GuidedQuestion extends Model
 {
-    protected $table = 'guidedquery'; // ✅ Correct table name
-    protected $primaryKey = 'gq_id';
-    public $timestamps = false;
+    use HasFactory;
 
     protected $fillable = [
-        'parent_id', 'question_text', 'answer_text', 'level', 'category'
+        'question_text',
+        'linked_intent',
+        'display_order',
+        'response_type',
+        'custom_response',
+        'category',
+        'status'
     ];
 
-    /**
-     * Get child questions
-     */
-    public function children(): HasMany
+    protected $casts = [
+        'custom_response' => 'array',
+        'display_order' => 'integer'
+    ];
+
+    // Relationships
+    public function children()
     {
-        return $this->hasMany(GuidedQuestion::class, 'parent_id', 'gq_id');
+        return $this->hasMany(GuidedQuestion::class, 'parent_id')->orderBy('display_order');
     }
 
-    /**
-     * Get parent question
-     */
-    public function parent(): BelongsTo
+    public function parent()
     {
-        return $this->belongsTo(GuidedQuestion::class, 'parent_id', 'gq_id');
+        return $this->belongsTo(GuidedQuestion::class, 'parent_id');
     }
 
-    /**
-     * Check if this is a final question (has answer)
-     */
-    public function isFinal(): bool
+    // Scopes
+    public function scopeActive($query)
     {
-        return !empty($this->answer_text) || $this->children()->count() === 0;
+        return $query->where('status', 'active');
+    }
+
+    public function scopeByCategory($query, $category)
+    {
+        return $query->where('category', $category);
+    }
+
+    public function scopeByIntent($query, $intentName)
+    {
+        return $query->where('linked_intent', $intentName);
+    }
+
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('display_order')->orderBy('id');
     }
 }

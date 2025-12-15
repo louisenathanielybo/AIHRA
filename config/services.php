@@ -14,6 +14,11 @@ return [
     |
     */
 
+    'dialogflow' => [
+    'project_id' => env('DIALOGFLOW_PROJECT_ID', 'aihra-472311'),
+    'credentials_path' => env('DIALOGFLOW_CREDENTIALS_PATH', 'aihra-key.json'),
+],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),
