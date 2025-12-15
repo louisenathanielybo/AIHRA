@@ -1,0 +1,133 @@
+FROM php:8.2-apache
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    libonig-dev \
+    libxml2-dev \
+    unzip \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+
+# Enable Apache rewrite
+RUN a2enmod rewrite
+
+# Copy application files
+COPY . /var/www/html/
+
+# Create storage directories with proper structure BEFORE setting permissions
+RUN mkdir -p /var/www/html/storage/framework/sessions \
+    && mkdir -p /var/www/html/storage/framework/views \
+    && mkdir -p /var/www/html/storage/framework/cache \
+    && mkdir -p /var/www/html/storage/logs \
+    && mkdir -p /var/www/html/bootstrap/cache
+
+# Set correct document root for Laravel
+RUN echo '<VirtualHost *:80>\n\
+    DocumentRoot /var/www/html/public\n\
+    \n\
+    <Directory /var/www/html/public>\n\
+        Options -Indexes +FollowSymLinks\n\
+        AllowOverride All\n\
+        Require all granted\n\
+    </Directory>\n\
+</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+
+# Set proper permissions - CRITICAL FIX
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache \
+    && chmod -R 777 /var/www/html/storage/framework \
+    && chmod -R 777 /var/www/html/storage/logs
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN composer install --no-interaction --optimize-autoloader --no-dev
+
+# Create a simple .env file from Render environment variables at runtime
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+# Create .env file with values from Render environment variables\n\
+cat > /var/www/html/.env <<EOF\n\
+APP_NAME="${APP_NAME:-Laravel}"\n\
+APP_ENV="${APP_ENV:-production}"\n\
+APP_KEY="${APP_KEY:-base64:}"\n\
+APP_DEBUG="${APP_DEBUG:-false}"\n\
+APP_URL="${APP_URL:-https://aihra-1.onrender.com}"\n\
+\n\
+LOG_CHANNEL=stack\n\
+LOG_DEPRECATIONS_CHANNEL=null\n\
+LOG_LEVEL=debug\n\
+\n\
+DB_CONNECTION="${DB_CONNECTION:-mysql}"\n\
+DB_HOST="${DB_HOST:-127.0.0.1}"\n\
+DB_PORT="${DB_PORT:-3306}"\n\
+DB_DATABASE="${DB_DATABASE:-aihra}"\n\
+DB_USERNAME="${DB_USERNAME:-root}"\n\
+DB_PASSWORD="${DB_PASSWORD}"\n\
+\n\
+BROADCAST_DRIVER=log\n\
+CACHE_DRIVER=file\n\
+FILESYSTEM_DISK=local\n\
+QUEUE_CONNECTION=sync\n\
+SESSION_DRIVER=file\n\
+SESSION_LIFETIME=120\n\
+\n\
+MEMCACHED_HOST=127.0.0.1\n\
+REDIS_HOST=127.0.0.1\n\
+REDIS_PASSWORD=null\n\
+REDIS_PORT=6379\n\
+\n\
+MAIL_MAILER=smtp\n\
+MAIL_HOST=mailpit\n\
+MAIL_PORT=1025\n\
+MAIL_USERNAME=null\n\
+MAIL_PASSWORD=null\n\
+MAIL_ENCRYPTION=null\n\
+MAIL_FROM_ADDRESS="hello@example.com"\n\
+MAIL_FROM_NAME="${APP_NAME}"\n\
+\n\
+# Dialogflow Configuration\n\
+GOOGLE_APPLICATION_CREDENTIALS="${GOOGLE_APPLICATION_CREDENTIALS:-aihra-key.json}"\n\
+DIALOGFLOW_PROJECT_ID="${DIALOGFLOW_PROJECT_ID:-aihra-472311}"\n\
+DIALOGFLOW_CREDENTIALS_PATH="${DIALOGFLOW_CREDENTIALS_PATH:-aihra-key.json}"\n\
+EOF\n\
+\n\
+# Check if APP_KEY is empty and generate one if needed\n\
+if grep -q "APP_KEY=base64:" /var/www/html/.env || ! grep -q "APP_KEY=base64:" /var/www/html/.env; then\n\
+    cd /var/www/html && php artisan key:generate --force\n\
+fi\n\
+\n\
+# Clear and cache config for performance\n\
+php artisan config:clear\n\
+php artisan config:cache\n\
+php artisan route:clear\n\
+php artisan route:cache\n\
+php artisan view:clear\n\
+php artisan view:cache\n\
+\n\
+# Ensure storage directories exist and have proper permissions (redundant safety check)\n\
+mkdir -p /var/www/html/storage/framework/sessions\n\
+mkdir -p /var/www/html/storage/framework/views\n\
+mkdir -p /var/www/html/storage/framework/cache\n\
+mkdir -p /var/www/html/storage/logs\n\
+chmod -R 777 /var/www/html/storage\n\
+chmod -R 777 /var/www/html/bootstrap/cache\n\
+\n\
+exec apache2-foreground' > /docker-entrypoint.sh
+
+RUN chmod +x /docker-entrypoint.sh
+
+EXPOSE 80
+
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
