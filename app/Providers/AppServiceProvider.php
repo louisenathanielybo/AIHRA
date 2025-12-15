@@ -7,11 +7,17 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
 use App\Models\Query; // import your Query model
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\App;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+
+        if (App::environment('production')) {
+        URL::forceScheme('https');
+    }
         // Optional: your DB::listen temporarily for debugging (remove later)
         DB::listen(function ($query) {
             $trace = collect(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS))
