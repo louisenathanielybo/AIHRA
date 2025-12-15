@@ -23,33 +23,87 @@ RUN a2enmod rewrite
 # Copy application files
 COPY . /var/www/html/
 
+# Create ALL necessary Laravel directories
+RUN mkdir -p /var/www/html/storage/framework/sessions \
+    && mkdir -p /var/www/html/storage/framework/views \
+    && mkdir -p /var/www/html/storage/framework/cache/data \
+    && mkdir -p /var/www/html/storage/logs \
+    && mkdir -p /var/www/html/bootstrap/cache \
+    && mkdir -p /var/www/html/public/uploads
+
 # Set document root to Laravel public directory
 RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Set permissions
+# CRITICAL: Set correct ownership and permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage \
-    && chmod -R 775 /var/www/html/bootstrap/cache
+    && chmod -R 775 /var/www/html/bootstrap/cache \
+    && chmod -R 777 /var/www/html/storage/framework/sessions \
+    && chmod -R 777 /var/www/html/storage/framework/views \
+    && chmod -R 777 /var/www/html/storage/framework/cache
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
-# Create VERY simple entrypoint
+# Create a reliable entrypoint script
 RUN echo '#!/bin/bash\n\
-# Set APP_KEY if provided in environment\n\
+set -e\n\
+\n\
+echo "Starting Laravel application..."\n\
+\n\
+# Create .env file with essential variables\n\
+cat > /var/www/html/.env <<EOF\n\
+APP_NAME="Laravel"\n\
+APP_ENV=production\n\
+APP_DEBUG=false\n\
+APP_URL=https://aihra-1.onrender.com\n\
+APP_KEY=\n\
+LOG_CHANNEL=stack\n\
+DB_CONNECTION=mysql\n\
+DB_HOST=127.0.0.1\n\
+DB_PORT=3306\n\
+DB_DATABASE=aihra\n\
+DB_USERNAME=root\n\
+DB_PASSWORD=\n\
+BROADCAST_DRIVER=log\n\
+CACHE_DRIVER=file\n\
+FILESYSTEM_DISK=local\n\
+QUEUE_CONNECTION=sync\n\
+SESSION_DRIVER=file\n\
+SESSION_LIFETIME=120\n\
+EOF\n\
+\n\
+# Use APP_KEY from environment if provided\n\
 if [ -n "${APP_KEY}" ] && [ "${APP_KEY}" != "base64:" ] && [ "${APP_KEY}" != "null" ]; then\n\
-    echo "APP_KEY=${APP_KEY}" > /var/www/html/.env\n\
+    sed -i "s|APP_KEY=|APP_KEY=${APP_KEY}|" /var/www/html/.env\n\
+    echo "Using provided APP_KEY from environment"\n\
 else\n\
-    # Create basic .env file\n\
-    echo "APP_ENV=production" > /var/www/html/.env\n\
-    echo "APP_DEBUG=false" >> /var/www/html/.env\n\
-    echo "APP_URL=https://aihra-1.onrender.com" >> /var/www/html/.env\n\
-    # Generate key\n\
+    echo "Generating new APP_KEY..."\n\
     cd /var/www/html && php artisan key:generate --force\n\
 fi\n\
 \n\
+echo "Setting up storage permissions..."\n\
+# Ensure directories exist (again, for safety)\n\
+mkdir -p /var/www/html/storage/framework/sessions\n\
+mkdir -p /var/www/html/storage/framework/views\n\
+mkdir -p /var/www/html/storage/framework/cache/data\n\
+mkdir -p /var/www/html/storage/logs\n\
+\n\
+# Set permissions (again, for safety)\n\
+chown -R www-data:www-data /var/www/html/storage\n\
+chown -R www-data:www-data /var/www/html/bootstrap/cache\n\
+chmod -R 775 /var/www/html/storage\n\
+chmod -R 775 /var/www/html/bootstrap/cache\n\
+chmod -R 777 /var/www/html/storage/framework/sessions\n\
+chmod -R 777 /var/www/html/storage/framework/views\n\
+chmod -R 777 /var/www/html/storage/framework/cache\n\
+\n\
+echo "Optimizing Laravel..."\n\
+cd /var/www/html && php artisan config:cache\n\
+\n\
+echo "Starting Apache..."\n\
 exec apache2-foreground' > /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
