@@ -377,7 +377,7 @@ class AdminController extends Controller
             'firstName' => 'required|string|max:255',
             'lastName' => 'required|string|max:255',
             'middleName' => 'nullable|string|max:255',
-            'role' => 'required|in:Employee,Admin,HR',
+            'role' => 'required|in:Employee,HR',
             'sex' => 'required|in:Male,Female',
             'dob' => 'required|date|after_or_equal:'.$minBirth.'|before_or_equal:'.$maxBirth,
             'about' => 'nullable|string|max:255',
@@ -443,7 +443,7 @@ class AdminController extends Controller
             'firstName' => 'required|string|max:255',
             'lastName' => 'required|string|max:255',
             'middleName' => 'nullable|string|max:255',
-            'role' => 'required|in:Employee,Admin,HR',
+            'role' => 'required|in:Employee,HR',
             'sex' => 'required|in:Male,Female',
             'dob' => 'nullable|date|after_or_equal:'.now()->subYears(65)->format('Y-m-d').'|before_or_equal:'.now()->subYears(18)->format('Y-m-d'),
             'about' => 'nullable|string|max:255',
@@ -542,7 +542,7 @@ class AdminController extends Controller
             if ($archived) {
                 \Log::info('Account archived successfully:', ['employeeNum' => $employeeNum]);
                 return redirect()->route('admin.dashboard', ['active_tab' => 'account-management'])
-                    ->with('success', 'Account deleted successfully!')
+                    ->with('success', 'Account archived successfully!')
                     ->withFragment('account-management');
             } else {
                 \Log::error('Archive query returned 0 rows affected:', ['employeeNum' => $employeeNum]);
@@ -794,8 +794,14 @@ class AdminController extends Controller
                         $dob = now()->subYears(25)->format('Y-m-d');
                     }
                     
-                    // Validate role
-                    if (!in_array($role, ['Employee', 'Admin', 'HR'])) {
+
+                    // Validate role - fail if Admin
+                    if ($role === 'Admin') {
+                        $failed++;
+                        $errors[] = "Row {$rowNumber}: Admin role is not allowed. Only Employee or HR roles can be imported.";
+                        continue;
+                    }
+                    if (!in_array($role, ['Employee', 'HR'])) {
                         $role = 'Employee';
                     }
                     
@@ -920,6 +926,7 @@ class AdminController extends Controller
                 'confidence' => $ticket->confidence ?? 0.0,
                 'created_at' => $ticket->created_at ?? now(),
                 'updated_at' => $ticket->updated_at ?? now(),
+                'resolved_by' => $ticket->resolved_by ?? null,
             ];
 
             return response()->json([

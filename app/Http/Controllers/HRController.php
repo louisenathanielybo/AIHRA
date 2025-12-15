@@ -436,16 +436,15 @@ class HRController extends Controller
         ]);
 
         try {
-            // Update ticket status and set resolved_at timestamp
+            $resolvedBy = Auth::user()->employeeNum ?? null;
             HrInbox::where('ticket_no', $request->ticket_no)
                 ->update([
                     'status' => 'Resolved',
                     'resolved_at' => now(),
+                    'resolved_by' => $resolvedBy,
                     'updated_at' => now()
                 ]);
-
             return response()->json(['success' => true, 'message' => 'Ticket resolved successfully!']);
-            
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Failed to resolve ticket'], 500);
         }

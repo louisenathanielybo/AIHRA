@@ -5,6 +5,14 @@
     <title>AIHRA - HR Dashboard</title>
     @include('includes.header')
     <style>
+                /* Highlight active KPI card */
+                .dashboard-cards .card.active {
+                    border: 2px solid #1A6B61;
+                    box-shadow: 0 4px 16px rgba(26,107,97,0.10);
+                    background: #e6f7f0;
+                    transform: scale(1.04);
+                    z-index: 1;
+                }
         /* HR Dashboard Styles - Version 2.0 - Updated {{ date('Y-m-d H:i:s') }} */
         /* Layout */
         .sidebar {
@@ -1320,27 +1328,27 @@
 
                 <!-- Dashboard Cards -->
                 <div class="dashboard-cards">
-                    <div class="card">
+                    <div class="card" id="kpi-total" onclick="filterTicketsByKPI('all')" style="cursor:pointer;">
                         <h3>{{ $inbox->count() }}</h3>
                         <p>Total Tickets</p>
                     </div>
-                    <div class="card urgent">
+                    <div class="card urgent" id="kpi-urgent" onclick="filterTicketsByKPI('urgent')" style="cursor:pointer;">
                         <h3>{{ $inbox->where('priority', 'urgent')->count() }}</h3>
                         <p>Urgent Priority</p>
                     </div>
-                    <div class="card high">
+                    <div class="card high" id="kpi-high" onclick="filterTicketsByKPI('high')" style="cursor:pointer;">
                         <h3>{{ $inbox->where('priority', 'high')->count() }}</h3>
                         <p>High Priority</p>
                     </div>
-                    <div class="card medium">
+                    <div class="card medium" id="kpi-medium" onclick="filterTicketsByKPI('medium')" style="cursor:pointer;">
                         <h3>{{ $inbox->where('priority', 'medium')->count() }}</h3>
                         <p>Medium Priority</p>
                     </div>
-                    <div class="card low">
+                    <div class="card low" id="kpi-low" onclick="filterTicketsByKPI('low')" style="cursor:pointer;">
                         <h3>{{ $inbox->where('priority', 'low')->count() }}</h3>
                         <p>Low Priority</p>
                     </div>
-                    <div class="card replied">
+                    <div class="card replied" id="kpi-replied" onclick="filterTicketsByKPI('replied')" style="cursor:pointer;">
                         <h3>{{ $inbox->where('status', 'Replied')->count() }}</h3>
                         <p>Replied</p>
                     </div>
@@ -1348,6 +1356,122 @@
 
                 <div class="ticket-container">
                     <!-- Ticket List with Pending/Resolved toggle -->
+                    <script>
+                    // Unified filter state
+                    let currentKPI = 'all';
+                    let currentDateRange = 'overall';
+
+                    function filterTicketsByKPI(type) {
+                        currentKPI = type;
+                        // Remove active class from all KPI cards
+                        document.querySelectorAll('.dashboard-cards .card').forEach(card => card.classList.remove('active'));
+                        // Add active class to selected
+                        let activeId = 'kpi-' + (type === 'all' ? 'total' : type);
+                        let activeCard = document.getElementById(activeId);
+                        if (activeCard) activeCard.classList.add('active');
+                        applyCombinedFilters();
+                    }
+
+                    function applyInboxDateFilter() {
+                        const rangeSelect = document.getElementById('inboxDateRangeSelect');
+                        const rangeDisplay = document.getElementById('inboxDateRangeDisplay');
+                        currentDateRange = rangeSelect.value;
+                        const today = new Date();
+                        let startDate, endDate, displayText;
+                        switch(currentDateRange) {
+                            case 'daily':
+                                startDate = new Date(today.setHours(0, 0, 0, 0));
+                                endDate = new Date(today.setHours(23, 59, 59, 999));
+                                displayText = 'Today';
+                                break;
+                            case 'weekly':
+                                const firstDayOfWeek = today.getDate() - today.getDay();
+                                startDate = new Date(today.setDate(firstDayOfWeek));
+                                startDate.setHours(0, 0, 0, 0);
+                                endDate = new Date();
+                                displayText = 'This Week';
+                                break;
+                            case 'monthly':
+                                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                                endDate = new Date();
+                                displayText = 'This Month';
+                                break;
+                            case 'annually':
+                                startDate = new Date(today.getFullYear(), 0, 1);
+                                endDate = new Date();
+                                displayText = 'This Year';
+                                break;
+                            case 'overall':
+                            default:
+                                startDate = null;
+                                endDate = null;
+                                displayText = 'All Time';
+                        }
+                        rangeDisplay.textContent = displayText;
+                        applyCombinedFilters();
+                    }
+
+                    function applyCombinedFilters() {
+                        // Date range logic
+                        const today = new Date();
+                        let startDate, endDate;
+                        switch(currentDateRange) {
+                            case 'daily':
+                                startDate = new Date(today.setHours(0, 0, 0, 0));
+                                endDate = new Date(today.setHours(23, 59, 59, 999));
+                                break;
+                            case 'weekly':
+                                const firstDayOfWeek = today.getDate() - today.getDay();
+                                startDate = new Date(today.setDate(firstDayOfWeek));
+                                startDate.setHours(0, 0, 0, 0);
+                                endDate = new Date();
+                                break;
+                            case 'monthly':
+                                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                                endDate = new Date();
+                                break;
+                            case 'annually':
+                                startDate = new Date(today.getFullYear(), 0, 1);
+                                endDate = new Date();
+                                break;
+                            case 'overall':
+                            default:
+                                startDate = null;
+                                endDate = null;
+                        }
+                        // Filter tickets by both KPI and date
+                        let allTickets = document.querySelectorAll('.ticket-item');
+                        allTickets.forEach(ticket => {
+                            let show = true;
+                            // KPI filter
+                            if(currentKPI !== 'all') {
+                                if(currentKPI === 'replied') {
+                                    show = ticket.getAttribute('data-status') === 'Replied';
+                                } else {
+                                    show = ticket.getAttribute('data-priority') === currentKPI;
+                                }
+                            }
+                            // Date filter
+                            if(show && startDate && endDate) {
+                                const createdDate = ticket.getAttribute('data-created');
+                                if (!createdDate) {
+                                    show = false;
+                                } else {
+                                    const ticketDate = new Date(createdDate);
+                                    show = (ticketDate >= startDate && ticketDate <= endDate);
+                                }
+                            }
+                            ticket.style.display = show ? '' : 'none';
+                        });
+                        updateInboxCards();
+                        updateTabCounts();
+                    }
+
+                    // Set default active on load
+                    document.addEventListener('DOMContentLoaded', function() {
+                        filterTicketsByKPI('all');
+                    });
+                    </script>
                     <div class="ticket-list">
                         <div class="split-tabs">
                             <button type="button" class="split-tab active" id="btn-pending" onclick="switchTicketList('pending')">
@@ -1529,6 +1653,11 @@
                                         @endif
                                     </div>
                                     <span class="resolved-badge">✅ Resolved</span>
+                                    @if($ticket->resolved_by)
+                                        <div class="resolved-by-info" style="margin-top: 4px; color: #155724; font-size: 12px;">
+                                            <strong>Resolved by Employee ID:</strong> {{ $ticket->resolved_by }}
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         @empty

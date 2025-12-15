@@ -777,7 +777,7 @@ use Illuminate\Support\Str;
     .btn-view { background: #e3f2fd; color: var(--secondary); }
     .btn-edit { background: #fff3e0; color: var(--warning); }
     .btn-reset { background: #e8f5e8; color: var(--success); }
-    .btn-delete { background: #ffebee; color: var(--danger); }
+    .btn-archive { background: #ffebee; color: var(--danger); }
 
     .btn-action:hover {
         opacity: 0.8;
@@ -1547,6 +1547,62 @@ use Illuminate\Support\Str;
                     </div>
                 </div>
         <script>
+                // --- Ticket KPI and Filter Logic ---
+                let selectedKPI = 'all';
+                function filterTicketsByKPI(kpi, el) {
+                    selectedKPI = kpi;
+                    // Set active class on KPI cards
+                    document.querySelectorAll('#ticketKpiCards .kpi-card').forEach(card => {
+                        card.classList.remove('active');
+                    });
+                    if (el) el.classList.add('active');
+                    else document.querySelector(`#ticketKpiCards .kpi-card[data-kpi="${kpi}"]`).classList.add('active');
+                    applyCombinedTicketFilters();
+                }
+
+                function applyCombinedTicketFilters() {
+                    const priority = document.getElementById('priorityFilter')?.value || 'all';
+                    const status = document.getElementById('statusFilter')?.value || 'all';
+                    const search = document.getElementById('searchTickets')?.value?.toLowerCase() || '';
+                    // Date filter can be added here if needed
+                    const rows = document.querySelectorAll('#ticketsTableBody tr');
+                    let total = 0, unresolved = 0, resolved = 0;
+                    rows.forEach(row => {
+                        // Skip empty row
+                        if (row.querySelector('td[colspan]')) { row.style.display = ''; return; }
+                        const prio = row.querySelector('.priority')?.textContent?.trim().toLowerCase() || '';
+                        const stat = row.querySelector('.status')?.textContent?.trim().toLowerCase() || '';
+                        const msg = row.cells[1]?.textContent?.toLowerCase() || '';
+                        let show = true;
+                        // KPI filter
+                        if (selectedKPI === 'unresolved' && stat !== 'open') show = false;
+                        if (selectedKPI === 'resolved' && stat !== 'resolved') show = false;
+                        // Priority filter
+                        if (priority !== 'all' && prio !== priority) show = false;
+                        // Status filter
+                        if (status !== 'all' && stat !== status) show = false;
+                        // Search filter
+                        if (search && !msg.includes(search)) show = false;
+                        row.style.display = show ? '' : 'none';
+                        if (show) {
+                            total++;
+                            if (stat === 'open') unresolved++;
+                            if (stat === 'resolved') resolved++;
+                        }
+                    });
+                    document.getElementById('totalTickets').textContent = total;
+                    document.getElementById('unresolvedTickets').textContent = unresolved;
+                    document.getElementById('resolvedTickets').textContent = resolved;
+                }
+
+                // Hook up dropdowns and search to unified filter
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.getElementById('priorityFilter')?.addEventListener('change', applyCombinedTicketFilters);
+                    document.getElementById('statusFilter')?.addEventListener('change', applyCombinedTicketFilters);
+                    document.getElementById('searchTickets')?.addEventListener('input', applyCombinedTicketFilters);
+                    // Default: show all
+                    filterTicketsByKPI('all');
+                });
         // Store all flagged data for KPI calculation
         let allFlaggedData = @json(isset($allFlaggedData) ? $allFlaggedData : (isset($flaggedResponses) ? $flaggedResponses : []));
         // If flaggedResponses is a Laravel Collection, convert to array
@@ -1794,6 +1850,7 @@ use Illuminate\Support\Str;
                     </div>
                 </div>
             </div>
+            
             <div class="data-table">
                 <h3>User Feedback</h3>
                 <table id="feedbackSectionTable">
@@ -2002,27 +2059,18 @@ use Illuminate\Support\Str;
         
         <!-- Chatbot Ticket Details Section -->
         <div id="tickets" class="section-content">
-            <div class="dashboard-cards">
-                <div class="card stat-card">
+            <div class="dashboard-cards" id="ticketKpiCards">
+                <div class="card stat-card kpi-card active" data-kpi="all" onclick="filterTicketsByKPI('all', this)">
                     <h3>Total Tickets</h3>
                     <div class="value" id="totalTickets">{{ $totalTickets ?? 0 }}</div>
-                    <div class="trend" id="totalTicketsTrend" style="display: none;">
-                        <span class="trend-value"></span>
-                    </div>
                 </div>
-                <div class="card stat-card">
+                <div class="card stat-card kpi-card" data-kpi="unresolved" onclick="filterTicketsByKPI('unresolved', this)">
                     <h3>Unresolved Tickets</h3>
                     <div class="value" id="unresolvedTickets">{{ $unresolvedTickets ?? 0 }}</div>
-                    <div class="trend" id="unresolvedTicketsTrend" style="display: none;">
-                        <span class="trend-value"></span>
-                    </div>
                 </div>
-                <div class="card stat-card">
+                <div class="card stat-card kpi-card" data-kpi="resolved" onclick="filterTicketsByKPI('resolved', this)">
                     <h3>Resolved Tickets</h3>
                     <div class="value" id="resolvedTickets">{{ $resolvedTickets ?? 0 }}</div>
-                    <div class="trend" id="resolvedTicketsTrend" style="display: none;">
-                        <span class="trend-value"></span>
-                    </div>
                 </div>
             </div>
 
@@ -2187,14 +2235,35 @@ use Illuminate\Support\Str;
             </div>
 
             @if(session('import_errors'))
-                <div class="error-message" style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffc107; max-height: 200px; overflow-y: auto;">
-                    <strong>Import Errors:</strong>
-                    <ul style="margin: 5px 0 0 20px; padding: 0;">
-                        @foreach(session('import_errors') as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+                <div id="importErrorPopup" class="modal active" style="display:block;">
+                    <div class="modal-content" style="max-width: 500px;">
+                        <div class="modal-header">
+                            <h3 style="color: var(--danger);">Import Errors</h3>
+                            <button class="close-modal" onclick="closeImportErrorPopup()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <p style="color: #856404;">The following errors occurred during import:</p>
+                            <ul style="margin: 5px 0 0 20px; padding: 0; color: #856404;">
+                                @foreach(session('import_errors') as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <div style="margin-top: 20px; text-align: right;">
+                                <button class="btn-secondary" onclick="closeImportErrorPopup()">Close</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                <script>
+                // Auto-open import modal if errors exist
+                document.addEventListener('DOMContentLoaded', function() {
+                    openImportModal();
+                });
+                function closeImportErrorPopup() {
+                    var popup = document.getElementById('importErrorPopup');
+                    if (popup) popup.style.display = 'none';
+                }
+                </script>
             @endif
 
             <!-- Accounts Table -->
@@ -2241,8 +2310,15 @@ use Illuminate\Support\Str;
                                 </button>
                                 @endif
                                 @if($user->employeeNum != Auth::user()->employeeNum && $user->role != 'Admin')
-                                <button class="btn-action btn-delete" onclick="deleteAccount('{{ $user->employeeNum }}')">
-                                    <i class="fas fa-trash"></i> Delete
+                                @php
+                                    // Count unresolved tickets for this user
+                                    $unresolvedCount = \DB::table('hr_inbox')
+                                        ->where('from_user', $user->employeeNum)
+                                        ->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])
+                                        ->count();
+                                @endphp
+                                <button class="btn-action btn-archive" onclick="archiveAccount('{{ $user->employeeNum }}')" @if($unresolvedCount > 0) disabled title="Cannot archive: unresolved tickets exist" @endif>
+                                    <i class="fas fa-archive"></i> Archive
                                 </button>
                                 @endif
                             </td>
@@ -2565,7 +2641,6 @@ use Illuminate\Support\Str;
                             <select id="role" name="role" required>
                                 <option value="">Select Role</option>
                                 <option value="Employee" {{ old('role') == 'Employee' ? 'selected' : '' }}>Employee</option>
-                                <option value="Admin" {{ old('role') == 'Admin' ? 'selected' : '' }}>Administrator</option>
                                 <option value="HR" {{ old('role') == 'HR' ? 'selected' : '' }}>HR Manager</option>
                             </select>
                             @error('role')
@@ -2760,7 +2835,6 @@ use Illuminate\Support\Str;
                             <select id="edit_role" name="role" required>
                                 <option value="">Select Role</option>
                                 <option value="Employee">Employee</option>
-                                <option value="Admin">Administrator</option>
                                 <option value="HR">HR Manager</option>
                             </select>
                         </div>
@@ -4426,7 +4500,7 @@ use Illuminate\Support\Str;
                         const ticket = data.ticket;
                         
                         // Populate modal with ticket data
-                        const ticketContent = `
+                        let ticketContent = `
                             <div class="ticket-details-grid">
                                 <div class="ticket-detail-item">
                                     <label>Ticket Number:</label>
@@ -4457,8 +4531,8 @@ use Illuminate\Support\Str;
                                     <div class="value">${ticket.intent || 'N/A'}</div>
                                 </div>
                                 <div class="ticket-detail-item">
-                                    <label>Confidence:</label>
-                                    <div class="value">${ticket.confidence ? (ticket.confidence * 100).toFixed(1) + '%' : 'N/A'}</div>
+                                    <label>Resolved By (Employee ID):</label>
+                                    <div class="value">${ticket.resolved_by ? ticket.resolved_by : 'N/A'}</div>
                                 </div>
                                 <div class="ticket-detail-item">
                                     <label>Created:</label>
@@ -4784,7 +4858,7 @@ use Illuminate\Support\Str;
             });
         }
 
-        // DELETE ACCOUNT FUNCTION
+        // ARCHIVE ACCOUNT FUNCTION
         // Update flag status
         async function updateFlagStatus(flagId, status) {
             if (!confirm(`Mark this flagged response as ${status}?`)) {
@@ -4866,30 +4940,41 @@ use Illuminate\Support\Str;
             }, 3000);
         }
 
-        function deleteAccount(employeeNum) {
-            if (confirm(`Are you sure you want to delete account ${employeeNum}? The account will be archived and deactivated but data will be preserved.`)) {
-                // Create and submit form
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `/admin/accounts/${employeeNum}`;
-                
-                // Add CSRF token
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = '_token';
-                csrfInput.value = csrfToken;
-                form.appendChild(csrfInput);
-                
-                // Add method spoofing for DELETE
-                const methodInput = document.createElement('input');
-                methodInput.type = 'hidden';
-                methodInput.name = '_method';
-                methodInput.value = 'DELETE';
-                form.appendChild(methodInput);
-                
-                document.body.appendChild(form);
-                form.submit();
-            }
+        function archiveAccount(employeeNum) {
+            // Check for unresolved tickets via AJAX
+            fetch(`/admin/accounts/${employeeNum}/unresolved-tickets`, {
+                headers: { 'X-CSRF-TOKEN': csrfToken }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.hasUnresolved) {
+                    alert('This user currently has unresolved tickets.');
+                } else {
+                    if (confirm(`Are you sure you want to archive account ${employeeNum}? The account will be archived and deactivated but data will be preserved.`)) {
+                        // Create and submit form
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = `/admin/accounts/${employeeNum}`;
+                        // Add CSRF token
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = '_token';
+                        csrfInput.value = csrfToken;
+                        form.appendChild(csrfInput);
+                        // Add method spoofing for ARCHIVE (still uses DELETE for backend compatibility)
+                        const methodInput = document.createElement('input');
+                        methodInput.type = 'hidden';
+                        methodInput.name = '_method';
+                        methodInput.value = 'DELETE';
+                        form.appendChild(methodInput);
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                }
+            })
+            .catch(() => {
+                alert('Could not check unresolved tickets. Please try again.');
+            });
         }
 
         // =============================================
