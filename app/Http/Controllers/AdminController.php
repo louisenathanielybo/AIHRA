@@ -90,10 +90,19 @@ class AdminController extends Controller
 
         // 🆕 NEW: Get data for dashboard KPIs
         $activeUsers = DB::table('users')->where('status', 'Active')->count();
-        $totalInteractions = DB::table('queries')->count();
+        
+        // Bot-resolved queries (queries handled by bot, not escalated)
+        $botResolvedQueries = DB::table('queries')->where('handledBy', 'Bot')->count();
+        
         $escalatedQueries = $totalTickets; // All tickets are escalated queries
-        $pendingQueries = $ticketsForKPI->whereIn('status', ['Open', 'Waiting for HR'])->count(); // Pending = tickets excluding Replied and Resolved
-        $resolvedQueries = $totalInteractions - $pendingQueries; // Resolved = Total - Pending
+        $pendingQueries = $ticketsForKPI->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count(); // Pending = all unresolved tickets
+        $ticketResolvedQueries = $ticketsForKPI->where('status', 'Resolved')->count(); // Resolved tickets
+        
+        // Resolved = Bot-resolved queries + Resolved tickets
+        $resolvedQueries = $botResolvedQueries + $ticketResolvedQueries;
+        
+        // Total Interactions = Bot-resolved + All escalated queries (tickets)
+        $totalInteractions = $botResolvedQueries + $escalatedQueries;
         
         // 🆕 NEW: Get data for resolution chart
         $escalatedCount = $escalatedQueries;
@@ -161,44 +170,7 @@ class AdminController extends Controller
             ->paginate(20, ['*'], 'accounts_page');
 
         // 🆕 Get Most Asked Topics from queries table
-        $mostAskedTopics = DB::table('queries')
-            ->select('question')
-            ->whereNotNull('question')
-            ->where('question', '!=', '')
-            ->get()
-            ->map(function($query) {
-                // Extract key topics/keywords from questions
-                $question = strtolower($query->question);
-                
-                // Define topic categories and their keywords
-                $topicMap = [
-                    'Leave' => ['leave', 'vacation', 'sick leave', 'time off', 'absence', 'vl', 'sl'],
-                    'Benefits' => ['benefit', 'insurance', 'health', 'dental', 'hmo', 'allowance'],
-                    'Payroll' => ['payroll', 'salary', 'pay', 'wage', 'compensation', '13th month', 'bonus'],
-                    'Promotion' => ['promotion', 'ranking', 'career', 'advancement', 'raise'],
-                    'Training' => ['training', 'seminar', 'workshop', 'development', 'course'],
-                    'Employment' => ['employment', 'hiring', 'contract', 'resignation', 'termination'],
-                    'Policy' => ['policy', 'procedure', 'guideline', 'rule', 'regulation'],
-                    'HR Request' => ['request', 'form', 'document', 'certificate', 'clearance']
-                ];
-                
-                foreach ($topicMap as $topic => $keywords) {
-                    foreach ($keywords as $keyword) {
-                        if (strpos($question, $keyword) !== false) {
-                            return $topic;
-                        }
-                    }
-                }
-                
-                return 'General';
-            })
-            ->countBy()
-            ->sortDesc()
-            ->take(5)
-            ->map(function($count, $topic) {
-                return ['topic' => $topic, 'count' => $count];
-            })
-            ->values();
+        $mostAskedTopics = $this->calculateMostAskedTopics(DB::table('queries'));
 
         // Get active tab from URL parameter, session, or default to dashboard
         $active_tab = $request->get('active_tab', 'dashboard');
@@ -973,6 +945,7 @@ class AdminController extends Controller
     {
         try {
             $range = $request->input('range', 'overall');
+            $topic = $request->input('topic', null); // Add topic filter parameter
             $startDate = null;
             $endDate = null;
 
@@ -1019,12 +992,35 @@ class AdminController extends Controller
                 $flaggedQuery->whereBetween('timeStamp', [$startDate, $endDate]);
             }
 
+            // Apply topic filter if specified
+            if ($topic && $topic !== 'all') {
+                $topicKeywords = $this->getTopicKeywords($topic);
+                $queriesQuery->where(function($q) use ($topicKeywords) {
+                    foreach ($topicKeywords as $keyword) {
+                        $q->orWhere('question', 'LIKE', "%{$keyword}%");
+                    }
+                });
+                $ticketsQuery->where(function($q) use ($topicKeywords) {
+                    foreach ($topicKeywords as $keyword) {
+                        $q->orWhere('message', 'LIKE', "%{$keyword}%");
+                    }
+                });
+            }
+
             // Calculate KPIs
-            $totalInteractions = $queriesQuery->count();
+            // Bot-resolved queries (queries handled by bot, not escalated)
+            $botResolvedQueries = $queriesQuery->where('handledBy', 'Bot')->count();
+            
             $ticketsData = $ticketsQuery->get();
             $escalatedQueries = $ticketsData->count(); // All tickets are escalated queries
-            $pendingQueries = $ticketsData->whereIn('status', ['Open', 'Waiting for HR'])->count();
-            $resolvedQueries = $totalInteractions - $pendingQueries;
+            $pendingQueries = $ticketsData->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
+            $ticketResolvedQueries = $ticketsData->where('status', 'Resolved')->count();
+            
+            // Resolved = Bot-resolved queries + Resolved tickets
+            $resolvedQueries = $botResolvedQueries + $ticketResolvedQueries;
+            
+            // Total Interactions = Bot-resolved + All escalated queries (tickets)
+            $totalInteractions = $botResolvedQueries + $escalatedQueries;
 
             // Feedback KPIs
             $feedbacks = $feedbackQuery->get();
@@ -1033,6 +1029,13 @@ class AdminController extends Controller
 
             // Flagged responses count
             $flaggedCount = $flaggedQuery->count();
+            
+            // Calculate Most Asked Topics with date filter (but not topic filter to show all topics)
+            $topicsQuery = DB::table('queries');
+            if ($startDate && $endDate) {
+                $topicsQuery->whereBetween('questionTime', [$startDate, $endDate]);
+            }
+            $mostAskedTopics = $this->calculateMostAskedTopics($topicsQuery);
 
             return response()->json([
                 'success' => true,
@@ -1044,7 +1047,8 @@ class AdminController extends Controller
                     'resolutionRate' => $totalInteractions > 0 ? round(($resolvedQueries / $totalInteractions) * 100, 1) : 0,
                     'feedbackAvg' => $feedbackAvg,
                     'feedbackCount' => $feedbackCount,
-                    'flaggedCount' => $flaggedCount
+                    'flaggedCount' => $flaggedCount,
+                    'mostAskedTopics' => $mostAskedTopics
                 ]
             ]);
         } catch (\Exception $e) {
@@ -1058,6 +1062,68 @@ class AdminController extends Controller
                 'message' => 'Failed to fetch filtered KPIs: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Helper method to calculate most asked topics from queries
+     */
+    private function calculateMostAskedTopics($queriesQuery)
+    {
+        return $queriesQuery
+            ->select('question')
+            ->whereNotNull('question')
+            ->where('question', '!=', '')
+            ->get()
+            ->map(function($query) {
+                // Extract key topics/keywords from questions
+                $question = strtolower($query->question);
+                
+                // Define topic categories and their keywords
+                $topicMap = $this->getTopicMap();
+                
+                foreach ($topicMap as $topic => $keywords) {
+                    foreach ($keywords as $keyword) {
+                        if (strpos($question, $keyword) !== false) {
+                            return $topic;
+                        }
+                    }
+                }
+                
+                return 'General';
+            })
+            ->countBy()
+            ->sortDesc()
+            ->take(5)
+            ->map(function($count, $topic) {
+                return ['topic' => $topic, 'count' => $count];
+            })
+            ->values();
+    }
+
+    /**
+     * Get topic map with keywords
+     */
+    private function getTopicMap()
+    {
+        return [
+            'Leave' => ['leave', 'vacation', 'sick leave', 'time off', 'absence', 'vl', 'sl'],
+            'Benefits' => ['benefit', 'insurance', 'health', 'dental', 'hmo', 'allowance'],
+            'Payroll' => ['payroll', 'salary', 'pay', 'wage', 'compensation', '13th month', 'bonus'],
+            'Promotion' => ['promotion', 'ranking', 'career', 'advancement', 'raise'],
+            'Training' => ['training', 'seminar', 'workshop', 'development', 'course'],
+            'Employment' => ['employment', 'hiring', 'contract', 'resignation', 'termination'],
+            'Policy' => ['policy', 'procedure', 'guideline', 'rule', 'regulation'],
+            'HR Request' => ['request', 'form', 'document', 'certificate', 'clearance']
+        ];
+    }
+
+    /**
+     * Get keywords for a specific topic
+     */
+    private function getTopicKeywords($topic)
+    {
+        $topicMap = $this->getTopicMap();
+        return $topicMap[$topic] ?? [];
     }
 
     // Add these methods after the existing methods in your AdminController

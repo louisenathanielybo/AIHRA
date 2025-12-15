@@ -1394,7 +1394,7 @@ use Illuminate\Support\Str;
                 <div class="topics-container" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
                     <h3>Most Asked Topics</h3>
                     @forelse($mostAskedTopics as $topic)
-                    <div class="topic-item">
+                    <div class="topic-item" style="cursor: pointer; transition: background 0.2s;" onclick="filterByTopic('{{ $topic['topic'] }}')" onmouseover="this.style.background='#f0f8f4'" onmouseout="this.style.background='transparent'">
                         <span class="topic-name">{{ $topic['topic'] }}</span>
                         <span class="topic-count">{{ $topic['count'] }} inquir{{ $topic['count'] == 1 ? 'y' : 'ies' }}</span>
                     </div>
@@ -4422,7 +4422,7 @@ You can check your leave balance in the employee portal."></textarea>
                     labels: ['Resolved', 'Pending', 'Escalated'],
                     datasets: [{
                         label: 'Queries',
-                        data: [resolved, pending, escalated],
+                        data: [Math.max(0, resolved), Math.max(0, pending), Math.max(0, escalated)],
                         backgroundColor: [
                             '#2ecc71', // Green for resolved
                             '#f39c12', // Orange for pending  
@@ -4472,9 +4472,13 @@ You can check your leave balance in the employee portal."></textarea>
                     scales: {
                         y: {
                             beginAtZero: true,
+                            min: 0,
                             ticks: {
                                 stepSize: 1,
-                                precision: 0
+                                precision: 0,
+                                callback: function(value) {
+                                    return value < 0 ? 0 : value;
+                                }
                             },
                             grid: {
                                 drawBorder: false
@@ -4495,8 +4499,12 @@ You can check your leave balance in the employee portal."></textarea>
         }
 
         // Fetch filtered KPIs from server via AJAX
-        function fetchFilteredKPIs(range) {
-            fetch(`/admin/kpis/filter?range=${range}`)
+        function fetchFilteredKPIs(range, topic = null) {
+            let url = `/admin/kpis/filter?range=${range}`;
+            if (topic) {
+                url += `&topic=${encodeURIComponent(topic)}`;
+            }
+            fetch(url)
                 .then(response => response.json())
                 .then(result => {
                     if (result.success) {
@@ -4527,6 +4535,8 @@ You can check your leave balance in the employee portal."></textarea>
                         if (document.getElementById('commonFlaggedReasonCountSection')) {
                             document.getElementById('commonFlaggedReasonCountSection').textContent = `Based on ${data.flaggedCount} flag${data.flaggedCount === 1 ? '' : 's'}`;
                         }
+                        // Update Most Asked Topics
+                        updateMostAskedTopics(data.mostAskedTopics);
                         // Update chart
                         updateChart(data.resolvedQueries, data.pendingQueries, data.escalatedQueries);
                         console.log('KPIs updated from server:', data);
@@ -4537,6 +4547,78 @@ You can check your leave balance in the employee portal."></textarea>
                 .catch(error => {
                     console.error('Error fetching filtered KPIs:', error);
                 });
+        }
+
+        // Update Most Asked Topics Display
+        function updateMostAskedTopics(topics) {
+            const topicsContainer = document.querySelector('.topics-container');
+            if (!topicsContainer) return;
+            
+            // Keep the heading
+            const heading = topicsContainer.querySelector('h3');
+            topicsContainer.innerHTML = '';
+            if (heading) topicsContainer.appendChild(heading);
+            
+            if (topics && topics.length > 0) {
+                topics.forEach(topic => {
+                    const topicItem = document.createElement('div');
+                    topicItem.className = 'topic-item';
+                    topicItem.style.cursor = 'pointer';
+                    topicItem.style.transition = 'all 0.2s';
+                    topicItem.dataset.topic = topic.topic;
+                    topicItem.onclick = () => filterByTopic(topic.topic);
+                    topicItem.onmouseover = function() {
+                        if (!this.dataset.active) this.style.background = '#f0f8f4';
+                    };
+                    topicItem.onmouseout = function() {
+                        if (!this.dataset.active) this.style.background = 'transparent';
+                    };
+                    topicItem.innerHTML = `
+                        <span class="topic-name">${topic.topic}</span>
+                        <span class="topic-count">${topic.count} inquir${topic.count == 1 ? 'y' : 'ies'}</span>
+                    `;
+                    topicsContainer.appendChild(topicItem);
+                });
+            } else {
+                const noDataItem = document.createElement('div');
+                noDataItem.className = 'topic-item';
+                noDataItem.innerHTML = `
+                    <span class="topic-name" style="color: #666; font-style: italic;">No data available yet</span>
+                    <span class="topic-count">0 inquiries</span>
+                `;
+                topicsContainer.appendChild(noDataItem);
+            }
+        }
+
+        // Filter by topic
+        let currentTopicFilter = null;
+        function filterByTopic(topic) {
+            console.log('Filtering by topic:', topic);
+            
+            // Toggle filter if same topic clicked
+            if (currentTopicFilter === topic) {
+                currentTopicFilter = null;
+                showNotification('Topic filter removed', 'success');
+            } else {
+                currentTopicFilter = topic;
+                showNotification(`Filtering by: ${topic}`, 'success');
+            }
+            
+            // Update visual state
+            document.querySelectorAll('.topic-item').forEach(item => {
+                if (currentTopicFilter && item.dataset.topic === currentTopicFilter) {
+                    item.style.background = '#d4edda';
+                    item.style.borderLeft = '3px solid var(--primary)';
+                    item.dataset.active = 'true';
+                } else {
+                    item.style.background = 'transparent';
+                    item.style.borderLeft = 'none';
+                    delete item.dataset.active;
+                }
+            });
+            
+            // Fetch filtered data
+            fetchFilteredKPIs(currentDateRange, currentTopicFilter);
         }
 
         // Initialize date range filter on page load

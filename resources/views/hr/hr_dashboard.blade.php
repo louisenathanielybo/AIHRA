@@ -1480,7 +1480,7 @@
                                 endDate = null;
                         }
                         // Filter tickets by KPI, date, and search
-                        let allTickets = document.querySelectorAll('.ticket-item');
+                        let allTickets = document.querySelectorAll('#inbox .ticket-item');
                         allTickets.forEach(ticket => {
                             let show = true;
                             
@@ -2659,6 +2659,7 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
     }
     
     function updateInboxCards() {
+        // Get all visible tickets from all tabs (pending, overdue, resolved)
         const tickets = Array.from(document.querySelectorAll('#inbox .ticket-item'))
             .filter(ticket => ticket.style.display !== 'none');
         
@@ -2667,7 +2668,7 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
             // Total tickets
             cards[0].querySelector('h3').textContent = tickets.length;
             
-            // Count by priority
+            // Count by priority (only from visible tickets)
             const urgent = tickets.filter(ticket => ticket.getAttribute('data-priority') === 'urgent').length;
             const high = tickets.filter(ticket => ticket.getAttribute('data-priority') === 'high').length;
             const medium = tickets.filter(ticket => ticket.getAttribute('data-priority') === 'medium').length;
@@ -2678,7 +2679,7 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
             cards[3].querySelector('h3').textContent = medium;
             cards[4].querySelector('h3').textContent = low;
             
-            // Count replied
+            // Count replied (only from visible tickets)
             const replied = tickets.filter(ticket => ticket.getAttribute('data-status') === 'Replied').length;
             cards[5].querySelector('h3').textContent = replied;
         }
