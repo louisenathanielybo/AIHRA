@@ -79,9 +79,18 @@ RUN if [ ! -f .env ]; then \
 # Generate Laravel key
 RUN php artisan key:generate --force
 
-# Optimize Laravel
+# Optimize Laravel - Only cache config, skip view cache if it fails
 RUN php artisan config:cache \
-    && php artisan view:cache
+    && (php artisan view:cache || echo "Skipping view cache" && true)
+
+# Alternative: More robust check before view caching
+# RUN php artisan config:cache \
+#     && if [ -d resources/views ] && [ -f config/view.php ]; then \
+#         php artisan view:cache; \
+#     else \
+#         echo "Skipping view cache - views directory or config not found"; \
+#     fi
+
 # Clean up
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
