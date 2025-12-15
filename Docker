@@ -6,42 +6,91 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libfreetype6-dev \
     libzip-dev \
+    libxml2-dev \
+    libonig-dev \
+    libcurl4-openssl-dev \
+    pkg-config \
+    libssl-dev \
+    libpq-dev \
+    unzip \
+    git \
+    curl \
+    wget \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql mysqli gd zip
+    && docker-php-ext-install pdo_mysql mysqli gd zip mbstring xml curl bcmath opcache
 
-# Enable Apache rewrite module
-RUN a2enmod rewrite
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Enable Apache modules
+RUN a2enmod rewrite headers
+
+# Set working directory
+WORKDIR /var/www/html
 
 # Copy application files
-COPY . /var/www/html/
+COPY . .
 
-# Create default index.php if it doesn't exist
-RUN if [ ! -f /var/www/html/index.php ]; then \
-    echo '<?php echo "<h1>Application Running</h1><p>PHP " . phpversion() . "</p>"; ?>' > /var/www/html/index.php; \
-    fi
+# Fix permissions and create necessary directories
+RUN mkdir -p storage/framework/{sessions,views,cache} \
+    && mkdir -p bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Set proper permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
+# Install PHP dependencies
+RUN composer install --no-interaction --no-scripts --prefer-dist
 
-# Create proper Apache configuration
+# Install npm dependencies and build assets
+RUN npm install && npm run build
+
+# Create Apache configuration
 RUN echo '<VirtualHost *:80>\n\
     ServerName localhost\n\
-    DocumentRoot /var/www/html\n\
+    DocumentRoot /var/www/html/public\n\
     \n\
-    <Directory /var/www/html>\n\
+    <Directory /var/www/html/public>\n\
         Options -Indexes +FollowSymLinks\n\
         AllowOverride All\n\
         Require all granted\n\
         DirectoryIndex index.php index.html\n\
     </Directory>\n\
+    \n\
+    ErrorLog ${APACHE_LOG_DIR}/error.log\n\
+    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
-# Also set ServerName globally to avoid the warning
+# Set ServerName globally
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
+# Create default .env file if it doesn't exist
+RUN if [ ! -f .env ]; then \
+    cp .env.example .env; \
+    fi
+
+# Generate Laravel key
+RUN php artisan key:generate --force
+
+# Optimize Laravel
+RUN php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache
+
+# Clean up
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/ || exit 1
+
 CMD ["apache2-foreground"]
