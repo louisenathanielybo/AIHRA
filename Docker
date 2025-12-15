@@ -23,6 +23,13 @@ RUN a2enmod rewrite
 # Copy application files
 COPY . /var/www/html/
 
+# Create storage directories with proper structure BEFORE setting permissions
+RUN mkdir -p /var/www/html/storage/framework/sessions \
+    && mkdir -p /var/www/html/storage/framework/views \
+    && mkdir -p /var/www/html/storage/framework/cache \
+    && mkdir -p /var/www/html/storage/logs \
+    && mkdir -p /var/www/html/bootstrap/cache
+
 # Set correct document root for Laravel
 RUN echo '<VirtualHost *:80>\n\
     DocumentRoot /var/www/html/public\n\
@@ -34,18 +41,18 @@ RUN echo '<VirtualHost *:80>\n\
     </Directory>\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
-# Set permissions
+# Set proper permissions - CRITICAL FIX
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html \
     && chmod -R 775 /var/www/html/storage \
-    && chmod -R 775 /var/www/html/bootstrap/cache
+    && chmod -R 775 /var/www/html/bootstrap/cache \
+    && chmod -R 777 /var/www/html/storage/framework \
+    && chmod -R 777 /var/www/html/storage/logs
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
 # Create a simple .env file from Render environment variables at runtime
-# This script runs when the container starts
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
@@ -87,7 +94,7 @@ MAIL_USERNAME=null\n\
 MAIL_PASSWORD=null\n\
 MAIL_ENCRYPTION=null\n\
 MAIL_FROM_ADDRESS="hello@example.com"\n\
-MAIL_FROM_NAME="\${APP_NAME}"\n\
+MAIL_FROM_NAME="${APP_NAME}"\n\
 \n\
 # Dialogflow Configuration\n\
 GOOGLE_APPLICATION_CREDENTIALS="${GOOGLE_APPLICATION_CREDENTIALS:-aihra-key.json}"\n\
@@ -100,8 +107,21 @@ if grep -q "APP_KEY=base64:" /var/www/html/.env || ! grep -q "APP_KEY=base64:" /
     cd /var/www/html && php artisan key:generate --force\n\
 fi\n\
 \n\
-# Cache config for performance\n\
+# Clear and cache config for performance\n\
+php artisan config:clear\n\
 php artisan config:cache\n\
+php artisan route:clear\n\
+php artisan route:cache\n\
+php artisan view:clear\n\
+php artisan view:cache\n\
+\n\
+# Ensure storage directories exist and have proper permissions (redundant safety check)\n\
+mkdir -p /var/www/html/storage/framework/sessions\n\
+mkdir -p /var/www/html/storage/framework/views\n\
+mkdir -p /var/www/html/storage/framework/cache\n\
+mkdir -p /var/www/html/storage/logs\n\
+chmod -R 777 /var/www/html/storage\n\
+chmod -R 777 /var/www/html/bootstrap/cache\n\
 \n\
 exec apache2-foreground' > /docker-entrypoint.sh
 
