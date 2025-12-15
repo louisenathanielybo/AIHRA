@@ -39,14 +39,16 @@ class AdminController extends Controller
         $announcements = DB::table('announcements')->orderBy('id', 'desc')->get();
         $feedback = DB::table('feedback')->orderBy('feedbackID', 'desc')->get();
         $flags = DB::table('flaggedresponse')->orderBy('flaggedID', 'desc')->get();
+        // Get flagged count for KPI
+        $flaggedCount = DB::table('flaggedresponse')->count();
         
-        // 🆕 GET HR_INBOX DATA FOR CHATBOT TICKETS with pagination
+        // 🆕 GET HR_INBOX DATA FOR CHATBOT TICKETS - all data for client-side pagination
         $ticketsForKPI = DB::table('hr_inbox')->get(); // For KPI calculations
         $ticketsSortColumn = in_array($ticketsSort, ['ticket_no', 'from_user', 'priority', 'status', 'created_at']) ? $ticketsSort : 'created_at';
         $tickets = DB::table('hr_inbox')
             ->select('*')
             ->orderBy($ticketsSortColumn, $ticketsDir)
-            ->paginate(20, ['*'], 'tickets_page');
+            ->get();
         
         // Get all tickets data for JavaScript (date, priority, status)
         $allTicketsData = DB::table('hr_inbox')
@@ -104,28 +106,20 @@ class AdminController extends Controller
             ->join('users', 'feedback.employeeNum', '=', 'users.employeeNum')
             ->select('feedback.*', 'users.firstName', 'users.lastName')
             ->orderBy('feedback.' . $feedbackSortColumn, $feedbackDir)
-            ->paginate(20);
-
-        // Get all feedbacks for KPI (not paginated)
-        $allFeedbackData = DB::table('feedback')
-            ->join('users', 'feedback.employeeNum', '=', 'users.employeeNum')
-            ->select('feedback.*', 'users.firstName', 'users.lastName')
-            ->orderBy('feedback.' . $feedbackSortColumn, $feedbackDir)
             ->get()
             ->map(function($feedback) {
-                // Add a formatted date field for JavaScript date parsing
                 $feedback->formatted_date = \Carbon\Carbon::parse($feedback->timeStamp)->format('Y-m-d');
                 return $feedback;
             });
 
-        // 🆕 NEW: Get data for performance tab - paginate interactions
+        // 🆕 NEW: Get data for performance tab - all interactions for client-side pagination
         $interactionsSortColumn = in_array($interactionsSort, ['question', 'questionTime', 'isEscalated']) ? $interactionsSort : 'questionTime';
         $recentInteractions = DB::table('queries')
             ->join('users', 'queries.employeeNum', '=', 'users.employeeNum')
             ->select('queries.*', 'users.firstName', 'users.lastName', 
                 DB::raw('TIMESTAMPDIFF(MICROSECOND, queries.questionTime, IFNULL(queries.responseTime, queries.questionTime)) / 1000000.0 as response_time_seconds'))
             ->orderBy('queries.' . $interactionsSortColumn, $interactionsDir)
-            ->paginate(20, ['*'], 'interactions_page');
+            ->get();
 
         // Get all interactions data for JavaScript (date + response time only)
         $allInteractionsData = DB::table('queries')
@@ -142,7 +136,7 @@ class AdminController extends Controller
             ->join('queries', 'flaggedresponse.queryID', '=', 'queries.queryID')
             ->select('flaggedresponse.*', 'users.firstName', 'users.lastName', 'queries.question')
             ->orderBy('flaggedresponse.' . $flagsSortColumn, $flagsDir)
-            ->paginate(20, ['*'], 'flags_page');
+            ->get();
 
         // Calculate average response time from all queries
         $avgResponseTime = DB::table('queries')
@@ -218,10 +212,11 @@ class AdminController extends Controller
             'totalTicketsChange', 'unresolvedTicketsChange', 'resolvedTicketsChange',
             'activeUsers', 'totalInteractions', 'escalatedQueries',
             'resolvedQueries', 'pendingQueries', 'escalatedCount',
-            'feedbackData', 'allFeedbackData', 'recentInteractions', 'flaggedResponses', 'mostAskedTopics', 'avgResponseTime',
+            'feedbackData', 'recentInteractions', 'flaggedResponses', 'mostAskedTopics', 'avgResponseTime',
             'allInteractionsData', 'allTicketsData',
             'ticketsSort', 'ticketsDir', 'feedbackSort', 'feedbackDir', 
-            'interactionsSort', 'interactionsDir', 'flagsSort', 'flagsDir'
+            'interactionsSort', 'interactionsDir', 'flagsSort', 'flagsDir',
+            'flaggedCount'
         ));
     }
 
@@ -988,11 +983,13 @@ class AdminController extends Controller
             $queriesQuery = DB::table('queries');
             $ticketsQuery = DB::table('hr_inbox');
             $feedbackQuery = DB::table('feedback');
+            $flaggedQuery = DB::table('flaggedresponse');
 
             if ($startDate && $endDate) {
                 $queriesQuery->whereBetween('questionTime', [$startDate, $endDate]);
                 $ticketsQuery->whereBetween('created_at', [$startDate, $endDate]);
                 $feedbackQuery->whereBetween('timeStamp', [$startDate, $endDate]);
+                $flaggedQuery->whereBetween('timeStamp', [$startDate, $endDate]);
             }
 
             // Calculate KPIs
@@ -1007,6 +1004,9 @@ class AdminController extends Controller
             $feedbackCount = $feedbacks->count();
             $feedbackAvg = $feedbackCount > 0 ? round($feedbacks->avg('rating'), 2) : null;
 
+            // Flagged responses count
+            $flaggedCount = $flaggedQuery->count();
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -1016,7 +1016,8 @@ class AdminController extends Controller
                     'resolvedQueries' => $resolvedQueries,
                     'resolutionRate' => $totalInteractions > 0 ? round(($resolvedQueries / $totalInteractions) * 100, 1) : 0,
                     'feedbackAvg' => $feedbackAvg,
-                    'feedbackCount' => $feedbackCount
+                    'feedbackCount' => $feedbackCount,
+                    'flaggedCount' => $flaggedCount
                 ]
             ]);
         } catch (\Exception $e) {
