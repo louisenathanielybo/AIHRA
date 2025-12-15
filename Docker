@@ -40,12 +40,11 @@ WORKDIR /var/www/html
 # Copy application files
 COPY . .
 
-# Fix permissions and create necessary directories - CHANGED PERMISSIONS FROM 755 TO 775
+# Fix permissions and create necessary directories
 RUN mkdir -p storage/framework/{sessions,views,cache} \
-    && mkdir -p storage/logs \
     && mkdir -p bootstrap/cache \
     && chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+    && chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Install PHP dependencies
 RUN composer install --no-interaction --no-scripts --prefer-dist
@@ -84,19 +83,16 @@ RUN php artisan key:generate --force
 RUN php artisan config:cache \
     && (php artisan view:cache || echo "Skipping view cache" && true)
 
+# Alternative: More robust check before view caching
+# RUN php artisan config:cache \
+#     && if [ -d resources/views ] && [ -f config/view.php ]; then \
+#         php artisan view:cache; \
+#     else \
+#         echo "Skipping view cache - views directory or config not found"; \
+#     fi
+
 # Clean up
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# CRITICAL: Set the correct Apache user and group in apache2.conf
-RUN echo "User www-data" >> /etc/apache2/apache2.conf \
-    && echo "Group www-data" >> /etc/apache2/apache2.conf
-
-# Verify permissions before exposing
-RUN ls -la /var/www/html/storage/ \
-    && echo "Testing write permissions..." \
-    && sudo -u www-data touch /var/www/html/storage/test.log \
-    && rm -f /var/www/html/storage/test.log \
-    && echo "Permission test passed"
 
 EXPOSE 80
 
