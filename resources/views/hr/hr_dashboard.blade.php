@@ -1089,6 +1089,43 @@
             }
         }
 
+        /* Search Box Styles */
+        .search-box {
+            position: relative;
+            width: 100%;
+            max-width: 250px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border: 1px solid #e0efe5;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            background: white;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(74, 140, 94, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+        
+        @media (max-width: 768px) {
+            .search-box {
+                max-width: 100%;
+            }
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 220px;
@@ -1412,6 +1449,9 @@
                     }
 
                     function applyCombinedFilters() {
+                        // Get search term
+                        const searchTerm = document.getElementById('searchInboxTickets')?.value?.toLowerCase() || '';
+                        
                         // Date range logic
                         const today = new Date();
                         let startDate, endDate;
@@ -1439,12 +1479,19 @@
                                 startDate = null;
                                 endDate = null;
                         }
-                        // Filter tickets by both KPI and date
+                        // Filter tickets by KPI, date, and search
                         let allTickets = document.querySelectorAll('.ticket-item');
                         allTickets.forEach(ticket => {
                             let show = true;
+                            
+                            // Search filter
+                            if (searchTerm && show) {
+                                const ticketText = ticket.textContent.toLowerCase();
+                                show = ticketText.includes(searchTerm);
+                            }
+                            
                             // KPI filter
-                            if(currentKPI !== 'all') {
+                            if(currentKPI !== 'all' && show) {
                                 if(currentKPI === 'replied') {
                                     show = ticket.getAttribute('data-status') === 'Replied';
                                 } else {
@@ -1470,9 +1517,21 @@
                     // Set default active on load
                     document.addEventListener('DOMContentLoaded', function() {
                         filterTicketsByKPI('all');
+                        
+                        // Add search functionality
+                        const searchInput = document.getElementById('searchInboxTickets');
+                        if (searchInput) {
+                            searchInput.addEventListener('input', applyCombinedFilters);
+                        }
                     });
                     </script>
                     <div class="ticket-list">
+                        <!-- Search Box -->
+                        <div class="search-box" style="margin-bottom: 15px; max-width: 220px;">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="searchInboxTickets" placeholder="Search tickets...">
+                        </div>
+
                         <div class="split-tabs">
                             <button type="button" class="split-tab active" id="btn-pending" onclick="switchTicketList('pending')">
                                 <i class="fa-regular fa-clock"></i>

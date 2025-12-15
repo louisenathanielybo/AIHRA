@@ -2086,6 +2086,40 @@ use Illuminate\Support\Str;
     </div>
 </div>
 
+<!-- Unresolved Tickets Warning Modal -->
+<div id="unresolvedTicketsModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header" style="background: #ffebee; border-bottom: 1px solid #ffcdd2;">
+            <h3 style="color: #c62828; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-exclamation-triangle"></i> Cannot Archive Account
+            </h3>
+            <button class="close-modal" onclick="closeUnresolvedTicketsModal()">×</button>
+        </div>
+        <div class="modal-body" style="padding: 24px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <i class="fas fa-ticket-alt" style="font-size: 48px; color: #f44336; margin-bottom: 15px;"></i>
+                <p style="font-size: 16px; color: #333; margin-bottom: 10px;">
+                    This employee has <strong id="unresolvedTicketCount">0</strong> unresolved ticket(s).
+                </p>
+                <p style="font-size: 14px; color: #666;">
+                    Please resolve all pending tickets before archiving this account.
+                </p>
+            </div>
+            <div id="unresolvedTicketsList" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; display: none;">
+                <!-- Tickets will be populated here -->
+            </div>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button type="button" class="btn btn-secondary" onclick="closeUnresolvedTicketsModal()" style="padding: 10px 24px;">
+                    Close
+                </button>
+                <button type="button" class="btn btn-primary" onclick="goToTicketsTab()" style="padding: 10px 24px; background: var(--primary);">
+                    <i class="fas fa-ticket-alt"></i> View Tickets
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Create/Edit Intent Modal -->
 <div id="intentModal" class="modal">
     <div class="modal-content" style="max-width: 800px;">
@@ -2494,14 +2528,7 @@ You can check your leave balance in the employee portal."></textarea>
                                 </button>
                                 @endif
                                 @if($user->employeeNum != Auth::user()->employeeNum && $user->role != 'Admin')
-                                @php
-                                    // Count unresolved tickets for this user
-                                    $unresolvedCount = \DB::table('hr_inbox')
-                                        ->where('from_user', $user->employeeNum)
-                                        ->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])
-                                        ->count();
-                                @endphp
-                                <button class="btn-action btn-archive" onclick="archiveAccount('{{ $user->employeeNum }}')" @if($unresolvedCount > 0) disabled title="Cannot archive: unresolved tickets exist" @endif>
+                                <button class="btn-action btn-archive" onclick="archiveAccount('{{ $user->employeeNum }}')">
                                     <i class="fas fa-archive"></i> Archive
                                 </button>
                                 @endif
@@ -5273,7 +5300,8 @@ You can check your leave balance in the employee portal."></textarea>
             .then(res => res.json())
             .then(data => {
                 if (data && data.hasUnresolved) {
-                    alert('This user currently has unresolved tickets.');
+                    // Show the unresolved tickets modal
+                    showUnresolvedTicketsModal(data.unresolvedCount, data.tickets);
                 } else {
                     if (confirm(`Are you sure you want to archive account ${employeeNum}? The account will be archived and deactivated but data will be preserved.`)) {
                         // Create and submit form
@@ -5300,6 +5328,53 @@ You can check your leave balance in the employee portal."></textarea>
             .catch(() => {
                 alert('Could not check unresolved tickets. Please try again.');
             });
+        }
+
+        // Show Unresolved Tickets Modal
+        function showUnresolvedTicketsModal(count, tickets) {
+            const modal = document.getElementById('unresolvedTicketsModal');
+            const countElement = document.getElementById('unresolvedTicketCount');
+            const listElement = document.getElementById('unresolvedTicketsList');
+            
+            countElement.textContent = count;
+            
+            // Populate tickets list if available
+            if (tickets && tickets.length > 0) {
+                listElement.style.display = 'block';
+                listElement.innerHTML = tickets.map(ticket => `
+                    <div style="padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color: #333;">#${ticket.ticket_no}</strong>
+                            <span style="font-size: 12px; color: #666; margin-left: 10px;">${new Date(ticket.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <span class="status-badge" style="padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; 
+                            ${ticket.status === 'Open' ? 'background: #fff3e0; color: #e65100;' : 
+                              ticket.status === 'Replied' ? 'background: #e3f2fd; color: #1565c0;' : 
+                              'background: #fce4ec; color: #c62828;'}">
+                            ${ticket.status}
+                        </span>
+                    </div>
+                `).join('');
+            } else {
+                listElement.style.display = 'none';
+            }
+            
+            modal.classList.add('active');
+        }
+
+        // Close Unresolved Tickets Modal
+        function closeUnresolvedTicketsModal() {
+            document.getElementById('unresolvedTicketsModal').classList.remove('active');
+        }
+
+        // Navigate to Tickets Tab
+        function goToTicketsTab() {
+            closeUnresolvedTicketsModal();
+            // Switch to tickets tab
+            const ticketsLink = document.querySelector('a[data-section="tickets"]');
+            if (ticketsLink) {
+                ticketsLink.click();
+            }
         }
 
         // =============================================

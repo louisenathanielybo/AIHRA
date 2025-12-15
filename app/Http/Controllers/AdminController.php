@@ -557,6 +557,33 @@ class AdminController extends Controller
         }
     }
 
+    // 🆕 CHECK UNRESOLVED TICKETS - Check if user has unresolved tickets before archiving
+    public function checkUnresolvedTickets($employeeNum)
+    {
+        try {
+            $unresolvedTickets = DB::table('hr_inbox')
+                ->where('from_user', $employeeNum)
+                ->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])
+                ->select('ticket_no', 'status', 'created_at')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $hasUnresolved = $unresolvedTickets->count() > 0;
+
+            return response()->json([
+                'hasUnresolved' => $hasUnresolved,
+                'unresolvedCount' => $unresolvedTickets->count(),
+                'tickets' => $unresolvedTickets
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to check unresolved tickets:', [
+                'employeeNum' => $employeeNum,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => 'Failed to check tickets'], 500);
+        }
+    }
+
     // 🆕 GET ACCOUNT DATA for editing - with better error handling
     public function getAccount($employeeNum)
     {
