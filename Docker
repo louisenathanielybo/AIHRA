@@ -23,68 +23,87 @@ RUN a2enmod rewrite
 # Copy application files
 COPY . /var/www/html/
 
-# Create storage directories
-RUN mkdir -p /var/www/html/storage/framework/{sessions,views,cache} \
+# Create ALL necessary Laravel directories
+RUN mkdir -p /var/www/html/storage/framework/sessions \
+    && mkdir -p /var/www/html/storage/framework/views \
+    && mkdir -p /var/www/html/storage/framework/cache/data \
     && mkdir -p /var/www/html/storage/logs \
-    && mkdir -p /var/www/html/bootstrap/cache
+    && mkdir -p /var/www/html/bootstrap/cache \
+    && mkdir -p /var/www/html/public/uploads
 
 # Set document root to Laravel public directory
 RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Set permissions
+# CRITICAL: Set correct ownership and permissions
 RUN chown -R www-data:www-data /var/www/html \
-    && find /var/www/html/storage -type d -exec chmod 775 {} \; \
-    && find /var/www/html/storage -type f -exec chmod 664 {} \; \
-    && chmod -R 775 /var/www/html/bootstrap/cache
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache \
+    && chmod -R 777 /var/www/html/storage/framework/sessions \
+    && chmod -R 777 /var/www/html/storage/framework/views \
+    && chmod -R 777 /var/www/html/storage/framework/cache
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
-# Create entrypoint script
+# Create a reliable entrypoint script
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
-# Create minimal .env file\n\
-if [ ! -f /var/www/html/.env ]; then\n\
-    touch /var/www/html/.env\n\
-fi\n\
+echo "Starting Laravel application..."\n\
 \n\
-# Set APP_KEY from environment variable\n\
-if [ -n "${APP_KEY}" ] && [ "${APP_KEY}" != "base64:" ]; then\n\
-    echo "APP_KEY=${APP_KEY}" > /var/www/html/.env\n\
+# Create .env file with essential variables\n\
+cat > /var/www/html/.env <<EOF\n\
+APP_NAME="Laravel"\n\
+APP_ENV=production\n\
+APP_DEBUG=false\n\
+APP_URL=https://aihra-1.onrender.com\n\
+APP_KEY=\n\
+LOG_CHANNEL=stack\n\
+DB_CONNECTION=mysql\n\
+DB_HOST=127.0.0.1\n\
+DB_PORT=3306\n\
+DB_DATABASE=aihra\n\
+DB_USERNAME=root\n\
+DB_PASSWORD=\n\
+BROADCAST_DRIVER=log\n\
+CACHE_DRIVER=file\n\
+FILESYSTEM_DISK=local\n\
+QUEUE_CONNECTION=sync\n\
+SESSION_DRIVER=file\n\
+SESSION_LIFETIME=120\n\
+EOF\n\
+\n\
+# Use APP_KEY from environment if provided\n\
+if [ -n "${APP_KEY}" ] && [ "${APP_KEY}" != "base64:" ] && [ "${APP_KEY}" != "null" ]; then\n\
+    sed -i "s|APP_KEY=|APP_KEY=${APP_KEY}|" /var/www/html/.env\n\
+    echo "Using provided APP_KEY from environment"\n\
 else\n\
-    echo "APP_KEY=" > /var/www/html/.env\n\
-fi\n\
-\n\
-# Add other required env vars\n\
-echo "APP_ENV=${APP_ENV:-production}" >> /var/www/html/.env\n\
-echo "APP_DEBUG=${APP_DEBUG:-false}" >> /var/www/html/.env\n\
-echo "APP_URL=${APP_URL:-https://aihra-1.onrender.com}" >> /var/www/html/.env\n\
-echo "APP_NAME=\"Laravel\"" >> /var/www/html/.env\n\
-echo "DB_CONNECTION=${DB_CONNECTION:-mysql}" >> /var/www/html/.env\n\
-echo "DB_HOST=${DB_HOST:-127.0.0.1}" >> /var/www/html/.env\n\
-echo "DB_PORT=${DB_PORT:-3306}" >> /var/www/html/.env\n\
-echo "DB_DATABASE=${DB_DATABASE:-aihra}" >> /var/www/html/.env\n\
-echo "DB_USERNAME=${DB_USERNAME:-root}" >> /var/www/html/.env\n\
-echo "DB_PASSWORD=${DB_PASSWORD}" >> /var/www/html/.env\n\
-\n\
-# Generate APP_KEY if empty\n\
-if ! grep -q "APP_KEY=base64:" /var/www/html/.env; then\n\
+    echo "Generating new APP_KEY..."\n\
     cd /var/www/html && php artisan key:generate --force\n\
 fi\n\
 \n\
-# Cache for production (skip route cache if naming conflict exists)\n\
-php artisan config:cache\n\
-php artisan view:cache\n\
-# Uncomment this after fixing route names:\n\
-# php artisan route:cache\n\
+echo "Setting up storage permissions..."\n\
+# Ensure directories exist (again, for safety)\n\
+mkdir -p /var/www/html/storage/framework/sessions\n\
+mkdir -p /var/www/html/storage/framework/views\n\
+mkdir -p /var/www/html/storage/framework/cache/data\n\
+mkdir -p /var/www/html/storage/logs\n\
 \n\
-# Fix permissions\n\
+# Set permissions (again, for safety)\n\
+chown -R www-data:www-data /var/www/html/storage\n\
+chown -R www-data:www-data /var/www/html/bootstrap/cache\n\
 chmod -R 775 /var/www/html/storage\n\
 chmod -R 775 /var/www/html/bootstrap/cache\n\
+chmod -R 777 /var/www/html/storage/framework/sessions\n\
+chmod -R 777 /var/www/html/storage/framework/views\n\
+chmod -R 777 /var/www/html/storage/framework/cache\n\
 \n\
+echo "Optimizing Laravel..."\n\
+cd /var/www/html && php artisan config:cache\n\
+\n\
+echo "Starting Apache..."\n\
 exec apache2-foreground' > /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
