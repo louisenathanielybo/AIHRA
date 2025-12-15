@@ -18,20 +18,30 @@ RUN a2enmod rewrite
 # Copy application files
 COPY . /var/www/html/
 
+# Create default index.php if it doesn't exist
+RUN if [ ! -f /var/www/html/index.php ]; then \
+    echo '<?php echo "<h1>Application Running</h1><p>PHP " . phpversion() . "</p>"; ?>' > /var/www/html/index.php; \
+    fi
+
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
 # Create proper Apache configuration
 RUN echo '<VirtualHost *:80>\n\
+    ServerName localhost\n\
     DocumentRoot /var/www/html\n\
     \n\
     <Directory /var/www/html>\n\
         Options -Indexes +FollowSymLinks\n\
         AllowOverride All\n\
         Require all granted\n\
+        DirectoryIndex index.php index.html\n\
     </Directory>\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+
+# Also set ServerName globally to avoid the warning
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 EXPOSE 80
 CMD ["apache2-foreground"]
