@@ -1963,44 +1963,326 @@ use Illuminate\Support\Str;
         </div>
         
         <!-- Content Management Section -->
-        <div id="content" class="section-content">
+    <!-- Content Management Section -->
+<div id="content" class="section-content">
+    <div style="margin-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: var(--primary);">Dialogflow Intents & Guided Questions</h3>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="openCreateIntentModal()">
+                    <i class="fas fa-plus"></i> Create Intent
+                </button>
+                <button class="btn btn-secondary" onclick="openCreateGuidedQuestionModal()">
+                    <i class="fas fa-question-circle"></i> Add Guided Question
+                </button>
+            </div>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="dashboard-cards" style="margin-bottom: 30px;">
+            <div class="card stat-card">
+                <h3>Total Intents</h3>
+                <div class="value" id="totalIntents">0</div>
+                <div class="trend">Active</div>
+            </div>
+            <div class="card stat-card">
+                <h3>Guided Questions</h3>
+                <div class="value" id="totalGuidedQuestions">0</div>
+                <div class="trend">Configured</div>
+            </div>
+            <div class="card stat-card">
+                <h3>Training Phrases</h3>
+                <div class="value" id="totalTrainingPhrases">0</div>
+                <div class="trend">Total</div>
+            </div>
+            <div class="card stat-card">
+                <h3>Last Updated</h3>
+                <div class="value" id="lastUpdatedTime">N/A</div>
+                <div class="trend">Recently</div>
+            </div>
+        </div>
+
+        <!-- Tabs for Intents and Guided Questions -->
+        <div class="dashboard-tabs">
+            <button class="dashboard-tab-btn active" data-tab="intents">Dialogflow Intents</button>
+            <button class="dashboard-tab-btn" data-tab="guided-questions">Guided Questions</button>
+        </div>
+        
+        <!-- Intents Tab -->
+        <div id="intents" class="dashboard-tab-content active">
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div class="search-box" style="flex: 1;">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchIntents" placeholder="Search intents...">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <select id="intentFilter" style="padding: 10px 15px; border: 1px solid #e0efe5; border-radius: 8px; background: white;">
+                        <option value="all">All Intents</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="syncWithDialogflow()">
+                        <i class="fas fa-sync-alt"></i> Sync with Dialogflow
+                    </button>
+                </div>
+            </div>
+            
             <div class="data-table">
-                <h3>Content Management</h3>
-                <table>
+                <table id="intentsTable">
                     <thead>
                         <tr>
-                            <th>Topic</th>
-                            <th>Last Updated</th>
+                            <th>Intent Name</th>
+                            <th>Display Name</th>
+                            <th>Training Phrases</th>
+                            <th>Responses</th>
                             <th>Status</th>
+                            <th>Last Modified</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="intentsTableBody">
+                        <!-- Intents will be loaded here via JavaScript -->
                         <tr>
-                            <td>Leave Policies</td>
-                            <td>2025-01-20</td>
-                            <td><span class="status open">Published</span></td>
-                            <td>
-                                <button class="btn btn-primary">Edit</button>
-                                <button class="btn btn-secondary">View</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Payroll Information</td>
-                            <td>2025-01-18</td>
-                            <td><span class="status open">Published</span></td>
-                            <td>
-                                <button class="btn btn-primary">Edit</button>
-                                <button class="btn btn-secondary">View</button>
+                            <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
+                                Loading intents...
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-        <script src="/assets/js/feedback_kpi.js"></script>
         
-        <!-- Chatbot Ticket Details Section -->
+        <!-- Guided Questions Tab -->
+        <div id="guided-questions" class="dashboard-tab-content">
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div class="search-box" style="flex: 1;">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchGuidedQuestions" placeholder="Search guided questions...">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <select id="questionFilter" style="padding: 10px 15px; border: 1px solid #e0efe5; border-radius: 8px; background: white;">
+                        <option value="all">All Questions</option>
+                        <option value="active">Active</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="data-table">
+                <table id="guidedQuestionsTable">
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Intent</th>
+                            <th>Display Order</th>
+                            <th>Response Type</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="guidedQuestionsTableBody">
+                        <!-- Guided questions will be loaded here via JavaScript -->
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
+                                Loading guided questions...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Intent Modal -->
+<div id="intentModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+            <h3 id="intentModalTitle">Create New Intent</h3>
+            <button class="close-modal" onclick="closeIntentModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="intentForm">
+                @csrf
+                <input type="hidden" id="intent_id" name="intent_id">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="intent_name">Intent Name *</label>
+                        <input type="text" id="intent_name" name="intent_name" required 
+                               placeholder="e.g., leave.policy.inquiry">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="display_name">Display Name *</label>
+                        <input type="text" id="display_name" name="display_name" required 
+                               placeholder="e.g., Leave Policy Inquiry">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3" 
+                              placeholder="Describe what this intent handles..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="training_phrases">Training Phrases * (One per line)</label>
+                    <textarea id="training_phrases" name="training_phrases" rows="5" required 
+                              placeholder="How do I apply for leave?
+What are the leave policies?
+How many leave days do I have?"></textarea>
+                    <small style="color: #666;">Enter one training phrase per line</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="responses">Responses * (One per line)</label>
+                    <textarea id="responses" name="responses" rows="5" required 
+                              placeholder="You can apply for leave through the HR portal.
+The leave policy allows for 20 days annual leave.
+You can check your leave balance in the employee portal."></textarea>
+                    <small style="color: #666;">Enter one response per line</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="parameters">Parameters (JSON format)</label>
+                    <textarea id="parameters" name="parameters" rows="4" 
+                              placeholder='{
+  "leave_type": {
+    "entity_type": "@sys.any",
+    "mandatory": false,
+    "prompts": ["What type of leave?"]
+  }
+}'></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="priority">Priority</label>
+                        <select id="priority" name="priority">
+                            <option value="normal">Normal</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="flex: 1;">
+                        <label for="status">Status</label>
+                        <select id="status" name="status">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 25px;">
+                    <button type="submit" class="btn-primary">Save Intent</button>
+                    <button type="button" class="btn-secondary" onclick="closeIntentModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Guided Question Modal -->
+<div id="guidedQuestionModal" class="modal">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+            <h3 id="guidedQuestionModalTitle">Add Guided Question</h3>
+            <button class="close-modal" onclick="closeGuidedQuestionModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="guidedQuestionForm">
+                @csrf
+                <input type="hidden" id="guided_question_id" name="guided_question_id">
+                
+                <div class="form-group">
+                    <label for="question_text">Question Text *</label>
+                    <textarea id="question_text" name="question_text" rows="3" required 
+                              placeholder="Enter the guided question..."></textarea>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="linked_intent">Linked Intent *</label>
+                        <select id="linked_intent" name="linked_intent" required>
+                            <option value="">Select Intent</option>
+                            <!-- Intents will be populated via JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="display_order">Display Order</label>
+                        <input type="number" id="display_order" name="display_order" min="1" value="1">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="response_type">Response Type</label>
+                    <select id="response_type" name="response_type">
+                        <option value="text">Text Response</option>
+                        <option value="buttons">Buttons</option>
+                        <option value="cards">Cards</option>
+                        <option value="quick_replies">Quick Replies</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="customResponseContainer" style="display: none;">
+                    <label for="custom_response">Custom Response (JSON)</label>
+                    <textarea id="custom_response" name="custom_response" rows="4" 
+                              placeholder='{
+  "type": "buttons",
+  "buttons": [
+    {"text": "Option 1", "value": "option1"},
+    {"text": "Option 2", "value": "option2"}
+  ]
+}'></textarea>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <input type="text" id="category" name="category" 
+                               placeholder="e.g., HR Policies, Payroll, etc.">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="status_gq">Status</label>
+                        <select id="status_gq" name="status_gq">
+                            <option value="active">Active</option>
+                            <option value="archived">Archived</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 25px;">
+                    <button type="submit" class="btn-primary">Save Question</button>
+                    <button type="button" class="btn-secondary" onclick="closeGuidedQuestionModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div id="confirmDeleteModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Confirm Delete</h3>
+            <button class="close-modal" onclick="closeConfirmDeleteModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <p id="deleteMessage">Are you sure you want to delete this item?</p>
+            <div style="display: flex; gap: 10px; margin-top: 25px; justify-content: flex-end;">
+                <button class="btn-danger" onclick="confirmDelete()">Delete</button>
+                <button class="btn-secondary" onclick="closeConfirmDeleteModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+ <!-- Chatbot Ticket Details Section -->
         <div id="tickets" class="section-content">
             <div class="dashboard-cards">
                 <div class="card stat-card">
@@ -5240,6 +5522,665 @@ use Illuminate\Support\Str;
                 sidebarLink.click();
             }
         }
-    </script>
+    
+// Content Management JavaScript
+let currentIntentId = null;
+let currentQuestionId = null;
+let deleteType = ''; // 'intent' or 'question'
+let deleteId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize content management tabs
+    initContentManagementTabs();
+    
+    // Load intents and guided questions
+    loadIntents();
+    loadGuidedQuestions();
+    
+    // Set up search functionality
+    document.getElementById('searchIntents').addEventListener('input', filterIntents);
+    document.getElementById('searchGuidedQuestions').addEventListener('input', filterGuidedQuestions);
+    
+    // Set up filters
+    document.getElementById('intentFilter').addEventListener('change', filterIntents);
+    document.getElementById('questionFilter').addEventListener('change', filterGuidedQuestions);
+    
+    // Set up form submissions
+    document.getElementById('intentForm').addEventListener('submit', saveIntent);
+    document.getElementById('guidedQuestionForm').addEventListener('submit', saveGuidedQuestion);
+    
+    // Show/hide custom response field based on response type
+    document.getElementById('response_type').addEventListener('change', function() {
+        const container = document.getElementById('customResponseContainer');
+        if (this.value === 'text') {
+            container.style.display = 'none';
+        } else {
+            container.style.display = 'block';
+        }
+    });
+});
+
+function initContentManagementTabs() {
+    const tabButtons = document.querySelectorAll('#content .dashboard-tab-btn');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // Remove active class from all tab buttons
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Hide all tab contents
+            document.querySelectorAll('#content .dashboard-tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Show target tab content
+            document.getElementById(targetTab).classList.add('active');
+        });
+    });
+}
+
+// Intent Management Functions
+function openCreateIntentModal() {
+    document.getElementById('intentModalTitle').textContent = 'Create New Intent';
+    document.getElementById('intentForm').reset();
+    document.getElementById('intent_id').value = '';
+    currentIntentId = null;
+    document.getElementById('intentModal').classList.add('active');
+}
+
+function openEditIntentModal(intentId, intentData) {
+    document.getElementById('intentModalTitle').textContent = 'Edit Intent';
+    document.getElementById('intent_id').value = intentId;
+    currentIntentId = intentId;
+    
+    // Populate form fields
+    document.getElementById('intent_name').value = intentData.intent_name || '';
+    document.getElementById('display_name').value = intentData.display_name || '';
+    document.getElementById('description').value = intentData.description || '';
+    document.getElementById('training_phrases').value = intentData.training_phrases ? 
+        intentData.training_phrases.join('\n') : '';
+    document.getElementById('responses').value = intentData.responses ? 
+        intentData.responses.join('\n') : '';
+    document.getElementById('parameters').value = intentData.parameters || '';
+    document.getElementById('priority').value = intentData.priority || 'normal';
+    document.getElementById('status').value = intentData.status || 'active';
+    
+    document.getElementById('intentModal').classList.add('active');
+}
+
+function closeIntentModal() {
+    document.getElementById('intentModal').classList.remove('active');
+}
+
+function openDeleteIntentModal(intentId, intentName) {
+    deleteType = 'intent';
+    deleteId = intentId;
+    document.getElementById('deleteMessage').textContent = 
+        `Are you sure you want to delete the intent "${intentName}"? This action cannot be undone.`;
+    document.getElementById('confirmDeleteModal').classList.add('active');
+}
+
+// Guided Questions Functions
+function openCreateGuidedQuestionModal() {
+    document.getElementById('guidedQuestionModalTitle').textContent = 'Add Guided Question';
+    document.getElementById('guidedQuestionForm').reset();
+    document.getElementById('guided_question_id').value = '';
+    currentQuestionId = null;
+    
+    // Load intents for the dropdown
+    loadIntentsForDropdown();
+    
+    document.getElementById('guidedQuestionModal').classList.add('active');
+}
+
+function openEditGuidedQuestionModal(questionId, questionData) {
+    document.getElementById('guidedQuestionModalTitle').textContent = 'Edit Guided Question';
+    document.getElementById('guided_question_id').value = questionId;
+    currentQuestionId = questionId;
+    
+    // Load intents for the dropdown first
+    loadIntentsForDropdown(function() {
+        // Populate form fields after intents are loaded
+        document.getElementById('question_text').value = questionData.question_text || '';
+        document.getElementById('linked_intent').value = questionData.linked_intent || '';
+        document.getElementById('display_order').value = questionData.display_order || 1;
+        document.getElementById('response_type').value = questionData.response_type || 'text';
+        document.getElementById('category').value = questionData.category || '';
+        document.getElementById('status_gq').value = questionData.status || 'active';
+        
+        if (questionData.custom_response) {
+            document.getElementById('custom_response').value = questionData.custom_response;
+        }
+        
+        // Show/hide custom response container
+        const container = document.getElementById('customResponseContainer');
+        if (questionData.response_type === 'text') {
+            container.style.display = 'none';
+        } else {
+            container.style.display = 'block';
+        }
+        
+        document.getElementById('guidedQuestionModal').classList.add('active');
+    });
+}
+
+function closeGuidedQuestionModal() {
+    document.getElementById('guidedQuestionModal').classList.remove('active');
+}
+
+function openDeleteGuidedQuestionModal(questionId, questionText) {
+    deleteType = 'question';
+    deleteId = questionId;
+    document.getElementById('deleteMessage').textContent = 
+        `Are you sure you want to delete the question "${questionText}"?`;
+    document.getElementById('confirmDeleteModal').classList.add('active');
+}
+
+function closeConfirmDeleteModal() {
+    document.getElementById('confirmDeleteModal').classList.remove('active');
+    deleteType = '';
+    deleteId = null;
+}
+
+function confirmDelete() {
+    if (deleteType === 'intent') {
+        deleteIntent(deleteId);
+    } else if (deleteType === 'question') {
+        deleteGuidedQuestion(deleteId);
+    }
+    closeConfirmDeleteModal();
+}
+
+// API Functions
+async function loadIntents() {
+    try {
+        const response = await fetch('/admin/dialogflow/intents', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load intents');
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            updateIntentsTable(data.intents);
+            updateStats(data.stats);
+        }
+    } catch (error) {
+        console.error('Error loading intents:', error);
+        document.getElementById('intentsTableBody').innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
+                    Error loading intents. Please try again.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+async function loadIntentsForDropdown(callback) {
+    try {
+        const response = await fetch('/admin/dialogflow/intents/active', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load intents');
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const select = document.getElementById('linked_intent');
+            select.innerHTML = '<option value="">Select Intent</option>';
+            
+            data.intents.forEach(intent => {
+                const option = document.createElement('option');
+                option.value = intent.intent_name;
+                option.textContent = intent.display_name;
+                select.appendChild(option);
+            });
+            
+            if (callback) callback();
+        }
+    } catch (error) {
+        console.error('Error loading intents for dropdown:', error);
+    }
+}
+
+async function loadGuidedQuestions() {
+    try {
+        const response = await fetch('/admin/guided-questions', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load guided questions');
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            updateGuidedQuestionsTable(data.questions);
+        }
+    } catch (error) {
+        console.error('Error loading guided questions:', error);
+        document.getElementById('guidedQuestionsTableBody').innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
+                    Error loading guided questions. Please try again.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+async function saveIntent(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const intentId = formData.get('intent_id');
+    const url = intentId ? `/admin/dialogflow/intents/${intentId}` : '/admin/dialogflow/intents';
+    const method = intentId ? 'PUT' : 'POST';
+    
+    // Convert training phrases and responses to arrays
+    const trainingPhrases = formData.get('training_phrases').split('\n').filter(phrase => phrase.trim());
+    const responses = formData.get('responses').split('\n').filter(response => response.trim());
+    
+    const data = {
+        intent_name: formData.get('intent_name'),
+        display_name: formData.get('display_name'),
+        description: formData.get('description'),
+        training_phrases: trainingPhrases,
+        responses: responses,
+        parameters: formData.get('parameters'),
+        priority: formData.get('priority'),
+        status: formData.get('status')
+    };
+    
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Intent saved successfully!', 'success');
+            closeIntentModal();
+            loadIntents();
+            loadGuidedQuestions(); // Reload questions as they might be linked to intents
+        } else {
+            showNotification(result.message || 'Failed to save intent', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving intent:', error);
+        showNotification('Error saving intent', 'error');
+    }
+}
+
+async function saveGuidedQuestion(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const questionId = formData.get('guided_question_id');
+    const url = questionId ? `/admin/guided-questions/${questionId}` : '/admin/guided-questions';
+    const method = questionId ? 'PUT' : 'POST';
+    
+    const data = {
+        question_text: formData.get('question_text'),
+        linked_intent: formData.get('linked_intent'),
+        display_order: parseInt(formData.get('display_order')),
+        response_type: formData.get('response_type'),
+        custom_response: formData.get('custom_response'),
+        category: formData.get('category'),
+        status: formData.get('status_gq')
+    };
+    
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Guided question saved successfully!', 'success');
+            closeGuidedQuestionModal();
+            loadGuidedQuestions();
+        } else {
+            showNotification(result.message || 'Failed to save question', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving guided question:', error);
+        showNotification('Error saving guided question', 'error');
+    }
+}
+
+async function deleteIntent(intentId) {
+    try {
+        const response = await fetch(`/admin/dialogflow/intents/${intentId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Intent deleted successfully!', 'success');
+            loadIntents();
+        } else {
+            showNotification(result.message || 'Failed to delete intent', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting intent:', error);
+        showNotification('Error deleting intent', 'error');
+    }
+}
+
+async function deleteGuidedQuestion(questionId) {
+    try {
+        const response = await fetch(`/admin/guided-questions/${questionId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Guided question deleted successfully!', 'success');
+            loadGuidedQuestions();
+        } else {
+            showNotification(result.message || 'Failed to delete question', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting guided question:', error);
+        showNotification('Error deleting guided question', 'error');
+    }
+}
+
+async function syncWithDialogflow() {
+    try {
+        const response = await fetch('/admin/dialogflow/sync', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Successfully synchronized with Dialogflow!', 'success');
+            loadIntents();
+        } else {
+            showNotification(result.message || 'Failed to sync with Dialogflow', 'error');
+        }
+    } catch (error) {
+        console.error('Error syncing with Dialogflow:', error);
+        showNotification('Error syncing with Dialogflow', 'error');
+    }
+}
+
+// Table Update Functions
+function updateIntentsTable(intents) {
+    const tbody = document.getElementById('intentsTableBody');
+    
+    if (!intents || intents.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
+                    No intents found. Click "Create Intent" to add your first intent.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    intents.forEach(intent => {
+        html += `
+            <tr>
+                <td>
+                    <strong>${intent.intent_name}</strong>
+                    ${intent.description ? `<br><small style="color: #666;">${intent.description}</small>` : ''}
+                </td>
+                <td>${intent.display_name}</td>
+                <td>${intent.training_phrases_count || 0}</td>
+                <td>${intent.responses_count || 0}</td>
+                <td>
+                    <span class="status ${intent.status === 'active' ? 'open' : 'resolved'}">
+                        ${intent.status === 'active' ? 'Active' : 'Inactive'}
+                    </span>
+                </td>
+                <td>${formatDate(intent.updated_at)}</td>
+                <td>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="btn-action btn-edit" onclick="openEditIntentModal('${intent.id}', ${JSON.stringify(intent).replace(/'/g, "\\'")})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn-action btn-delete" onclick="openDeleteIntentModal('${intent.id}', '${intent.display_name.replace(/'/g, "\\'")}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+}
+
+function updateGuidedQuestionsTable(questions) {
+    const tbody = document.getElementById('guidedQuestionsTableBody');
+    
+    if (!questions || questions.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
+                    No guided questions found. Click "Add Guided Question" to add your first question.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    questions.forEach(question => {
+        html += `
+            <tr>
+                <td>
+                    <strong>${question.question_text}</strong>
+                    ${question.category ? `<br><small style="color: #666;">Category: ${question.category}</small>` : ''}
+                </td>
+                <td>${question.linked_intent || 'N/A'}</td>
+                <td>${question.display_order}</td>
+                <td>
+                    <span class="status ${question.response_type === 'text' ? 'normal' : 'flagged'}">
+                        ${question.response_type}
+                    </span>
+                </td>
+                <td>
+                    <span class="status ${question.status === 'active' ? 'open' : 'resolved'}">
+                        ${question.status === 'active' ? 'Active' : 'Archived'}
+                    </span>
+                </td>
+                <td>${formatDate(question.created_at)}</td>
+                <td>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="btn-action btn-edit" onclick="openEditGuidedQuestionModal('${question.id}', ${JSON.stringify(question).replace(/'/g, "\\'")})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn-action btn-delete" onclick="openDeleteGuidedQuestionModal('${question.id}', '${question.question_text.substring(0, 50).replace(/'/g, "\\'")}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+}
+
+function updateStats(stats) {
+    if (!stats) return;
+    
+    if (stats.total_intents !== undefined) {
+        document.getElementById('totalIntents').textContent = stats.total_intents;
+    }
+    
+    if (stats.total_questions !== undefined) {
+        document.getElementById('totalGuidedQuestions').textContent = stats.total_questions;
+    }
+    
+    if (stats.total_training_phrases !== undefined) {
+        document.getElementById('totalTrainingPhrases').textContent = stats.total_training_phrases;
+    }
+    
+    if (stats.last_updated) {
+        document.getElementById('lastUpdatedTime').textContent = formatTimeAgo(stats.last_updated);
+    }
+}
+
+// Filter Functions
+function filterIntents() {
+    const searchTerm = document.getElementById('searchIntents').value.toLowerCase();
+    const filterValue = document.getElementById('intentFilter').value;
+    const rows = document.querySelectorAll('#intentsTable tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const statusCell = row.querySelector('.status');
+        const status = statusCell ? statusCell.textContent.toLowerCase() : '';
+        
+        let showRow = true;
+        
+        // Check search term
+        if (searchTerm && !text.includes(searchTerm)) {
+            showRow = false;
+        }
+        
+        // Check filter
+        if (filterValue !== 'all') {
+            if (filterValue === 'active' && status !== 'active') {
+                showRow = false;
+            } else if (filterValue === 'inactive' && status !== 'inactive') {
+                showRow = false;
+            }
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+    });
+}
+
+function filterGuidedQuestions() {
+    const searchTerm = document.getElementById('searchGuidedQuestions').value.toLowerCase();
+    const filterValue = document.getElementById('questionFilter').value;
+    const rows = document.querySelectorAll('#guidedQuestionsTable tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const statusCell = row.querySelector('.status');
+        const status = statusCell ? statusCell.textContent.toLowerCase() : '';
+        
+        let showRow = true;
+        
+        // Check search term
+        if (searchTerm && !text.includes(searchTerm)) {
+            showRow = false;
+        }
+        
+        // Check filter
+        if (filterValue !== 'all') {
+            if (filterValue === 'active' && status !== 'active') {
+                showRow = false;
+            } else if (filterValue === 'archived' && status !== 'archived') {
+                showRow = false;
+            }
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+    });
+}
+
+// Utility Functions
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+    });
+}
+
+function formatTimeAgo(dateString) {
+    if (!dateString) return 'N/A';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} mins ago`;
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays < 7) return `${diffDays} days ago`;
+    
+    return formatDate(dateString);
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'var(--success)' : 'var(--danger)'};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 3000;
+        animation: slideIn 0.3s ease;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+</script>
 </body>
 </html>

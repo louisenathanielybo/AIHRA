@@ -1024,4 +1024,392 @@ class AdminController extends Controller
             ], 500);
         }
     }
+
+    // Add these methods after the existing methods in your AdminController
+
+/**
+ * 🆕 DIALOGFLOW INTENTS MANAGEMENT
+ */
+
+// Get all Dialogflow intents
+public function getDialogflowIntents()
+{
+    try {
+        $dialogflowService = new \App\Services\DialogflowService();
+        $intents = $dialogflowService->listIntents();
+        
+        // Calculate statistics
+        $totalTrainingPhrases = 0;
+        foreach ($intents as $intent) {
+            $totalTrainingPhrases += $intent['training_phrases_count'] ?? 0;
+        }
+        
+        $stats = [
+            'total_intents' => count($intents),
+            'total_training_phrases' => $totalTrainingPhrases,
+            'last_updated' => now()->format('Y-m-d H:i:s'),
+            'total_questions' => \App\Models\GuidedQuestion::count()
+        ];
+        
+        return response()->json([
+            'success' => true,
+            'intents' => $intents,
+            'stats' => $stats
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to get Dialogflow intents: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch intents from Dialogflow: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+// Get active intents for dropdown
+public function getActiveDialogflowIntents()
+{
+    try {
+        $dialogflowService = new \App\Services\DialogflowService();
+        $intents = $dialogflowService->listIntents();
+        
+        // Filter out fallback intents
+        $activeIntents = array_filter($intents, function($intent) {
+            return !($intent['is_fallback'] ?? false);
+        });
+        
+        return response()->json([
+            'success' => true,
+            'intents' => array_values($activeIntents)
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to get active intents: ' . $e->getMessage());
+        return response()->json([
+            'success' => true,
+            'intents' => []
+        ]);
+    }
+}
+
+// Create a new intent
+public function createDialogflowIntent(Request $request)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'intent_name' => 'required|string|max:255',
+            'display_name' => 'required|string|max:255',
+            'training_phrases' => 'required|array',
+            'training_phrases.*' => 'string',
+            'responses' => 'required|array',
+            'responses.*' => 'string',
+            'priority' => 'nullable|integer|min:0|max:1000000',
+            'description' => 'nullable|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $dialogflowService = new \App\Services\DialogflowService();
+        $result = $dialogflowService->createIntent($request->all());
+        
+        if ($result['success']) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Intent created successfully!',
+                'intent' => $result['intent']
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create intent: ' . ($result['error'] ?? 'Unknown error')
+            ], 500);
+        }
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to create Dialogflow intent: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create intent: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+// Update an intent
+public function updateDialogflowIntent(Request $request, $intentName)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'display_name' => 'sometimes|string|max:255',
+            'training_phrases' => 'sometimes|array',
+            'training_phrases.*' => 'string',
+            'responses' => 'sometimes|array',
+            'responses.*' => 'string',
+            'priority' => 'nullable|integer|min:0|max:1000000',
+            'description' => 'nullable|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $dialogflowService = new \App\Services\DialogflowService();
+        $result = $dialogflowService->updateIntent($intentName, $request->all());
+        
+        if ($result['success']) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Intent updated successfully!',
+                'intent' => $result['intent']
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update intent: ' . ($result['error'] ?? 'Unknown error')
+            ], 500);
+        }
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to update Dialogflow intent: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update intent: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+// Delete an intent
+public function deleteDialogflowIntent($intentName)
+{
+    try {
+        $dialogflowService = new \App\Services\DialogflowService();
+        $result = $dialogflowService->deleteIntent($intentName);
+        
+        if ($result['success']) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Intent deleted successfully!'
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete intent: ' . ($result['error'] ?? 'Unknown error')
+            ], 500);
+        }
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to delete Dialogflow intent: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to delete intent: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+// Sync with Dialogflow (refresh intents)
+public function syncWithDialogflow()
+{
+    try {
+        $dialogflowService = new \App\Services\DialogflowService();
+        $intents = $dialogflowService->listIntents();
+        
+        // In a real application, you might want to cache or store metadata locally
+        // For now, we'll just return the refreshed list
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Successfully synchronized with Dialogflow!',
+            'intents_count' => count($intents)
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to sync with Dialogflow: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to sync with Dialogflow: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * 🆕 GUIDED QUESTIONS MANAGEMENT
+ */
+
+// Get all guided questions
+public function getGuidedQuestions()
+{
+    try {
+        $questions = \App\Models\GuidedQuestion::orderBy('display_order')
+            ->orderBy('id')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'questions' => $questions
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to get guided questions: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch guided questions'
+        ], 500);
+    }
+}
+
+// Create a new guided question
+public function createGuidedQuestion(Request $request)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'question_text' => 'required|string|max:1000',
+            'linked_intent' => 'nullable|string|max:255',
+            'display_order' => 'nullable|integer|min:1',
+            'response_type' => 'required|in:text,buttons,cards,quick_replies',
+            'custom_response' => 'nullable|json',
+            'category' => 'nullable|string|max:100',
+            'status' => 'required|in:active,archived'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $question = \App\Models\GuidedQuestion::create([
+            'question_text' => $request->question_text,
+            'linked_intent' => $request->linked_intent,
+            'display_order' => $request->display_order ?? 1,
+            'response_type' => $request->response_type,
+            'custom_response' => $request->custom_response ? json_decode($request->custom_response, true) : null,
+            'category' => $request->category,
+            'status' => $request->status
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Guided question created successfully!',
+            'question' => $question
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to create guided question: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create guided question: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+// Update a guided question
+public function updateGuidedQuestion(Request $request, $id)
+{
+    try {
+        $question = \App\Models\GuidedQuestion::find($id);
+        
+        if (!$question) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Guided question not found'
+            ], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'question_text' => 'sometimes|string|max:1000',
+            'linked_intent' => 'nullable|string|max:255',
+            'display_order' => 'nullable|integer|min:1',
+            'response_type' => 'sometimes|in:text,buttons,cards,quick_replies',
+            'custom_response' => 'nullable|json',
+            'category' => 'nullable|string|max:100',
+            'status' => 'sometimes|in:active,archived'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $updateData = [];
+        if ($request->has('question_text')) {
+            $updateData['question_text'] = $request->question_text;
+        }
+        if ($request->has('linked_intent')) {
+            $updateData['linked_intent'] = $request->linked_intent;
+        }
+        if ($request->has('display_order')) {
+            $updateData['display_order'] = $request->display_order;
+        }
+        if ($request->has('response_type')) {
+            $updateData['response_type'] = $request->response_type;
+        }
+        if ($request->has('custom_response')) {
+            $updateData['custom_response'] = $request->custom_response ? json_decode($request->custom_response, true) : null;
+        }
+        if ($request->has('category')) {
+            $updateData['category'] = $request->category;
+        }
+        if ($request->has('status')) {
+            $updateData['status'] = $request->status;
+        }
+
+        $question->update($updateData);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Guided question updated successfully!',
+            'question' => $question->fresh()
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to update guided question: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update guided question: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+// Delete a guided question
+public function deleteGuidedQuestion($id)
+{
+    try {
+        $question = \App\Models\GuidedQuestion::find($id);
+        
+        if (!$question) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Guided question not found'
+            ], 404);
+        }
+
+        $question->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Guided question deleted successfully!'
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to delete guided question: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to delete guided question: ' . $e->getMessage()
+        ], 500);
+    }
+}
 }

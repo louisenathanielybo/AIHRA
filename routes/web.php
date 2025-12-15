@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\DB;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
-  // Redirect root to login
+// Redirect root to login
 Route::get('/', function () {
     return redirect('/login');
 });
@@ -87,47 +87,63 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/tickets/json', [HRController::class, 'ticketsJson'])->name('hr.tickets.json');
         Route::post('/resolve-ticket', [HRController::class, 'resolveTicket'])->name('hr.resolve-ticket');
         // ADD THESE NEW ROUTES FOR DELETE
-    Route::get('/announcements/{id}', [HRController::class, 'getAnnouncement'])->name('hr.announcements.get');
-    Route::post('/announcements/{id}', [HRController::class, 'updateAnnouncement'])->name('hr.announcements.update');
-    Route::delete('/announcements/{id}', [HRController::class, 'deleteAnnouncement'])->name('hr.announcements.delete');
+        Route::get('/announcements/{id}', [HRController::class, 'getAnnouncement'])->name('hr.announcements.get');
+        Route::post('/announcements/{id}', [HRController::class, 'updateAnnouncement'])->name('hr.announcements.update');
+        Route::delete('/announcements/{id}', [HRController::class, 'deleteAnnouncement'])->name('hr.announcements.delete');
     });
 
-   // Admin Routes - FIXED VERSION
-Route::prefix('admin')->group(function () {
-    // Main dashboard - GET only
-    Route::get('/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
-    
-    // Account management routes
-    
-    // Export and Import accounts - MUST be before parameterized routes
-    Route::get('/accounts/export', [AdminController::class, 'exportAccounts'])->name('admin.accounts.export');
-    Route::post('/accounts/import', [AdminController::class, 'importAccounts'])->name('admin.accounts.import');
-    
-    // Create account - POST to /admin/accounts (not /admin/dashboard)
-    Route::post('/accounts', [AdminController::class, 'createAccount'])->name('admin.accounts.create');
-    
-    // Parameterized account routes - MUST be after specific routes like export/import
-    Route::get('/accounts/{employeeNum}', [AdminController::class, 'getAccount'])->name('admin.accounts.get');
-    Route::put('/accounts/{employeeNum}', [AdminController::class, 'updateAccount'])->name('admin.accounts.update');
-    Route::post('/accounts/{employeeNum}/reset-password', [AdminController::class, 'resetPassword'])->name('admin.accounts.reset-password');
-    Route::delete('/accounts/{employeeNum}', [AdminController::class, 'deleteAccount'])->name('admin.accounts.delete');
-    
-    // Other admin routes...
-    Route::post('/knowledge', [AdminController::class, 'addKnowledge'])->name('admin.knowledge.add');
-    Route::delete('/knowledge/{id}', [AdminController::class, 'deleteKnowledge'])->name('admin.knowledge.delete');
-    Route::post('/announcements', [AdminController::class, 'addAnnouncement'])->name('admin.announcements.add');
-    Route::delete('/announcements/{id}', [AdminController::class, 'deleteAnnouncement'])->name('admin.announcements.delete');
-    Route::post('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
-    // Add this route for AJAX ticket data
-    Route::get('/tickets/data', [AdminController::class, 'getTickets'])->name('admin.tickets.data');
-    Route::get('/tickets/{ticketId}', [AdminController::class, 'getTicketDetails'])->name('admin.tickets.details');
-    
-    // Date range filter for KPIs
-    Route::get('/kpis/filter', [AdminController::class, 'getFilteredKPIs'])->name('admin.kpis.filter');
-    
-    // Flagged responses routes
-    Route::post('/flags/{id}/update-status', [FlagController::class, 'updateStatus'])->name('admin.flags.update-status');
-});
+    // Admin Routes - FIXED VERSION
+    Route::prefix('admin')->group(function () {
+        // Main dashboard - GET only
+        Route::get('/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
+        
+        // Account management routes
+        
+        // Export and Import accounts - MUST be before parameterized routes
+        Route::get('/accounts/export', [AdminController::class, 'exportAccounts'])->name('admin.accounts.export');
+        Route::post('/accounts/import', [AdminController::class, 'importAccounts'])->name('admin.accounts.import');
+        
+        // Create account - POST to /admin/accounts (not /admin/dashboard)
+        Route::post('/accounts', [AdminController::class, 'createAccount'])->name('admin.accounts.create');
+        
+        // Parameterized account routes - MUST be after specific routes like export/import
+        Route::get('/accounts/{employeeNum}', [AdminController::class, 'getAccount'])->name('admin.accounts.get');
+        Route::put('/accounts/{employeeNum}', [AdminController::class, 'updateAccount'])->name('admin.accounts.update');
+        Route::post('/accounts/{employeeNum}/reset-password', [AdminController::class, 'resetPassword'])->name('admin.accounts.reset-password');
+        Route::delete('/accounts/{employeeNum}', [AdminController::class, 'deleteAccount'])->name('admin.accounts.delete');
+        
+        // Other admin routes...
+        Route::post('/knowledge', [AdminController::class, 'addKnowledge'])->name('admin.knowledge.add');
+        Route::delete('/knowledge/{id}', [AdminController::class, 'deleteKnowledge'])->name('admin.knowledge.delete');
+        Route::post('/announcements', [AdminController::class, 'addAnnouncement'])->name('admin.announcements.add');
+        Route::delete('/announcements/{id}', [AdminController::class, 'deleteAnnouncement'])->name('admin.announcements.delete');
+        Route::post('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
+        // Add this route for AJAX ticket data
+        Route::get('/tickets/data', [AdminController::class, 'getTickets'])->name('admin.tickets.data');
+        Route::get('/tickets/{ticketId}', [AdminController::class, 'getTicketDetails'])->name('admin.tickets.details');
+        
+        // Date range filter for KPIs
+        Route::get('/kpis/filter', [AdminController::class, 'getFilteredKPIs'])->name('admin.kpis.filter');
+        
+        // Flagged responses routes
+        Route::post('/flags/{id}/update-status', [FlagController::class, 'updateStatus'])->name('admin.flags.update-status');
+        
+        // 🆕 ADD THIS ROUTE - Dialogflow sync
+        Route::post('/dialogflow/sync', [DialogflowController::class, 'sync'])->name('admin.dialogflow.sync');
+        
+        // 🆕 ADD THIS ROUTE - Dialogflow intents management
+        Route::get('/dialogflow/intents', [DialogflowController::class, 'getIntents'])->name('admin.dialogflow.intents');
+        Route::get('/dialogflow/intents/active', [DialogflowController::class, 'getActiveIntents'])->name('admin.dialogflow.intents.active');
+        Route::post('/dialogflow/intents', [DialogflowController::class, 'createIntent'])->name('admin.dialogflow.intents.create');
+        Route::put('/dialogflow/intents/{id}', [DialogflowController::class, 'updateIntent'])->name('admin.dialogflow.intents.update');
+        Route::delete('/dialogflow/intents/{id}', [DialogflowController::class, 'deleteIntent'])->name('admin.dialogflow.intents.delete');
+        
+        // 🆕 ADD THIS ROUTE - Guided questions management
+        Route::get('/guided-questions', [DialogflowController::class, 'getGuidedQuestions'])->name('admin.guided-questions');
+        Route::post('/guided-questions', [DialogflowController::class, 'createGuidedQuestion'])->name('admin.guided-questions.create');
+        Route::put('/guided-questions/{id}', [DialogflowController::class, 'updateGuidedQuestion'])->name('admin.guided-questions.update');
+        Route::delete('/guided-questions/{id}', [DialogflowController::class, 'deleteGuidedQuestion'])->name('admin.guided-questions.delete');
+    });
 
     // Guided questions (for chatbot)
     Route::get('/guided', [GuidedQuestionController::class, 'index']);
@@ -142,4 +158,91 @@ Route::prefix('admin')->group(function () {
 
         return response()->json($messages);
     });
+
+    Route::get('/test-dialogflow-intents', function() {
+    try {
+        $dialogflow = new \App\Services\DialogflowService();
+        
+        // Test if credentials are set
+        echo "Project ID: " . $dialogflow->projectId . "<br>";
+        echo "Credentials path: " . base_path('aihra-key.json') . "<br>";
+        
+        // Check if file exists
+        if (file_exists(base_path('aihra-key.json'))) {
+            echo "✅ Credentials file exists<br>";
+        } else {
+            echo "❌ Credentials file NOT found<br>";
+        }
+        
+        // Try to list intents
+        $intents = $dialogflow->listIntents();
+        
+        echo "✅ Intents fetched successfully<br>";
+        echo "Number of intents: " . count($intents) . "<br>";
+        
+        $dialogflow->close();
+        
+        return response()->json(['success' => true, 'count' => count($intents)]);
+        
+    } catch (\Exception $e) {
+        echo "❌ Error: " . $e->getMessage() . "<br>";
+        echo "File: " . $e->getFile() . ":" . $e->getLine() . "<br>";
+        echo "<pre>" . $e->getTraceAsString() . "</pre>";
+        
+        return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+    }
+});
+
+Route::get('/debug-dialogflow', function() {
+    echo "<h2>Dialogflow Configuration Debug</h2>";
+    
+    // Check .env values
+    echo "<h3>Environment Variables:</h3>";
+    echo "DIALOGFLOW_PROJECT_ID: " . env('DIALOGFLOW_PROJECT_ID', 'NOT SET') . "<br>";
+    echo "DIALOGFLOW_CREDENTIALS_PATH: " . env('DIALOGFLOW_CREDENTIALS_PATH', 'NOT SET') . "<br>";
+    echo "GOOGLE_APPLICATION_CREDENTIALS: " . env('GOOGLE_APPLICATION_CREDENTIALS', 'NOT SET') . "<br>";
+    
+    // Check file existence
+    $credentialsPath = env('DIALOGFLOW_CREDENTIALS_PATH', 'aihra-key.json');
+    $fullPath = base_path($credentialsPath);
+    echo "<h3>Credentials File:</h3>";
+    echo "Full path: " . $fullPath . "<br>";
+    echo "Exists: " . (file_exists($fullPath) ? '✅ YES' : '❌ NO') . "<br>";
+    
+    if (file_exists($fullPath)) {
+        echo "File size: " . filesize($fullPath) . " bytes<br>";
+        echo "Readable: " . (is_readable($fullPath) ? '✅ YES' : '❌ NO') . "<br>";
+        
+        // Check if valid JSON
+        $content = file_get_contents($fullPath);
+        $json = json_decode($content, true);
+        echo "Valid JSON: " . (json_last_error() === JSON_ERROR_NONE ? '✅ YES' : '❌ NO') . "<br>";
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            echo "JSON Error: " . json_last_error_msg() . "<br>";
+        } else {
+            echo "JSON Keys: " . implode(', ', array_keys($json)) . "<br>";
+        }
+    }
+    
+    // Try to create Dialogflow service
+    echo "<h3>Dialogflow Service Test:</h3>";
+    try {
+        $service = new \App\Services\DialogflowService();
+        echo "✅ Service created successfully<br>";
+        
+        // Try to list intents
+        echo "Trying to list intents...<br>";
+        $intents = $service->listIntents();
+        echo "✅ Intents fetched: " . count($intents) . "<br>";
+        
+        $service->close();
+        
+    } catch (\Exception $e) {
+        echo "❌ Error: " . $e->getMessage() . "<br>";
+        echo "File: " . $e->getFile() . ":" . $e->getLine() . "<br>";
+        echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+    }
+    
+    return '';
+});
 });
