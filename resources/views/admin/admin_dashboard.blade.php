@@ -6849,7 +6849,7 @@ async function updateIntentsTable(intents) {
     try {
         console.log('📊 Updating table with', intents.length, 'intents');
         
-        const tableBody = document.getElementById('intents-table-body');
+        const tableBody = document.getElementById('intentsTableBody');
         if (!tableBody) {
             console.error('❌ Table body not found with id: intents-table-body');
             return;
