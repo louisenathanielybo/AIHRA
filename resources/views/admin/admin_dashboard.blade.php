@@ -105,6 +105,10 @@ use Illuminate\Support\Str;
         width: 100%;
         padding: 0 20px;
     }
+
+    .sidebar-menu {
+        padding-bottom: 180px; /* Prevent overlap with sidebar footer (includes account settings link) */
+    }
     
     .sidebar-footer a[data-section="account-settings"]:hover {
         background: rgba(255,255,255,0.2) !important;

@@ -545,6 +545,10 @@
             padding: 0 12px;
         }
 
+        .sb-nav {
+            padding-bottom: 140px; /* Prevent overlap with sidebar footer */
+        }
+
         .account-info {
             display: flex;
             align-items: center;

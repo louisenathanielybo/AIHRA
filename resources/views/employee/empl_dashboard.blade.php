@@ -600,6 +600,10 @@
         padding: 0 20px;
     }
 
+    .sidebar-menu {
+        padding-bottom: 140px; /* Prevent overlap with sidebar footer */
+    }
+
     .account-info {
         display: flex;
         align-items: center;
