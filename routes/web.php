@@ -307,6 +307,27 @@ Route::get('/debug-dialogflow-sync', function() {
     
     return '';
 });
+
+    // Add to your web.php file temporarily
+Route::get('/check-file-exists', function() {
+    $filePath = env('DIALOGFLOW_CREDENTIALS_PATH', 'aihra-key.json');
+    $fullPath = base_path($filePath);
+    $absolutePath = realpath($fullPath);
+    
+    return response()->json([
+        'env_value' => $filePath,
+        'base_path' => base_path(),
+        'full_path' => $fullPath,
+        'absolute_path' => $absolutePath,
+        'file_exists' => file_exists($fullPath),
+        'is_readable' => is_readable($fullPath),
+        'file_size' => file_exists($fullPath) ? filesize($fullPath) : 0,
+        'permissions' => file_exists($fullPath) ? substr(sprintf('%o', fileperms($fullPath)), -4) : null,
+        'file_content_preview' => file_exists($fullPath) ? 
+            substr(file_get_contents($fullPath), 0, 200) . '...' : 
+            null
+    ]);
+});
 });
 
 Route::get('/test-dialogflow', [App\Http\Controllers\DialogflowController::class, 'testConnection']);
