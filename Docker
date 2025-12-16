@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# Install dependencies
+# System dependencies
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -13,101 +13,38 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure PHP extensions
+# PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
 # Enable Apache rewrite
 RUN a2enmod rewrite
 
-# Copy application files
-COPY . /var/www/html/
-
-# Create ALL necessary Laravel directories
-RUN mkdir -p /var/www/html/storage/framework/sessions \
-    && mkdir -p /var/www/html/storage/framework/views \
-    && mkdir -p /var/www/html/storage/framework/cache/data \
-    && mkdir -p /var/www/html/storage/logs \
-    && mkdir -p /var/www/html/bootstrap/cache \
-    && mkdir -p /var/www/html/public/uploads
-
-# Set document root to Laravel public directory
-RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
-
-# CRITICAL: Set correct ownership and permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html/storage \
-    && chmod -R 775 /var/www/html/bootstrap/cache \
-    && chmod -R 777 /var/www/html/storage/framework/sessions \
-    && chmod -R 777 /var/www/html/storage/framework/views \
-    && chmod -R 777 /var/www/html/storage/framework/cache
-
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# Create a reliable entrypoint script
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-echo "Starting Laravel application..."\n\
-\n\
-# Create .env file with essential variables\n\
-cat > /var/www/html/.env <<EOF\n\
-APP_NAME="Laravel"\n\
-APP_ENV=production\n\
-APP_DEBUG=false\n\
-APP_URL=https://aihra-1.onrender.com\n\
-APP_KEY=\n\
-LOG_CHANNEL=stack\n\
-DB_CONNECTION=mysql\n\
-DB_HOST=127.0.0.1\n\
-DB_PORT=3306\n\
-DB_DATABASE=aihra\n\
-DB_USERNAME=root\n\
-DB_PASSWORD=\n\
-BROADCAST_DRIVER=log\n\
-CACHE_DRIVER=file\n\
-FILESYSTEM_DISK=local\n\
-QUEUE_CONNECTION=sync\n\
-SESSION_DRIVER=file\n\
-SESSION_LIFETIME=120\n\
-EOF\n\
-\n\
-# Use APP_KEY from environment if provided\n\
-if [ -n "${APP_KEY}" ] && [ "${APP_KEY}" != "base64:" ] && [ "${APP_KEY}" != "null" ]; then\n\
-    sed -i "s|APP_KEY=|APP_KEY=${APP_KEY}|" /var/www/html/.env\n\
-    echo "Using provided APP_KEY from environment"\n\
-else\n\
-    echo "Generating new APP_KEY..."\n\
-    cd /var/www/html && php artisan key:generate --force\n\
-fi\n\
-\n\
-echo "Setting up storage permissions..."\n\
-# Ensure directories exist (again, for safety)\n\
-mkdir -p /var/www/html/storage/framework/sessions\n\
-mkdir -p /var/www/html/storage/framework/views\n\
-mkdir -p /var/www/html/storage/framework/cache/data\n\
-mkdir -p /var/www/html/storage/logs\n\
-\n\
-# Set permissions (again, for safety)\n\
-chown -R www-data:www-data /var/www/html/storage\n\
-chown -R www-data:www-data /var/www/html/bootstrap/cache\n\
-chmod -R 775 /var/www/html/storage\n\
-chmod -R 775 /var/www/html/bootstrap/cache\n\
-chmod -R 777 /var/www/html/storage/framework/sessions\n\
-chmod -R 777 /var/www/html/storage/framework/views\n\
-chmod -R 777 /var/www/html/storage/framework/cache\n\
-\n\
-echo "Optimizing Laravel..."\n\
-cd /var/www/html && php artisan config:cache\n\
-\n\
-echo "Starting Apache..."\n\
-exec apache2-foreground' > /entrypoint.sh
+# Set working directory
+WORKDIR /var/www/html
 
-RUN chmod +x /entrypoint.sh
+# 🔥 COPY COMPOSER FILES FIRST
+COPY composer.json composer.lock ./
+
+# 🔥 INSTALL DEPENDENCIES (THIS FIXES THE ERROR)
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# Copy the rest of the application
+COPY . .
+
+# Set document root to Laravel public
+RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf \
+ && sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+# Laravel directories & permissions
+RUN mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache \
+ && chown -R www-data:www-data /var/www/html \
+ && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 80
 
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["apache2-foreground"]
