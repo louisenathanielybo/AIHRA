@@ -1474,29 +1474,70 @@ public function getDialogflowIntents()
     }
 }
 
-// Get active intents for dropdown
+// app/Http/Controllers/AdminController.php
 public function getActiveDialogflowIntents()
 {
     try {
-        $dialogflowService = new \App\Services\DialogflowService();
-        $intents = $dialogflowService->listIntents();
+        // If you have a DialogflowIntent model
+        if (class_exists('App\Models\DialogflowIntent')) {
+            $intents = \App\Models\DialogflowIntent::where('status', 'active')->get()->toArray();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $intents,
+                'intents' => $intents, // Some code expects this key too
+                'message' => 'Intents loaded successfully'
+            ]);
+        }
         
-        // Filter out fallback intents
-        $activeIntents = array_filter($intents, function($intent) {
-            return !($intent['is_fallback'] ?? false);
-        });
-        
+        // If no model exists yet, return mock data for now
         return response()->json([
             'success' => true,
-            'intents' => array_values($activeIntents)
+            'data' => [
+                [
+                    'id' => 1,
+                    'intent_name' => 'leave.policy.inquiry',
+                    'display_name' => 'Leave Policy Inquiry',
+                    'training_phrases' => ['How do I apply for leave?', 'What are leave policies?'],
+                    'responses' => ['You can apply through HR portal.'],
+                    'priority' => 'normal',
+                    'status' => 'active',
+                    'created_at' => now()->toDateTimeString()
+                ],
+                [
+                    'id' => 2,
+                    'intent_name' => 'payroll.inquiry',
+                    'display_name' => 'Payroll Inquiry',
+                    'training_phrases' => ['When is payday?', 'How to view payslip?'],
+                    'responses' => ['Payday is every 15th and 30th.'],
+                    'priority' => 'normal',
+                    'status' => 'active',
+                    'created_at' => now()->toDateTimeString()
+                ]
+            ],
+            'intents' => [
+                [
+                    'id' => 1,
+                    'intent_name' => 'leave.policy.inquiry',
+                    'display_name' => 'Leave Policy Inquiry',
+                    'training_phrases' => ['How do I apply for leave?', 'What are leave policies?'],
+                    'responses' => ['You can apply through HR portal.'],
+                    'priority' => 'normal',
+                    'status' => 'active',
+                    'created_at' => now()->toDateTimeString()
+                ]
+            ],
+            'message' => 'Mock intents loaded (Database not configured)'
         ]);
         
     } catch (\Exception $e) {
-        \Log::error('Failed to get active intents: ' . $e->getMessage());
+        \Log::error('Error loading intents: ' . $e->getMessage());
+        
         return response()->json([
-            'success' => true,
-            'intents' => []
-        ]);
+            'success' => false,
+            'message' => 'Failed to load intents: ' . $e->getMessage(),
+            'error' => $e->getMessage()
+        ], 500);
     }
 }
 
