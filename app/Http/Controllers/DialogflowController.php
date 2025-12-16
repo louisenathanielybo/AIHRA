@@ -202,166 +202,227 @@ class DialogflowController extends Controller
                 return $conversationalResponse;
             }
 
-            // 🎯 Try Dialogflow for direct questions
-            $sessionId = session()->getId() ?? Str::random(10);
-            $dialogflow = new DialogflowService();
             
-            Log::info('Calling Dialogflow service', ['sessionId' => $sessionId]);
-            $result = $dialogflow->detectIntent($queryText, $sessionId);
-            $dialogflow->close();
 
-            $confidence = $result->getIntentDetectionConfidence() ?? 0.0;
-            $fulfillmentText = $result->getFulfillmentText() ?? "I'd love to help you find exactly what you're looking for! 😊 Could you tell me a bit more about what you need? Or if you'd like, I can guide you through our HR topics – just let me know what works best for you!";
-            $intentName = $result->getIntent() ? $result->getIntent()->getDisplayName() : 'Default Fallback Intent';
+           // 🎯 Try Dialogflow for direct questions
+$sessionId = session()->getId() ?? Str::random(10);
 
-            Log::info('Dialogflow Response', [
-                'confidence' => $confidence,
-                'intent' => $intentName,
-                'fulfillmentText' => $fulfillmentText
-            ]);
+Log::info('Calling Dialogflow service', ['sessionId' => $sessionId]);
 
-            // 🆕 NEW: Check if this is HR-related but bot can't answer properly
-            $isHRRelated = $this->isHRRelatedQuestion($queryText);
-            $cantAnswer = $this->cantAnswerQuestion($confidence, $intentName, $fulfillmentText);
+try {
+    $dialogflow = new DialogflowService();
+    $result = $dialogflow->detectIntent($queryText, $sessionId);
+    $dialogflow->close();
 
-            if ($isHRRelated && $cantAnswer) {
-                Log::info('HR-related question detected but bot cannot answer', [
-                    'confidence' => $confidence,
-                    'intent' => $intentName
+    // Handle response - check if it's a real Dialogflow response or mock
+    $confidence = 0.0;
+    $fulfillmentText = '';
+    $intentName = 'Default Fallback Intent';
+    
+    // Check if it's a real Dialogflow QueryResult object
+    if (is_object($result) && method_exists($result, 'getFulfillmentText')) {
+        // It's a real Dialogflow response
+        $confidence = $result->getIntentDetectionConfidence() ?? 0.0;
+        $fulfillmentText = $result->getFulfillmentText() ?? "I'd love to help you find exactly what you're looking for! 😊 Could you tell me a bit more about what you need?";
+        $intent = $result->getIntent();
+        $intentName = $intent ? $intent->getDisplayName() : 'Default Fallback Intent';
+        
+        Log::info('✅ Dialogflow Response (Real)', [
+            'confidence' => $confidence,
+            'intent' => $intentName,
+            'fulfillmentText' => substr($fulfillmentText, 0, 200)
+        ]);
+    } else {
+        // It's a mock response
+        $confidence = $result->intentDetectionConfidence ?? 0.0;
+        $fulfillmentText = $result->fulfillmentText ?? "Thanks for your question! I want to make sure I understand correctly. Could you provide more details?";
+        $intentName = $result->intent->displayName ?? 'Default Fallback Intent';
+        
+        Log::info('⚠️ Dialogflow Response (Mock)', [
+            'confidence' => $confidence,
+            'intent' => $intentName,
+            'fulfillmentText' => substr($fulfillmentText, 0, 200)
+        ]);
+    }
+
+    // 🆕 NEW: Check if this is HR-related but bot can't answer properly
+    $isHRRelated = $this->isHRRelatedQuestion($queryText);
+    $cantAnswer = $this->cantAnswerQuestion($confidence, $intentName, $fulfillmentText);
+
+    if ($isHRRelated && $cantAnswer) {
+        Log::info('HR-related question detected but bot cannot answer', [
+            'confidence' => $confidence,
+            'intent' => $intentName
+        ]);
+        return $this->suggestHREscalation($queryText, $employeeNum, "HR-related question with low confidence");
+    }
+
+    // 🔥 IMPROVED: Auto-escalate based on multiple factors
+    // Auto-escalation removed. Escalation now always requires user confirmation after 3 strikes.
+
+    // 🆕 NEW: Handle retry logic for unclear questions
+    if ($this->shouldRetry($confidence, $intentName)) {
+        // Track strikes per conversation
+        $conversationId = $conversation ? $conversation->id : 'no_convo';
+        $strikes = Session::get('strikes_' . $conversationId, 0) + 1;
+        Session::put('strikes_' . $conversationId, $strikes);
+
+        Log::info('Low confidence response, prompting retry', [
+            'strikes' => $strikes,
+            'confidence' => $confidence
+        ]);
+
+        // Store original query details for potential escalation
+        Session::put('pending_escalation', [
+            'query' => $queryText,
+            'confidence' => $confidence,
+            'intent' => $intentName,
+            'timestamp' => now()->toIso8601String(),
+            'conversation_id' => $conversationId
+        ]);
+
+        if ($strikes >= 3) {
+            // Ask user if they want to escalate
+            return $this->offerHREscalation($queryText, $employeeNum, $confidence);
+        }
+
+        $retryText = $this->getRetryMessage($strikes);
+
+        if (!empty($conversation)) {
+            try {
+                ChatMessage::create([
+                    'ticket_no' => null,
+                    'sender' => 'bot',
+                    'message' => $retryText,
+                    'conversation_id' => $conversation->id
                 ]);
-                return $this->suggestHREscalation($queryText, $employeeNum, "HR-related question with low confidence");
-            }
 
-            // 🔥 IMPROVED: Auto-escalate based on multiple factors
-            // Auto-escalation removed. Escalation now always requires user confirmation after 3 strikes.
-
-            // 🆕 NEW: Handle retry logic for unclear questions
-            if ($this->shouldRetry($confidence, $intentName)) {
-                // Track strikes per conversation
-                $conversationId = $conversation ? $conversation->id : 'no_convo';
-                $strikes = Session::get('strikes_' . $conversationId, 0) + 1;
-                Session::put('strikes_' . $conversationId, $strikes);
-
-                Log::info('Low confidence response, prompting retry', [
-                    'strikes' => $strikes,
-                    'confidence' => $confidence
-                ]);
-
-                // Store original query details for potential escalation
-                Session::put('pending_escalation', [
-                    'query' => $queryText,
-                    'confidence' => $confidence,
-                    'intent' => $intentName,
-                    'timestamp' => now()->toIso8601String(),
-                    'conversation_id' => $conversationId
-                ]);
-
-                if ($strikes >= 3) {
-                    // Ask user if they want to escalate
-                    return $this->offerHREscalation($queryText, $employeeNum, $confidence);
+                if (empty($conversation->title)) {
+                    $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+                    $conversation->save();
                 }
-
-                $retryText = $this->getRetryMessage($strikes);
-
-                if (!empty($conversation)) {
-                    try {
-                        ChatMessage::create([
-                            'ticket_no' => null,
-                            'sender' => 'bot',
-                            'message' => $retryText,
-                            'conversation_id' => $conversation->id
-                        ]);
-
-                        if (empty($conversation->title)) {
-                            $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
-                            $conversation->save();
-                        }
-                    } catch (\Throwable $e) {
-                        Log::warning('Failed to save retry bot message: ' . $e->getMessage());
-                    }
-                }
-
-                return response()->json([
-                    'status' => 'retry',
-                    'fulfillmentText' => $retryText,
-                    'retryCount' => $strikes,
-                    'needs_clarification' => true
-                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to save retry bot message: ' . $e->getMessage());
             }
+        }
 
-            // 🤖 If reasonable confidence, return direct answer
-            if ($confidence > 0.6 || $intentName !== 'Default Fallback Intent') {
-                Log::info('Returning direct answer', ['confidence' => $confidence, 'intent' => $intentName]);
-                $this->resetRetryCount();
+        return response()->json([
+            'status' => 'retry',
+            'fulfillmentText' => $retryText,
+            'retryCount' => $strikes,
+            'needs_clarification' => true
+        ]);
+    }
 
-                Query::create([
-                    'queryID' => Str::uuid(),
-                    'employeeNum' => $employeeNum,
-                    'question' => $queryText,
-                    'response' => $fulfillmentText,
-                    'confidenceScore' => $confidence,
-                    'queryType' => 'Dialogflow',
-                    'questionTime' => $questionTimeFormatted,
-                    'responseTime' => \Carbon\Carbon::now()->format('Y-m-d H:i:s.u'),
-                    'isEscalated' => false,
-                    'handledBy' => 'Bot',
+    // 🤖 If reasonable confidence, return direct answer
+    if ($confidence > 0.6 || $intentName !== 'Default Fallback Intent') {
+        Log::info('Returning direct answer', ['confidence' => $confidence, 'intent' => $intentName]);
+        $this->resetRetryCount();
+
+        Query::create([
+            'queryID' => Str::uuid(),
+            'employeeNum' => $employeeNum,
+            'question' => $queryText,
+            'response' => $fulfillmentText,
+            'confidenceScore' => $confidence,
+            'queryType' => 'Dialogflow',
+            'questionTime' => $questionTimeFormatted,
+            'responseTime' => \Carbon\Carbon::now()->format('Y-m-d H:i:s.u'),
+            'isEscalated' => false,
+            'handledBy' => 'Bot',
+        ]);
+
+        // Save bot response to conversation history if available
+        if (!empty($conversation) && !empty($fulfillmentText)) {
+            try {
+                ChatMessage::create([
+                    'ticket_no' => null,
+                    'sender' => 'bot',
+                    'message' => $fulfillmentText,
+                    'conversation_id' => $conversation->id
                 ]);
 
-                // Save bot response to conversation history if available
-                if (!empty($conversation) && !empty($fulfillmentText)) {
-                    try {
-                        ChatMessage::create([
-                            'ticket_no' => null,
-                            'sender' => 'bot',
-                            'message' => $fulfillmentText,
-                            'conversation_id' => $conversation->id
-                        ]);
-
-                        if (empty($conversation->title)) {
-                            $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
-                            $conversation->save();
-                        }
-                    } catch (\Throwable $e) {
-                        Log::warning('Failed to save dialogflow bot message: ' . $e->getMessage());
-                    }
+                if (empty($conversation->title)) {
+                    $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+                    $conversation->save();
                 }
-
-                return response()->json([
-                    'status' => 'success',
-                    'fulfillmentText' => $fulfillmentText,
-                    'confidence' => $confidence,
-                    'intent' => $intentName
-                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to save dialogflow bot message: ' . $e->getMessage());
             }
+        }
 
-            // 🔄 Low confidence - start guided flow
-            Log::info('Low confidence, starting guided flow', ['confidence' => $confidence]);
-            $this->resetRetryCount();
-            $reply = "I want to make sure I give you the right information. Let me guide you through our HR topics.";
+        return response()->json([
+            'status' => 'success',
+            'fulfillmentText' => $fulfillmentText,
+            'confidence' => $confidence,
+            'intent' => $intentName
+        ]);
+    }
 
-            if (!empty($conversation)) {
-                try {
-                    ChatMessage::create([
-                        'ticket_no' => null,
-                        'sender' => 'bot',
-                        'message' => $reply,
-                        'conversation_id' => $conversation->id
-                    ]);
+} catch (\Exception $dialogflowError) {
+    Log::error('❌ Dialogflow call failed completely', [
+        'error' => $dialogflowError->getMessage(),
+        'query' => $queryText
+    ]);
+    
+    // Use conversational responses as fallback
+    $conversationalResponse = $this->handleConversationalQueries($queryText);
+    if ($conversationalResponse) {
+        return $conversationalResponse;
+    }
+    
+    // Generate a helpful response based on keywords
+    $queryLower = strtolower($queryText);
+    $fulfillmentText = "Thanks for your question! I want to make sure I understand correctly. Could you provide more details about '{$queryText}'?";
+    
+    if (strpos($queryLower, 'probation') !== false) {
+        $fulfillmentText = "The probation period is typically 6 months with monthly performance reviews. After successful completion, you'll be regularized with full benefits.";
+    } elseif (strpos($queryLower, 'flexible') !== false) {
+        $fulfillmentText = "Yes, we offer flexible time arrangements including flexi-time, compressed workweeks, and remote work options. For specific details about eligibility and how to apply, please submit a Flexible Work Request Form through the HR portal.";
+    } elseif (strpos($queryLower, 'salary') !== false) {
+        $fulfillmentText = "Payday is on the 30th of each month. You can view your payslip in the Employee Portal under 'My Payslips'.";
+    } elseif (strpos($queryLower, 'leave') !== false) {
+        $fulfillmentText = "We offer 20 days annual leave, 15 days sick leave, and various special leaves. Apply through the HR portal with 2 weeks notice.";
+    }
+    
+    // Return fallback response
+    return response()->json([
+        'status' => 'success',
+        'fulfillmentText' => $fulfillmentText,
+        'confidence' => 0.8,
+        'intent' => 'fallback.response',
+        'dialogflow_failed' => true
+    ]);
+}
 
-                    if (empty($conversation->title)) {
-                        $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
-                        $conversation->save();
-                    }
-                } catch (\Throwable $e) {
-                    Log::warning('Failed to save guided flow bot message: ' . $e->getMessage());
-                }
-            }
+// 🔄 Low confidence - start guided flow (only reached if no exception was thrown)
+Log::info('Low confidence, starting guided flow', ['confidence' => $confidence]);
+$this->resetRetryCount();
+$reply = "I want to make sure I give you the right information. Let me guide you through our HR topics.";
 
-            return response()->json([
-                'status' => 'guided_flow',
-                'fulfillmentText' => $reply,
-                'guided_flow' => true
-            ]);
+if (!empty($conversation)) {
+    try {
+        ChatMessage::create([
+            'ticket_no' => null,
+            'sender' => 'bot',
+            'message' => $reply,
+            'conversation_id' => $conversation->id
+        ]);
+
+        if (empty($conversation->title)) {
+            $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+            $conversation->save();
+        }
+    } catch (\Throwable $e) {
+        Log::warning('Failed to save guided flow bot message: ' . $e->getMessage());
+    }
+}
+
+return response()->json([
+    'status' => 'guided_flow',
+    'fulfillmentText' => $reply,
+    'guided_flow' => true
+]);
 
         } catch (\Throwable $e) {
             Log::error('❌ Dialogflow error: ' . $e->getMessage(), [
