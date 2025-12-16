@@ -69,70 +69,51 @@ class DialogflowService
         }
     }
 
-    public function detectIntent($queryText, $sessionId)
-    {
-        try {
-            Log::info('🔍 Dialogflow detectIntent called', [
-                'query' => substr($queryText, 0, 100),
-                'session_id' => $sessionId
-            ]);
+    public function detectIntent($queryText, $sessionId, $languageCode = 'en-US')
+{
+    try {
+        Log::info('🔍 Dialogflow detectIntent called', [
+            'query' => $queryText,
+            'session_id' => $sessionId,
+            'project_id' => $this->projectId
+        ]);
 
-            if (empty($queryText)) {
-                throw new \Exception('Empty query text');
-            }
-
-            // Clean session ID
-            $sessionId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $sessionId);
-            if (empty($sessionId)) {
-                $sessionId = 'session_' . time();
-            }
-
-            // Create session name
-            $session = $this->sessionsClient->sessionName($this->projectId, $sessionId);
-            
-            Log::info('Session created', ['session' => $session]);
-
-            // Create text input
-            $textInput = new TextInput();
-            $textInput->setText($queryText);
-            $textInput->setLanguageCode('en');
-
-            // Create query input
-            $queryInput = new QueryInput();
-            $queryInput->setText($textInput);
-
-            // Send request to Dialogflow
-            Log::info('Sending request to Dialogflow...');
-            
-            $response = $this->sessionsClient->detectIntent($session, $queryInput);
-            
-            // Get query result
-            $queryResult = $response->getQueryResult();
-            
-            if (!$queryResult) {
-                throw new \Exception('No query result received');
-            }
-
-            Log::info('✅ Dialogflow response received', [
-                'intent' => $queryResult->getIntent() ? $queryResult->getIntent()->getDisplayName() : 'None',
-                'confidence' => $queryResult->getIntentDetectionConfidence(),
-                'has_text' => !empty($queryResult->getFulfillmentText())
-            ]);
-
-            return $queryResult;
-
-        } catch (\Exception $e) {
-            Log::error('❌ Dialogflow detectIntent failed', [
-                'error' => $e->getMessage(),
-                'class' => get_class($e),
-                'trace' => $e->getTraceAsString(),
-                'query' => $queryText
-            ]);
-            
-            // Create a fallback response object
-            return $this->createFallbackResponse($queryText);
-        }
+        // Clean session ID
+        $sessionId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $sessionId);
+        $session = $this->sessionsClient->sessionName($this->projectId, $sessionId);
+        
+        // Create text input
+        $textInput = new TextInput();
+        $textInput->setText($queryText);
+        $textInput->setLanguageCode($languageCode);
+        
+        // Create query input
+        $queryInput = new QueryInput();
+        $queryInput->setText($textInput);
+        
+        // Get response
+        $response = $this->sessionsClient->detectIntent($session, $queryInput);
+        $queryResult = $response->getQueryResult();
+        
+        // Return simple object with needed data
+        return (object)[
+            'fulfillmentText' => $queryResult->getFulfillmentText(),
+            'intentDetectionConfidence' => $queryResult->getIntentDetectionConfidence(),
+            'intent' => $queryResult->getIntent() ? (object)[
+                'displayName' => $queryResult->getIntent()->getDisplayName()
+            ] : null
+        ];
+        
+    } catch (\Exception $e) {
+        Log::error('❌ Dialogflow API Error: ' . $e->getMessage(), [
+            'query' => $queryText,
+            'session' => $sessionId
+        ]);
+        
+        // Return fallback response
+        return $this->createFallbackResponse($queryText);
     }
+}
 
  /**
  * Create a fallback response when Dialogflow fails
@@ -310,6 +291,11 @@ private function createFallbackResponse($queryText)
             return [];
         }
     }
+
+    public function __destruct()
+{
+    $this->close();
+}
 
     public function close()
     {

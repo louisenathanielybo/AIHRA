@@ -205,73 +205,38 @@ class DialogflowController extends Controller
             
 
 // 🎯 Try Dialogflow for direct questions
-$sessionId = session()->getId() ?? Str::random(10);
-
-Log::info('Calling Dialogflow service', ['sessionId' => $sessionId]);
-
 try {
+    Log::info('Calling Dialogflow service', [
+        'query' => $queryText,
+        'sessionId' => $sessionId
+    ]);
+
     $dialogflow = new DialogflowService();
     $result = $dialogflow->detectIntent($queryText, $sessionId);
-    $dialogflow->close();
-
-    // SAFE HANDLING: Check if we got a valid Dialogflow response
-$confidence = 0.0;
-$fulfillmentText = '';
-$intentName = 'Default Fallback Intent';
-
-// SAFER CHECK: Handle both real Dialogflow objects and our mock objects
-try {
-    // Try to extract fulfillment text
-    if (is_object($result) && method_exists($result, 'getFulfillmentText')) {
-        $fulfillmentText = $result->getFulfillmentText();
-    } elseif (is_object($result) && property_exists($result, 'fulfillmentText')) {
-        $fulfillmentText = $result->fulfillmentText;
-    }
     
-    // Try to extract confidence
-    if (is_object($result) && method_exists($result, 'getIntentDetectionConfidence')) {
-        $confidence = $result->getIntentDetectionConfidence() ?? 0.0;
-    } elseif (is_object($result) && property_exists($result, 'intentDetectionConfidence')) {
-        $confidence = $result->intentDetectionConfidence ?? 0.0;
-    }
+    // SIMPLIFIED: Direct access to response properties
+    $confidence = $result->intentDetectionConfidence ?? 0.0;
+    $fulfillmentText = $result->fulfillmentText ?? '';
+    $intentName = $result->intent->displayName ?? 'Default Fallback Intent';
     
-    // Try to extract intent name
-    if (is_object($result) && method_exists($result, 'getIntent')) {
-        $intent = $result->getIntent();
-        if (is_object($intent) && method_exists($intent, 'getDisplayName')) {
-            $intentName = $intent->getDisplayName();
-        }
-    } elseif (is_object($result) && property_exists($result, 'intent')) {
-        $intentObj = $result->intent;
-        if (is_object($intentObj) && property_exists($intentObj, 'displayName')) {
-            $intentName = $intentObj->displayName;
-        }
-    }
-    
-    // If we still don't have a fulfillment text, create one
-    if (empty($fulfillmentText)) {
-        $queryLower = strtolower($queryText);
-        
-        if (strpos($queryLower, 'working hours') !== false || strpos($queryLower, 'work hours') !== false) {
-            $fulfillmentText = "Our standard working hours are from 8:00 AM to 5:00 PM, Monday to Friday, with a 1-hour lunch break from 12:00 PM to 1:00 PM. We also offer flexible time arrangements for eligible employees!";
-            $confidence = 0.9;
-            $intentName = 'working.hours.inquiry';
-        }
-        // ... add other keyword checks if needed
-    }
-    
-    Log::info('✅ Dialogflow Response Processed', [
+    Log::info('✅ Dialogflow Response Received', [
         'confidence' => $confidence,
         'intent' => $intentName,
-        'fulfillmentText' => substr($fulfillmentText, 0, 200),
-        'result_type' => get_class($result) ?? gettype($result)
+        'fulfillmentText_length' => strlen($fulfillmentText)
     ]);
     
-} catch (\Exception $e) {
-    Log::warning('Error processing Dialogflow response: ' . $e->getMessage());
-    // Use keyword-based fallback
+    // Continue with your existing logic...
+    
+} catch (\Exception $dialogflowError) {
+    Log::error('❌ Dialogflow call failed', [
+        'error' => $dialogflowError->getMessage(),
+        'trace' => $dialogflowError->getTraceAsString()
+    ]);
+    
+    // Use fallback
     $fulfillmentText = $this->getKeywordResponse($queryText);
-    $confidence = 0.6;
+    $confidence = 0.5;
+    $intentName = 'fallback';
 }
 
     // 🆕 NEW: Check if this is HR-related but bot can't answer properly
