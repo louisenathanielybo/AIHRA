@@ -6743,23 +6743,18 @@ async function deleteGuidedQuestion(questionId) {
     }
 }
 
-// =============================================
-// DIALOGFLOW SYNC FUNCTION (FIXED VERSION)
-// =============================================
 async function syncWithDialogflow() {
-    // Get the sync button and store its original text OUTSIDE the try block
-    const syncBtn = document.querySelector('button[onclick="syncWithDialogflow()"]') || 
-                   document.querySelector('button[onclick*="syncWithDialogflow"]');
-    
-    // Store original button state at the beginning
-    let originalText = 'Sync with Dialogflow';
-    if (syncBtn) {
-        originalText = syncBtn.innerHTML;
-        syncBtn.disabled = true;
-        syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
-    }
-    
     try {
+        const syncBtn = document.querySelector('button[onclick="syncWithDialogflow()"]') || 
+                       document.querySelector('button[onclick*="syncWithDialogflow"]');
+        
+        // Store original button state
+        const originalText = syncBtn ? syncBtn.innerHTML : 'Sync with Dialogflow';
+        if (syncBtn) {
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+        }
+        
         // Show a loading notification
         showNotification('Syncing with Dialogflow...', 'info');
         
@@ -6793,6 +6788,7 @@ async function syncWithDialogflow() {
             // Show detailed result if available
             if (result.data.note) {
                 console.log('Sync note:', result.data.note);
+                // You could optionally show this in a tooltip or modal
             }
         } else {
             showNotification(result.message || 'Failed to sync with Dialogflow', 'error');
@@ -6821,8 +6817,9 @@ async function syncWithDialogflow() {
             console.error('Failed to load intents:', loadError);
         }
     } finally {
-        // FIXED: originalText is now in scope because it's declared at the beginning
         // Restore button state
+        const syncBtn = document.querySelector('button[onclick="syncWithDialogflow()"]') || 
+                       document.querySelector('button[onclick*="syncWithDialogflow"]');
         if (syncBtn) {
             syncBtn.disabled = false;
             syncBtn.innerHTML = originalText;
