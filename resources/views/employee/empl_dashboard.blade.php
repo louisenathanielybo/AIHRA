@@ -1753,8 +1753,16 @@ async function sendMessage() {
             try { localStorage.setItem('lastEscalationMessage', data.fulfillmentText); } catch (_) {}
             lastEscalationMessage = data.fulfillmentText;
             
+            // 🆕 Hide guided questions if escalated
+            if (data.status === 'escalated' || data.escalated) {
+                const guidedContainer = document.getElementById('guidedContainer');
+                if (guidedContainer) {
+                    guidedContainer.style.display = 'none';
+                    guidedContainer.innerHTML = '';
+                }
+            }
             // If guided_flow flag is set, also load guided questions
-            if (data.guided_flow || data.status === 'guided_flow') {
+            else if (data.guided_flow || data.status === 'guided_flow') {
                 await loadGuidedQuestions();
             }
         } 
@@ -1852,6 +1860,13 @@ function handleCustomResponse(response, chatBox, query = '') {
 // 🆕 NEW: Handle ticket creation and escalation
 async function handleTicketCreation(ticketNo, message) {
     const chatBox = document.getElementById('chatBox');
+    const guidedContainer = document.getElementById('guidedContainer');
+    
+    // Hide guided questions after escalation
+    if (guidedContainer) {
+        guidedContainer.style.display = 'none';
+        guidedContainer.innerHTML = '';
+    }
     
     // Show success message
     addMessageToChat(chatBox, 'bot', 
