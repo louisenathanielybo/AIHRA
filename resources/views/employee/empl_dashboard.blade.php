@@ -2178,21 +2178,15 @@ async function loadGuidedQuestions(parentId = null) {
             return;
         }
 
-        // Handle 404 (no guided questions) gracefully - show Dialogflow-first UI
+        // Handle 404 (no guided questions) gracefully - show simple prompt
         if (res.status === 404) {
-            console.log('No guided questions in database, showing Dialogflow prompt');
+            console.log('No guided questions in database, showing simple prompt');
             guidedContainer.innerHTML = `
                 <div class="chat-row bot">
                     <div class="chat-bubble">
                         <strong>How can I help you today?</strong>
                         <div style="margin-top: 10px; font-size: 14px; color: #666;">
-                            💬 Type your question below, or try one of these topics:
-                        </div>
-                        <div class="suggestion-box" style="margin-top: 10px;">
-                            <div class="suggestion" onclick="sendQuick('What are the employment requirements?')">Employment</div>
-                            <div class="suggestion" onclick="sendQuick('Tell me about employee benefits')">Benefits</div>
-                            <div class="suggestion" onclick="sendQuick('How do promotions work?')">Promotion</div>
-                            <div class="suggestion" onclick="sendQuick('What training programs are available?')">Training</div>
+                            💬 Type your question below and I'll do my best to assist you!
                         </div>
                     </div>
                 </div>`;
@@ -2210,19 +2204,13 @@ async function loadGuidedQuestions(parentId = null) {
 
         // Handle empty or error type response (e.g., no questions configured)
         if (data.type === 'error' || data.type === 'empty') {
-            console.log('Guided questions not available, showing Dialogflow prompt');
+            console.log('Guided questions not available, showing simple prompt');
             guidedContainer.innerHTML = `
                 <div class="chat-row bot">
                     <div class="chat-bubble">
                         <strong>How can I help you today?</strong>
                         <div style="margin-top: 10px; font-size: 14px; color: #666;">
-                            💬 Type your question below, or try one of these topics:
-                        </div>
-                        <div class="suggestion-box" style="margin-top: 10px;">
-                            <div class="suggestion" onclick="sendQuick('What are the employment requirements?')">Employment</div>
-                            <div class="suggestion" onclick="sendQuick('Tell me about employee benefits')">Benefits</div>
-                            <div class="suggestion" onclick="sendQuick('How do promotions work?')">Promotion</div>
-                            <div class="suggestion" onclick="sendQuick('What training programs are available?')">Training</div>
+                            💬 Type your question below and I'll do my best to assist you!
                         </div>
                     </div>
                 </div>`;

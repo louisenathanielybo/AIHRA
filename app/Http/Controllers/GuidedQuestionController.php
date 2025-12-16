@@ -19,11 +19,11 @@ class GuidedQuestionController extends Controller
                 ->get(['gq_id', 'question_text', 'answer_text', 'LEVEL']);
                 
             if ($questions->isEmpty()) {
-                // Return empty result with 200 status - frontend handles fallback gracefully
+                // Return empty result - frontend will show simple prompt
                 return response()->json([
                     'type' => 'empty',
                     'data' => [],
-                    'message' => 'No guided questions configured. You can ask me anything directly!'
+                    'message' => 'Ask me anything!'
                 ]);
             }
             
