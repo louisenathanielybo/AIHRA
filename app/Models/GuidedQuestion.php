@@ -9,25 +9,21 @@ class GuidedQuestion extends Model
 {
     use HasFactory;
 
-    protected $table = 'guided_questions';
+    protected $table = 'guidedquery';
     protected $primaryKey = 'gq_id';
+    public $timestamps = false;
 
     protected $fillable = [
+        'knowledgeID',
+        'categoryID',
         'parent_id',
         'question_text',
         'answer_text',
-        'LEVEL',
-        'linked_intent',
-        'display_order',
-        'response_type',
-        'custom_response',
-        'category',
-        'status'
+        'LEVEL'
     ];
 
     protected $casts = [
-        'custom_response' => 'array',
-        'display_order' => 'integer'
+        'LEVEL' => 'integer'
     ];
 
     // Relationships
