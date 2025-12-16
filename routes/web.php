@@ -130,7 +130,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/flags/{id}/update-status', [FlagController::class, 'updateStatus'])->name('admin.flags.update-status');
         
         // 🆕 ADD THIS ROUTE - Dialogflow sync
-        Route::post('/dialogflow/sync', [DialogflowController::class, 'sync'])->name('admin.dialogflow.sync');
+        Route::post('/admin/dialogflow/sync', [DialogflowController::class, 'sync'])->name('admin.dialogflow.sync');
         
         // 🆕 ADD THIS ROUTE - Dialogflow intents management
         Route::get('/dialogflow/intents', [DialogflowController::class, 'getIntents'])->name('admin.dialogflow.intents');
