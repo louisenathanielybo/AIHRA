@@ -134,24 +134,42 @@ class DialogflowController extends Controller
                 ]);
             }
 
-            // 🔥 IMPROVED: Handle explicit escalation requests
+            // 🔥 IMPROVED: Handle explicit escalation requests - ALWAYS require confirmation
             if ($this->isEscalationRequest($queryText)) {
                 Log::info('Escalation request detected', ['query' => $queryText]);
                 $this->resetRetryCount();
 
-                $escalationResponse = $this->escalateToHR($queryText, $employeeNum, 'User requested human assistance', null, $conversation ? $conversation->id : null);
-
-                // Update conversation title if needed
-                if (!empty($conversation) && empty($conversation->title)) {
-                    try {
-                        $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
-                        $conversation->save();
-                    } catch (\Throwable $e) {
-                        Log::warning('Failed to update conversation title: ' . $e->getMessage());
-                    }
+                // Check if this conversation has already been escalated
+                if ($this->isAlreadyEscalated($conversation)) {
+                    Log::info('Conversation already escalated, informing user');
+                    $existingTicket = $this->getExistingTicket($conversation);
+                    $ticketInfo = $existingTicket ? " Your existing ticket is: <strong>{$existingTicket}</strong>" : '';
+                    
+                    return response()->json([
+                        'status' => 'already_escalated',
+                        'fulfillmentText' => "I see that you've already created a support ticket for this conversation! 📋{$ticketInfo}<br><br>Our HR team is working on it. Each conversation can only be escalated once to ensure your requests are properly tracked. Is there anything else I can help you with while you wait for HR's response?",
+                        'already_escalated' => true
+                    ]);
                 }
 
-                return $escalationResponse;
+                // Store pending escalation and ask for confirmation
+                Session::put('pending_escalation', [
+                    'query' => $queryText,
+                    'employeeNum' => $employeeNum,
+                    'reason' => 'User requested human assistance',
+                    'conversation_id' => $conversation ? $conversation->id : null,
+                    'timestamp' => now()->toIso8601String()
+                ]);
+
+                return response()->json([
+                    'status' => 'confirm_escalation',
+                    'fulfillmentText' => "I understand you'd like to speak with our HR team! 💼 Before I connect you, please note that each conversation can only be escalated once.<br><br>Would you like me to create a support ticket for you?",
+                    'needs_confirmation' => true,
+                    'options' => [
+                        ['text' => '✅ Yes, please create a ticket', 'action' => 'escalate'],
+                        ['text' => '❌ No, I\'ll try asking differently', 'action' => 'rephrase']
+                    ]
+                ]);
             }
 
             // 💬 Handle simple conversational responses
@@ -518,15 +536,16 @@ class DialogflowController extends Controller
 
         return response()->json([
             'status' => 'suggest_escalation',
-            'fulfillmentText' => "I can see this is an important matter to you, and I want to make sure you get the best possible help! 💼 Our HR team has the expertise to give you a thorough and personalized response. Would you like me to connect you with them? They'd be more than happy to assist you!",
+            'fulfillmentText' => "I can see this is an important matter to you, and I want to make sure you get the best possible help! 💼 Our HR team has the expertise to give you a thorough and personalized response.<br><br>⚠️ Please note: Each conversation can only be escalated once. Would you like me to create a support ticket?",
             'suggest_hr' => true,
+            'needs_confirmation' => true,
             'pending_escalation' => [
                 'query' => $queryText,
                 'employeeNum' => $employeeNum,
                 'reason' => $reason
             ],
             'options' => [
-                ['text' => '✅ Yes, please escalate to HR', 'action' => 'escalate'],
+                ['text' => '✅ Yes, please create a ticket', 'action' => 'escalate'],
                 ['text' => '🔄 No, let me rephrase my question', 'action' => 'rephrase']
             ]
         ]);
@@ -540,6 +559,18 @@ class DialogflowController extends Controller
         $retryCount = Session::get('retry_count', 0);
         
         if ($retryCount > 0) {
+            // 🆕 Check if this conversation has already been escalated
+            if ($this->isAlreadyEscalated($conversation)) {
+                $existingTicket = $this->getExistingTicket($conversation);
+                $ticketInfo = $existingTicket ? " Your existing ticket is: <strong>{$existingTicket}</strong>" : '';
+                
+                return response()->json([
+                    'status' => 'already_escalated',
+                    'fulfillmentText' => "I see that you've already created a support ticket for this conversation! 📋{$ticketInfo}<br><br>Our HR team is working on it. Each conversation can only be escalated once. Is there anything else I can help you with?",
+                    'already_escalated' => true
+                ]);
+            }
+
             // If user previously confirmed escalation, but we need more details
             $pendingEscalation = Session::get('pending_escalation');
             if ($pendingEscalation && isset($pendingEscalation['awaiting_clarification']) && $pendingEscalation['awaiting_clarification'] === true) {
@@ -703,10 +734,11 @@ class DialogflowController extends Controller
 
         return response()->json([
             'status' => 'offer_escalation',
-            'fulfillmentText' => "I truly appreciate your patience with me! 🙏 It seems like your question might need a more personalized touch. Our HR team would be happy to help you directly and give you the attention your concern deserves. Would you like me to connect you with them? They're always ready to assist!",
+            'fulfillmentText' => "I truly appreciate your patience with me! 🙏 It seems like your question might need a more personalized touch. Our HR team would be happy to help you directly.<br><br>⚠️ Please note: Each conversation can only be escalated once. Would you like me to create a support ticket for you?",
             'max_retries_reached' => true,
+            'needs_confirmation' => true,
             'options' => [
-                ['text' => '✅ Yes, please connect me with HR', 'action' => 'escalate'],
+                ['text' => '✅ Yes, please create a ticket', 'action' => 'escalate'],
                 ['text' => '🔄 Let me try asking differently', 'action' => 'rephrase'],
                 ['text' => '❌ Cancel and start over', 'action' => 'cancel']
             ]
@@ -731,6 +763,63 @@ class DialogflowController extends Controller
     {
         Session::forget('retry_count');
         Session::forget('last_retry_time');
+    }
+
+    /**
+     * 🆕 NEW: Check if a conversation has already been escalated
+     */
+    private function isAlreadyEscalated($conversation): bool
+    {
+        if (!$conversation) {
+            return false;
+        }
+
+        try {
+            // Check if any ticket exists for this conversation
+            $existingTicket = ChatMessage::where('conversation_id', $conversation->id)
+                ->whereNotNull('ticket_no')
+                ->first();
+
+            if ($existingTicket) {
+                Log::info('Found existing ticket for conversation', [
+                    'conversation_id' => $conversation->id,
+                    'ticket_no' => $existingTicket->ticket_no
+                ]);
+                return true;
+            }
+
+            // Also check session flag
+            $sessionKey = 'escalated_conversation_' . $conversation->id;
+            if (Session::has($sessionKey)) {
+                return true;
+            }
+
+            return false;
+        } catch (\Throwable $e) {
+            Log::warning('Error checking escalation status: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 🆕 NEW: Get existing ticket number for a conversation
+     */
+    private function getExistingTicket($conversation): ?string
+    {
+        if (!$conversation) {
+            return null;
+        }
+
+        try {
+            $existingMessage = ChatMessage::where('conversation_id', $conversation->id)
+                ->whereNotNull('ticket_no')
+                ->first();
+
+            return $existingMessage ? $existingMessage->ticket_no : null;
+        } catch (\Throwable $e) {
+            Log::warning('Error getting existing ticket: ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -1102,6 +1191,12 @@ class DialogflowController extends Controller
                         'conversation_id' => $conversationId
                     ]);
                     Log::info("✅ Escalation message saved to chat history", ['conversation_id' => $conversationId]);
+                    
+                    // 🆕 Mark this conversation as escalated to prevent re-escalation
+                    Session::put('escalated_conversation_' . $conversationId, [
+                        'ticket_no' => $ticketNo,
+                        'escalated_at' => now()->toIso8601String()
+                    ]);
                 } catch (\Exception $chatError) {
                     Log::warning('Failed to save escalation message to chat history: ' . $chatError->getMessage());
                 }
