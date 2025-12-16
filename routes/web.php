@@ -252,4 +252,59 @@ Route::get('/debug-dialogflow', function() {
     
     return '';
 });
+
+    // In web.php, add this route:
+Route::get('/debug-dialogflow-sync', function() {
+    try {
+        echo "<h1>Dialogflow Sync Debug</h1>";
+        
+        // 1. Check authentication
+        if (!Auth::check()) {
+            echo "❌ Not authenticated<br>";
+            return;
+        }
+        
+        $user = Auth::user();
+        echo "✅ User: {$user->email} ({$user->role})<br>";
+        
+        if (!in_array($user->role, ['Admin', 'HR'])) {
+            echo "❌ User not authorized (requires Admin or HR)<br>";
+            return;
+        }
+        
+        // 2. Check DialogflowService
+        echo "<h2>DialogflowService Check</h2>";
+        if (!class_exists('App\Services\DialogflowService')) {
+            echo "❌ DialogflowService class not found<br>";
+            return;
+        }
+        echo "✅ DialogflowService class exists<br>";
+        
+        // 3. Try to instantiate
+        try {
+            $service = new \App\Services\DialogflowService();
+            echo "✅ DialogflowService instantiated<br>";
+            
+            // 4. Try to list intents
+            $intents = $service->listIntents();
+            echo "✅ Intents fetched: " . count($intents) . "<br>";
+            
+            if (count($intents) > 0) {
+                echo "<pre>First intent: " . json_encode($intents[0], JSON_PRETTY_PRINT) . "</pre>";
+            }
+            
+            $service->close();
+            
+        } catch (\Exception $e) {
+            echo "❌ Error: " . $e->getMessage() . "<br>";
+            echo "<pre>Stack trace:\n" . $e->getTraceAsString() . "</pre>";
+        }
+        
+    } catch (\Exception $e) {
+        echo "❌ Debug error: " . $e->getMessage() . "<br>";
+        echo "<pre>Stack trace:\n" . $e->getTraceAsString() . "</pre>";
+    }
+    
+    return '';
+});
 });
