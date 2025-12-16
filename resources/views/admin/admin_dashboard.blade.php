@@ -69,6 +69,10 @@ use Illuminate\Support\Str;
 
     .sidebar-menu {
         list-style: none;
+        padding: 0;
+        margin: 0;
+        flex: 1;
+        overflow-y: auto;
     }
 
     .sidebar-menu li {
@@ -100,10 +104,10 @@ use Illuminate\Support\Str;
     }
 
     .sidebar-footer {
-        position: absolute;
-        bottom: 20px;
-        width: 100%;
-        padding: 0 20px;
+        padding: 20px;
+        margin-top: auto;
+        flex-shrink: 0;
+        box-sizing: border-box;
     }
     
     .sidebar-footer a[data-section="account-settings"]:hover {

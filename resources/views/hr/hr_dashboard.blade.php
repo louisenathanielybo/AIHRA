@@ -91,6 +91,9 @@
         .sb-nav {
             list-style: none;
             padding: 0;
+            margin: 0;
+            flex: 1;
+            overflow-y: auto;
         }
         
         .sb-nav li {
@@ -538,11 +541,10 @@
 
         /* Sidebar Footer */
         .sidebar-footer {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-            padding: 0 12px;
+            padding: 12px;
+            margin-top: auto;
+            flex-shrink: 0;
+            box-sizing: border-box;
         }
 
         .account-info {
