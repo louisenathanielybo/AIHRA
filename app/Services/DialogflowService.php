@@ -35,19 +35,24 @@ class DialogflowService
         throw new \Exception('Dialogflow credentials file not found at: ' . $credentialsPath);
     }
     
-    $credentials = [
-        'credentials' => $fullCredentialsPath,
-    ];
+    // Read the JSON credentials file content
+    $credentialsContent = json_decode(file_get_contents($fullCredentialsPath), true);
     
     \Log::info('DialogflowService initialized', [
         'project_id' => $this->projectId,
         'credentials_path' => $fullCredentialsPath,
-        'file_exists' => file_exists($fullCredentialsPath)
+        'file_exists' => file_exists($fullCredentialsPath),
+        'client_email' => $credentialsContent['client_email'] ?? 'unknown'
     ]);
     
     try {
-        $this->sessionsClient = new SessionsClient($credentials);
-        $this->intentsClient = new IntentsClient($credentials);
+        // Pass credentials as array directly to the clients
+        $this->sessionsClient = new SessionsClient([
+            'credentials' => $credentialsContent
+        ]);
+        $this->intentsClient = new IntentsClient([
+            'credentials' => $credentialsContent
+        ]);
         \Log::info('Dialogflow clients initialized successfully');
     } catch (\Exception $e) {
         \Log::error('Failed to initialize Dialogflow clients: ' . $e->getMessage());

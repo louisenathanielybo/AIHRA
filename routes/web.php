@@ -111,6 +111,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/accounts/{employeeNum}', [AdminController::class, 'updateAccount'])->name('admin.accounts.update');
         Route::post('/accounts/{employeeNum}/reset-password', [AdminController::class, 'resetPassword'])->name('admin.accounts.reset-password');
         Route::delete('/accounts/{employeeNum}', [AdminController::class, 'deleteAccount'])->name('admin.accounts.delete');
+        Route::get('/accounts/{employeeNum}/unresolved-tickets', [AdminController::class, 'checkUnresolvedTickets'])->name('admin.accounts.unresolved-tickets');
         
         // Other admin routes...
         Route::post('/knowledge', [AdminController::class, 'addKnowledge'])->name('admin.knowledge.add');

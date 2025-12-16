@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Str;
+use App\Http\Middleware\TrackLastSeen;
 
 class AdminController extends Controller
 {
@@ -39,14 +40,16 @@ class AdminController extends Controller
         $announcements = DB::table('announcements')->orderBy('id', 'desc')->get();
         $feedback = DB::table('feedback')->orderBy('feedbackID', 'desc')->get();
         $flags = DB::table('flaggedresponse')->orderBy('flaggedID', 'desc')->get();
+        // Get flagged count for KPI
+        $flaggedCount = DB::table('flaggedresponse')->count();
         
-        // 🆕 GET HR_INBOX DATA FOR CHATBOT TICKETS with pagination
+        // 🆕 GET HR_INBOX DATA FOR CHATBOT TICKETS - all data for client-side pagination
         $ticketsForKPI = DB::table('hr_inbox')->get(); // For KPI calculations
-        $ticketsSortColumn = in_array($ticketsSort, ['ticket_no', 'from_user', 'priority', 'status', 'created_at']) ? $ticketsSort : 'created_at';
+        $ticketsSortColumn = in_array($ticketsSort, ['ticket_no', 'from_user', 'category', 'priority', 'status', 'created_at']) ? $ticketsSort : 'created_at';
         $tickets = DB::table('hr_inbox')
             ->select('*')
             ->orderBy($ticketsSortColumn, $ticketsDir)
-            ->paginate(20, ['*'], 'tickets_page');
+            ->get();
         
         // Get all tickets data for JavaScript (date, priority, status)
         $allTicketsData = DB::table('hr_inbox')
@@ -62,6 +65,23 @@ class AdminController extends Controller
         $unresolvedTickets = $ticketsForKPI->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
         $resolvedTickets = $ticketsForKPI->where('status', 'Resolved')->count();
         $expiredTickets = $ticketsForKPI->where('is_expired', true)->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
+
+        // Calculate most frequent category
+        $categoryCounts = $ticketsForKPI->groupBy('category')->map(function($group) {
+            return $group->count();
+        });
+        $mostFrequentCategory = null;
+        $mostFrequentCategoryCount = 0;
+        if ($categoryCounts->isNotEmpty()) {
+            $mostFrequentCategory = $categoryCounts->keys()->first();
+            $mostFrequentCategoryCount = $categoryCounts->first();
+            foreach ($categoryCounts as $category => $count) {
+                if ($count > $mostFrequentCategoryCount) {
+                    $mostFrequentCategory = $category;
+                    $mostFrequentCategoryCount = $count;
+                }
+            }
+        }
 
         // 🆕 Calculate week-over-week changes for ticket statistics
         $lastWeekStart = now()->subWeek()->startOfWeek();
@@ -88,10 +108,19 @@ class AdminController extends Controller
 
         // 🆕 NEW: Get data for dashboard KPIs
         $activeUsers = DB::table('users')->where('status', 'Active')->count();
-        $totalInteractions = DB::table('queries')->count();
+        
+        // Bot-resolved queries (queries handled by bot, not escalated)
+        $botResolvedQueries = DB::table('queries')->where('handledBy', 'Bot')->count();
+        
         $escalatedQueries = $totalTickets; // All tickets are escalated queries
-        $pendingQueries = $ticketsForKPI->whereIn('status', ['Open', 'Waiting for HR'])->count(); // Pending = tickets excluding Replied and Resolved
-        $resolvedQueries = $totalInteractions - $pendingQueries; // Resolved = Total - Pending
+        $pendingQueries = $ticketsForKPI->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count(); // Pending = all unresolved tickets
+        $ticketResolvedQueries = $ticketsForKPI->where('status', 'Resolved')->count(); // Resolved tickets
+        
+        // Resolved = Bot-resolved queries + Resolved tickets
+        $resolvedQueries = $botResolvedQueries + $ticketResolvedQueries;
+        
+        // Total Interactions = Bot-resolved + All escalated queries (tickets)
+        $totalInteractions = $botResolvedQueries + $escalatedQueries;
         
         // 🆕 NEW: Get data for resolution chart
         $escalatedCount = $escalatedQueries;
@@ -104,36 +133,52 @@ class AdminController extends Controller
             ->join('users', 'feedback.employeeNum', '=', 'users.employeeNum')
             ->select('feedback.*', 'users.firstName', 'users.lastName')
             ->orderBy('feedback.' . $feedbackSortColumn, $feedbackDir)
-            ->paginate(20);
-
-        // Get all feedbacks for KPI (not paginated)
-        $allFeedbackData = DB::table('feedback')
-            ->join('users', 'feedback.employeeNum', '=', 'users.employeeNum')
-            ->select('feedback.*', 'users.firstName', 'users.lastName')
-            ->orderBy('feedback.' . $feedbackSortColumn, $feedbackDir)
             ->get()
             ->map(function($feedback) {
-                // Add a formatted date field for JavaScript date parsing
                 $feedback->formatted_date = \Carbon\Carbon::parse($feedback->timeStamp)->format('Y-m-d');
                 return $feedback;
             });
 
-        // 🆕 NEW: Get data for performance tab - paginate interactions
-        $interactionsSortColumn = in_array($interactionsSort, ['question', 'questionTime', 'isEscalated']) ? $interactionsSort : 'questionTime';
+        // 🆕 NEW: Get data for performance tab - all interactions for client-side pagination
+        $interactionsSortColumn = in_array($interactionsSort, ['question', 'questionTime', 'isEscalated', 'response_time_seconds']) ? $interactionsSort : 'questionTime';
         $recentInteractions = DB::table('queries')
             ->join('users', 'queries.employeeNum', '=', 'users.employeeNum')
             ->select('queries.*', 'users.firstName', 'users.lastName', 
-                DB::raw('TIMESTAMPDIFF(MICROSECOND, queries.questionTime, IFNULL(queries.responseTime, queries.questionTime)) / 1000000.0 as response_time_seconds'))
-            ->orderBy('queries.' . $interactionsSortColumn, $interactionsDir)
-            ->paginate(20, ['*'], 'interactions_page');
+                DB::raw('TIMESTAMPDIFF(MICROSECOND, queries.questionTime, IFNULL(queries.responseTime, queries.questionTime)) / 1000000.0 as response_time_seconds'));
+        
+        // Handle response_time_seconds sorting (calculated column)
+        if ($interactionsSort === 'response_time_seconds') {
+            $recentInteractions = $recentInteractions
+                ->orderBy(DB::raw('TIMESTAMPDIFF(MICROSECOND, queries.questionTime, IFNULL(queries.responseTime, queries.questionTime))'), $interactionsDir)
+                ->get();
+        } else {
+            $recentInteractions = $recentInteractions
+                ->orderBy('queries.' . $interactionsSortColumn, $interactionsDir)
+                ->get();
+        }
 
         // Get all interactions data for JavaScript (date + response time only)
-        $allInteractionsData = DB::table('queries')
+        // Include a flag to identify if response time is valid (not equal to question time)
+        // Combine queries (bot interactions) with tickets (escalated interactions)
+        // Only include bot-handled queries to match dashboard's totalInteractions calculation
+        $queryInteractions = DB::table('queries')
+            ->where('handledBy', 'Bot')
             ->select(
-                DB::raw('DATE(questionTime) as query_date'),
-                DB::raw('TIMESTAMPDIFF(MICROSECOND, questionTime, IFNULL(responseTime, questionTime)) / 1000000.0 as response_time_seconds')
-            )
-            ->get();
+                DB::raw("DATE_FORMAT(questionTime, '%Y-%m-%d') as query_date"),
+                DB::raw('TIMESTAMPDIFF(MICROSECOND, questionTime, IFNULL(responseTime, questionTime)) / 1000000.0 as response_time_seconds'),
+                DB::raw('CASE WHEN responseTime IS NOT NULL AND responseTime != questionTime THEN 1 ELSE 0 END as has_valid_response_time'),
+                DB::raw("'query' as interaction_type")
+            );
+        
+        $ticketInteractions = DB::table('hr_inbox')
+            ->select(
+                DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d') as query_date"),
+                DB::raw('0 as response_time_seconds'),
+                DB::raw('0 as has_valid_response_time'),
+                DB::raw("'ticket' as interaction_type")
+            );
+        
+        $allInteractionsData = $queryInteractions->unionAll($ticketInteractions)->get();
 
         $flagsSortColumn = in_array($flagsSort, ['flaggedID', 'reasonID', 'timeStamp', 'status']) ? $flagsSort : 'timeStamp';
         
@@ -142,17 +187,21 @@ class AdminController extends Controller
             ->join('queries', 'flaggedresponse.queryID', '=', 'queries.queryID')
             ->select('flaggedresponse.*', 'users.firstName', 'users.lastName', 'queries.question')
             ->orderBy('flaggedresponse.' . $flagsSortColumn, $flagsDir)
-            ->paginate(20, ['*'], 'flags_page');
+            ->get();
 
-        // Calculate average response time from all queries
+        // Calculate average response time from bot queries with actual response time data
+        // Only include queries where responseTime differs from questionTime
         $avgResponseTime = DB::table('queries')
-            ->select(DB::raw('AVG(TIMESTAMPDIFF(MICROSECOND, questionTime, IFNULL(responseTime, questionTime)) / 1000000.0) as avg_seconds'))
-            ->value('avg_seconds');
+            ->where('handledBy', 'Bot')
+            ->whereNotNull('responseTime')
+            ->whereRaw('responseTime != questionTime')
+            ->select(DB::raw('AVG(TIMESTAMPDIFF(MICROSECOND, questionTime, responseTime) / 1000000.0) as avg_seconds'))
+            ->value('avg_seconds') ?? 0;
 
         // Get users with pagination and search (exclude archived accounts)
         $search = request('search', '');
         $users = DB::table('users')
-            ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'profile_picture', 'about', 'status', 'dob')
+            ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'profile_picture', 'about', 'status', 'dob', 'last_seen_at')
             ->where('is_archived', false) // Exclude archived accounts
             ->when($search, function($query, $search) {
                 return $query->where(function($q) use ($search) {
@@ -165,46 +214,15 @@ class AdminController extends Controller
             })
             ->orderBy('employeeNum', 'asc')
             ->paginate(20, ['*'], 'accounts_page');
+        
+        // 🆕 Add online status to each user
+        $users->getCollection()->transform(function ($user) {
+            $user->is_online = TrackLastSeen::isUserOnline($user->employeeNum);
+            return $user;
+        });
 
-        // 🆕 Get Most Asked Topics from queries table
-        $mostAskedTopics = DB::table('queries')
-            ->select('question')
-            ->whereNotNull('question')
-            ->where('question', '!=', '')
-            ->get()
-            ->map(function($query) {
-                // Extract key topics/keywords from questions
-                $question = strtolower($query->question);
-                
-                // Define topic categories and their keywords
-                $topicMap = [
-                    'Leave' => ['leave', 'vacation', 'sick leave', 'time off', 'absence', 'vl', 'sl'],
-                    'Benefits' => ['benefit', 'insurance', 'health', 'dental', 'hmo', 'allowance'],
-                    'Payroll' => ['payroll', 'salary', 'pay', 'wage', 'compensation', '13th month', 'bonus'],
-                    'Promotion' => ['promotion', 'ranking', 'career', 'advancement', 'raise'],
-                    'Training' => ['training', 'seminar', 'workshop', 'development', 'course'],
-                    'Employment' => ['employment', 'hiring', 'contract', 'resignation', 'termination'],
-                    'Policy' => ['policy', 'procedure', 'guideline', 'rule', 'regulation'],
-                    'HR Request' => ['request', 'form', 'document', 'certificate', 'clearance']
-                ];
-                
-                foreach ($topicMap as $topic => $keywords) {
-                    foreach ($keywords as $keyword) {
-                        if (strpos($question, $keyword) !== false) {
-                            return $topic;
-                        }
-                    }
-                }
-                
-                return 'General';
-            })
-            ->countBy()
-            ->sortDesc()
-            ->take(5)
-            ->map(function($count, $topic) {
-                return ['topic' => $topic, 'count' => $count];
-            })
-            ->values();
+        // 🆕 Get Most Asked Topics from queries and tickets tables
+        $mostAskedTopics = $this->calculateMostAskedTopics(DB::table('queries'), DB::table('hr_inbox'));
 
         // Get active tab from URL parameter, session, or default to dashboard
         $active_tab = $request->get('active_tab', 'dashboard');
@@ -216,12 +234,14 @@ class AdminController extends Controller
             'admin', 'kb', 'announcements', 'feedback', 'flags', 'users', 'search', 
             'active_tab', 'tickets', 'totalTickets', 'unresolvedTickets', 'resolvedTickets', 'expiredTickets',
             'totalTicketsChange', 'unresolvedTicketsChange', 'resolvedTicketsChange',
+            'mostFrequentCategory', 'mostFrequentCategoryCount',
             'activeUsers', 'totalInteractions', 'escalatedQueries',
             'resolvedQueries', 'pendingQueries', 'escalatedCount',
-            'feedbackData', 'allFeedbackData', 'recentInteractions', 'flaggedResponses', 'mostAskedTopics', 'avgResponseTime',
+            'feedbackData', 'recentInteractions', 'flaggedResponses', 'mostAskedTopics', 'avgResponseTime',
             'allInteractionsData', 'allTicketsData',
             'ticketsSort', 'ticketsDir', 'feedbackSort', 'feedbackDir', 
-            'interactionsSort', 'interactionsDir', 'flagsSort', 'flagsDir'
+            'interactionsSort', 'interactionsDir', 'flagsSort', 'flagsDir',
+            'flaggedCount'
         ));
     }
 
@@ -377,7 +397,7 @@ class AdminController extends Controller
             'firstName' => 'required|string|max:255',
             'lastName' => 'required|string|max:255',
             'middleName' => 'nullable|string|max:255',
-            'role' => 'required|in:Employee,Admin,HR',
+            'role' => 'required|in:Employee,HR',
             'sex' => 'required|in:Male,Female',
             'dob' => 'required|date|after_or_equal:'.$minBirth.'|before_or_equal:'.$maxBirth,
             'about' => 'nullable|string|max:255',
@@ -385,6 +405,13 @@ class AdminController extends Controller
         ]);
 
         if ($validator->fails()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
             return redirect()->route('admin.dashboard')
                 ->withErrors($validator)
                 ->withInput()
@@ -411,11 +438,23 @@ class AdminController extends Controller
                 'profile_picture' => 'default.png'
             ]);
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Account created successfully!'
+                ]);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('success', 'Account created successfully!')
                 ->with('active_tab', 'account-management');
             
         } catch (\Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create account: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()->route('admin.dashboard')
                 ->withErrors(['error' => 'Failed to create account: ' . $e->getMessage()])
                 ->withInput()
@@ -438,12 +477,28 @@ class AdminController extends Controller
                 ->with('active_tab', 'account-management');
         }
         
+        // 🆕 Prevent deactivating an online user
+        if ($request->status === 'Deactivated' && $targetUser && $targetUser->status === 'Active') {
+            if (TrackLastSeen::isUserOnline($employeeNum)) {
+                \Log::warning('Attempt to deactivate online user:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Cannot deactivate this account because the user is currently online. Please wait until they log out.'
+                    ], 422);
+                }
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'Cannot deactivate this account because the user is currently online. Please wait until they log out.')
+                    ->with('active_tab', 'account-management');
+            }
+        }
+        
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|unique:users,email,' . $employeeNum . ',employeeNum',
             'firstName' => 'required|string|max:255',
             'lastName' => 'required|string|max:255',
             'middleName' => 'nullable|string|max:255',
-            'role' => 'required|in:Employee,Admin,HR',
+            'role' => 'required|in:Employee,HR',
             'sex' => 'required|in:Male,Female',
             'dob' => 'nullable|date|after_or_equal:'.now()->subYears(65)->format('Y-m-d').'|before_or_equal:'.now()->subYears(18)->format('Y-m-d'),
             'about' => 'nullable|string|max:255',
@@ -452,6 +507,13 @@ class AdminController extends Controller
 
         if ($validator->fails()) {
             \Log::warning('Validation failed:', ['errors' => $validator->errors()]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
             return redirect()->route('admin.dashboard')
                 ->withErrors($validator)
                 ->withInput()
@@ -478,11 +540,23 @@ class AdminController extends Controller
 
             if ($updated) {
                 \Log::info('Account updated successfully:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Account updated successfully!'
+                    ]);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('success', 'Account updated successfully!')
                     ->with('active_tab', 'account-management');
             } else {
                 \Log::warning('No rows updated:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No changes were made or user not found.'
+                    ]);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('error', 'No changes were made or user not found.')
                     ->with('active_tab', 'account-management');
@@ -493,6 +567,12 @@ class AdminController extends Controller
                 'employeeNum' => $employeeNum,
                 'error' => $e->getMessage()
             ]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update account: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Failed to update account: ' . $e->getMessage())
                 ->withInput()
@@ -501,15 +581,35 @@ class AdminController extends Controller
     }
 
     // 🆕 DELETE (ARCHIVE) ACCOUNT - Updated to archive instead of delete
-    public function deleteAccount($employeeNum)
+    public function deleteAccount(Request $request, $employeeNum)
     {
         \Log::info('Archiving account:', ['employeeNum' => $employeeNum]);
         
         // Prevent admin from deleting their own account
         if ($employeeNum == Auth::user()->employeeNum) {
             \Log::warning('Attempt to delete own account:', ['employeeNum' => $employeeNum]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot delete your own account.'
+                ], 422);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'You cannot delete your own account.')
+                ->with('active_tab', 'account-management');
+        }
+        
+        // 🆕 Prevent archiving an online user
+        if (TrackLastSeen::isUserOnline($employeeNum)) {
+            \Log::warning('Attempt to archive online user:', ['employeeNum' => $employeeNum]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot archive this account because the user is currently online. Please wait until they log out.'
+                ], 422);
+            }
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Cannot archive this account because the user is currently online. Please wait until they log out.')
                 ->with('active_tab', 'account-management');
         }
 
@@ -518,6 +618,12 @@ class AdminController extends Controller
             
             if (!$user) {
                 \Log::warning('User not found for archiving:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'User not found.'
+                    ], 404);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('error', 'User not found.')
                     ->with('active_tab', 'account-management');
@@ -526,6 +632,12 @@ class AdminController extends Controller
             // Prevent admin from deleting other admins
             if ($user->role === 'Admin') {
                 \Log::warning('Attempt to delete another admin:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You cannot delete admin accounts.'
+                    ], 422);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('error', 'You cannot delete admin accounts.')
                     ->with('active_tab', 'account-management');
@@ -541,11 +653,23 @@ class AdminController extends Controller
             
             if ($archived) {
                 \Log::info('Account archived successfully:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Account archived successfully!'
+                    ]);
+                }
                 return redirect()->route('admin.dashboard', ['active_tab' => 'account-management'])
-                    ->with('success', 'Account deleted successfully!')
+                    ->with('success', 'Account archived successfully!')
                     ->withFragment('account-management');
             } else {
                 \Log::error('Archive query returned 0 rows affected:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No account was deleted. User may not exist.'
+                    ], 404);
+                }
                 return redirect()->route('admin.dashboard', ['active_tab' => 'account-management'])
                     ->with('error', 'No account was deleted. User may not exist.')
                     ->withFragment('account-management');
@@ -556,9 +680,42 @@ class AdminController extends Controller
                 'employeeNum' => $employeeNum,
                 'error' => $e->getMessage()
             ]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to archive account: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Failed to archive account: ' . $e->getMessage())
                 ->with('active_tab', 'account-management');
+        }
+    }
+
+    // 🆕 CHECK UNRESOLVED TICKETS - Check if user has unresolved tickets before archiving
+    public function checkUnresolvedTickets($employeeNum)
+    {
+        try {
+            $unresolvedTickets = DB::table('hr_inbox')
+                ->where('from_user', $employeeNum)
+                ->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])
+                ->select('ticket_no', 'status', 'created_at')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $hasUnresolved = $unresolvedTickets->count() > 0;
+
+            return response()->json([
+                'hasUnresolved' => $hasUnresolved,
+                'unresolvedCount' => $unresolvedTickets->count(),
+                'tickets' => $unresolvedTickets
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to check unresolved tickets:', [
+                'employeeNum' => $employeeNum,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => 'Failed to check tickets'], 500);
         }
     }
 
@@ -571,7 +728,7 @@ class AdminController extends Controller
             $user = DB::table('users')
                 ->where('employeeNum', $employeeNum)
                 ->where('is_archived', false) // Exclude archived accounts
-                ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'dob', 'profile_picture', 'about', 'status')
+                ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'dob', 'profile_picture', 'about', 'status', 'last_seen_at')
                 ->first();
             
             if (!$user) {
@@ -585,6 +742,10 @@ class AdminController extends Controller
                 $user->dob = null;
             }
             $user->dob = $user->dob ?? null;
+            
+            // 🆕 Add online status
+            $user->is_online = TrackLastSeen::isUserOnline($employeeNum);
+            
             return response()->json($user);
             
         } catch (\Exception $e) {
@@ -604,6 +765,12 @@ class AdminController extends Controller
         // Check if the account being reset is an admin (and not the current user)
         $targetUser = DB::table('users')->where('employeeNum', $employeeNum)->first();
         if ($targetUser && $targetUser->role === 'Admin' && $targetUser->employeeNum != Auth::user()->employeeNum) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot reset passwords for other admin accounts.'
+                ], 422);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'You cannot reset passwords for other admin accounts.')
                 ->with('active_tab', 'account-management');
@@ -615,6 +782,12 @@ class AdminController extends Controller
 
         if ($validator->fails()) {
             \Log::warning('Password validation failed:', ['errors' => $validator->errors()]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first()
+                ], 422);
+            }
             return redirect()->route('admin.dashboard')
                 ->withErrors($validator)
                 ->with('active_tab', 'account-management');
@@ -627,11 +800,23 @@ class AdminController extends Controller
 
             if ($updated) {
                 \Log::info('Password reset successfully:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Password reset successfully!'
+                    ]);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('success', 'Password reset successfully!')
                     ->with('active_tab', 'account-management');
             } else {
                 \Log::warning('No rows updated for password reset:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'User not found or no changes made.'
+                    ], 404);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('error', 'User not found or no changes made.')
                     ->with('active_tab', 'account-management');
@@ -642,6 +827,12 @@ class AdminController extends Controller
                 'employeeNum' => $employeeNum,
                 'error' => $e->getMessage()
             ]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to reset password: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Failed to reset password: ' . $e->getMessage())
                 ->with('active_tab', 'account-management');
@@ -794,8 +985,14 @@ class AdminController extends Controller
                         $dob = now()->subYears(25)->format('Y-m-d');
                     }
                     
-                    // Validate role
-                    if (!in_array($role, ['Employee', 'Admin', 'HR'])) {
+
+                    // Validate role - fail if Admin
+                    if ($role === 'Admin') {
+                        $failed++;
+                        $errors[] = "Row {$rowNumber}: Admin role is not allowed. Only Employee or HR roles can be imported.";
+                        continue;
+                    }
+                    if (!in_array($role, ['Employee', 'HR'])) {
                         $role = 'Employee';
                     }
                     
@@ -845,6 +1042,16 @@ class AdminController extends Controller
                 $message .= " {$failed} rows failed.";
             }
             
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'imported' => $imported,
+                    'failed' => $failed,
+                    'errors' => $errors
+                ]);
+            }
+            
             $response = redirect()->route('admin.dashboard')
                 ->with('success', $message)
                 ->with('active_tab', 'account-management');
@@ -857,6 +1064,12 @@ class AdminController extends Controller
             
         } catch (\Exception $e) {
             \Log::error('CSV Import Failed: ' . $e->getMessage());
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to import CSV: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Failed to import CSV: ' . $e->getMessage())
                 ->with('active_tab', 'account-management');
@@ -920,6 +1133,8 @@ class AdminController extends Controller
                 'confidence' => $ticket->confidence ?? 0.0,
                 'created_at' => $ticket->created_at ?? now(),
                 'updated_at' => $ticket->updated_at ?? now(),
+                'resolved_by' => $ticket->resolved_by ?? null,
+                'assigned_to' => $ticket->assigned_to ?? null,
             ];
 
             return response()->json([
@@ -944,6 +1159,7 @@ class AdminController extends Controller
     {
         try {
             $range = $request->input('range', 'overall');
+            $topic = $request->input('topic', null); // Add topic filter parameter
             $startDate = null;
             $endDate = null;
 
@@ -981,24 +1197,108 @@ class AdminController extends Controller
             $queriesQuery = DB::table('queries');
             $ticketsQuery = DB::table('hr_inbox');
             $feedbackQuery = DB::table('feedback');
+            $flaggedQuery = DB::table('flaggedresponse');
 
             if ($startDate && $endDate) {
                 $queriesQuery->whereBetween('questionTime', [$startDate, $endDate]);
                 $ticketsQuery->whereBetween('created_at', [$startDate, $endDate]);
                 $feedbackQuery->whereBetween('timeStamp', [$startDate, $endDate]);
+                $flaggedQuery->whereBetween('timeStamp', [$startDate, $endDate]);
             }
 
-            // Calculate KPIs
-            $totalInteractions = $queriesQuery->count();
-            $ticketsData = $ticketsQuery->get();
-            $escalatedQueries = $ticketsData->count(); // All tickets are escalated queries
-            $pendingQueries = $ticketsData->whereIn('status', ['Open', 'Waiting for HR'])->count();
-            $resolvedQueries = $totalInteractions - $pendingQueries;
+            // Get all queries and tickets first, then filter using exact matching
+            $allQueries = (clone $queriesQuery)->get();
+            $allTickets = (clone $ticketsQuery)->get();
+            
+            // Apply topic filter if specified - use keyword matching for queries, category matching for tickets
+            if ($topic && $topic !== 'all') {
+                $topicMap = $this->getTopicMap();
+                
+                // Find the exact topic name from topicMap (case-insensitive match)
+                $normalizedTopic = null;
+                foreach ($topicMap as $topicName => $keywords) {
+                    if (strtolower(trim($topicName)) === strtolower(trim($topic))) {
+                        $normalizedTopic = $topicName;
+                        break;
+                    }
+                }
+                
+                // If topic not found in map, use the original (for custom categories)
+                if ($normalizedTopic === null) {
+                    $normalizedTopic = trim($topic);
+                }
+                
+                // Filter queries by keyword matching (same logic as calculateMostAskedTopics)
+                // Only include bot-handled queries to match the topic counting
+                $allQueries = $allQueries->filter(function($query) use ($normalizedTopic, $topicMap) {
+                    // Only count bot-handled queries
+                    if (($query->handledBy ?? '') !== 'Bot') {
+                        return false;
+                    }
+                    
+                    $question = strtolower($query->question ?? '');
+                    
+                    // Determine which topic this query belongs to
+                    $matchedTopic = 'General'; // Default
+                    foreach ($topicMap as $topicName => $keywords) {
+                        foreach ($keywords as $keyword) {
+                            if (stripos($question, $keyword) !== false) {
+                                $matchedTopic = $topicName;
+                                break 2;
+                            }
+                        }
+                    }
+                    
+                    return $matchedTopic === $normalizedTopic;
+                });
+                
+                // Filter tickets by category match (case-insensitive)
+                $allTickets = $allTickets->filter(function($ticket) use ($normalizedTopic) {
+                    $category = trim($ticket->category ?? '');
+                    return strtolower($category) === strtolower($normalizedTopic);
+                });
+            }
+
+            // Calculate KPIs from filtered collections
+            // Count only bot-handled queries (whether topic was filtered or not)
+            $botResolvedQueries = $allQueries->where('handledBy', 'Bot')->count();
+            
+            $escalatedQueries = $allTickets->count();
+            $pendingQueries = $allTickets->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
+            $ticketResolvedQueries = $allTickets->where('status', 'Resolved')->count();
+            
+            // Resolved = Bot-resolved queries + Resolved tickets
+            $resolvedQueries = $botResolvedQueries + $ticketResolvedQueries;
+            
+            // Total Interactions = Bot-resolved + All escalated queries (tickets)
+            $totalInteractions = $botResolvedQueries + $escalatedQueries;
+
+            \Log::info('Filtered KPIs Debug', [
+                'range' => $range,
+                'topic' => $topic,
+                'botResolvedQueries' => $botResolvedQueries,
+                'escalatedQueries' => $escalatedQueries,
+                'totalInteractions' => $totalInteractions,
+                'resolvedQueries' => $resolvedQueries,
+                'pendingQueries' => $pendingQueries
+            ]);
 
             // Feedback KPIs
             $feedbacks = $feedbackQuery->get();
             $feedbackCount = $feedbacks->count();
             $feedbackAvg = $feedbackCount > 0 ? round($feedbacks->avg('rating'), 2) : null;
+
+            // Flagged responses count
+            $flaggedCount = $flaggedQuery->count();
+            
+            // Calculate Most Asked Topics with date filter (but not topic filter to show all topics)
+            $topicsQueriesQuery = DB::table('queries');
+            $topicsTicketsQuery = DB::table('hr_inbox');
+            if ($startDate && $endDate) {
+                $topicsQueriesQuery->whereBetween('questionTime', [$startDate, $endDate]);
+                $topicsTicketsQuery->whereBetween('created_at', [$startDate, $endDate]);
+            }
+            $mostAskedTopics = $this->calculateMostAskedTopics($topicsQueriesQuery, $topicsTicketsQuery);
 
             return response()->json([
                 'success' => true,
@@ -1009,7 +1309,9 @@ class AdminController extends Controller
                     'resolvedQueries' => $resolvedQueries,
                     'resolutionRate' => $totalInteractions > 0 ? round(($resolvedQueries / $totalInteractions) * 100, 1) : 0,
                     'feedbackAvg' => $feedbackAvg,
-                    'feedbackCount' => $feedbackCount
+                    'feedbackCount' => $feedbackCount,
+                    'flaggedCount' => $flaggedCount,
+                    'mostAskedTopics' => $mostAskedTopics
                 ]
             ]);
         } catch (\Exception $e) {
@@ -1023,6 +1325,112 @@ class AdminController extends Controller
                 'message' => 'Failed to fetch filtered KPIs: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Helper method to calculate most asked topics from queries and tickets
+     * Displays top 5 topics including custom categories created by HR when resolving tickets
+     * Note: Only counts bot-handled queries to avoid double counting with tickets
+     */
+    private function calculateMostAskedTopics($queriesQuery, $ticketsQuery = null)
+    {
+        // Get topic map for normalization
+        $topicMap = $this->getTopicMap();
+        $topicNamesLower = array_map('strtolower', array_keys($topicMap));
+        
+        // Count from tickets table (based on category field including custom categories from HR)
+        if ($ticketsQuery === null) {
+            $ticketsQuery = DB::table('hr_inbox');
+        }
+        
+        $ticketCounts = $ticketsQuery
+            ->select('category')
+            ->whereNotNull('category')
+            ->where('category', '!=', '')
+            ->get()
+            ->map(function($ticket) use ($topicMap) {
+                $category = trim($ticket->category);
+                // Try to find matching topic name (case-insensitive)
+                foreach ($topicMap as $topicName => $keywords) {
+                    if (strtolower($category) === strtolower($topicName)) {
+                        return $topicName; // Return the canonical topic name
+                    }
+                }
+                // If no match found, return as-is (custom category)
+                return $category;
+            })
+            ->countBy();
+
+        // Count from queries table - only BOT-HANDLED queries to match KPI calculation
+        // This avoids double counting with tickets (escalated queries become tickets)
+        $queries = $queriesQuery
+            ->select('question')
+            ->where('handledBy', 'Bot')
+            ->get();
+        
+        $queryCounts = collect();
+        foreach ($queries as $query) {
+            $question = strtolower($query->question ?? '');
+            $matchedTopic = 'General'; // Default topic
+            
+            // Try to match query to a topic based on keywords
+            foreach ($topicMap as $topic => $keywords) {
+                foreach ($keywords as $keyword) {
+                    if (stripos($question, $keyword) !== false) {
+                        $matchedTopic = $topic;
+                        break 2; // Break out of both loops
+                    }
+                }
+            }
+            
+            $queryCounts[$matchedTopic] = ($queryCounts->get($matchedTopic, 0) + 1);
+        }
+
+        // Combine counts from both tickets and queries
+        $combinedCounts = collect();
+        
+        // Add ticket counts
+        foreach ($ticketCounts as $category => $count) {
+            $combinedCounts[$category] = ($combinedCounts->get($category, 0) + $count);
+        }
+        
+        // Add query counts (bot-handled only)
+        foreach ($queryCounts as $topic => $count) {
+            $combinedCounts[$topic] = ($combinedCounts->get($topic, 0) + $count);
+        }
+
+        // Return top 5 categories sorted by count
+        return $combinedCounts
+            ->sortDesc()
+            ->take(5)
+            ->map(function($count, $topic) {
+                return ['topic' => $topic, 'count' => $count];
+            })
+            ->values();
+    }
+
+    /**
+     * Get topic map with keywords
+     */
+    private function getTopicMap()
+    {
+        return [
+            'Conditions on employment' => ['employment', 'hiring', 'contract', 'resignation', 'termination', 'probation', 'regularization', 'job', 'position', 'tenure', 'appointment'],
+            'Compensation and benefits' => ['compensation', '13th month', 'bonus', 'payroll', 'salary', 'pay', 'wage'],
+            'Benefits' => ['benefit', 'insurance', 'health', 'dental', 'hmo', 'allowance', 'leave', 'vacation', 'sick leave', 'vl', 'sl', 'philhealth', 'sss', 'pag-ibig'],
+            'Employee Development' => ['training', 'seminar', 'workshop', 'development', 'course', 'learning', 'skills', 'education', 'scholarship', 'study'],
+            'Ranking and Promotion' => ['promotion', 'ranking', 'career', 'advancement', 'raise', 'upgrade', 'level', 'step', 'increment', 'reclassification'],
+            'General' => ['policy', 'procedure', 'guideline', 'rule', 'regulation', 'request', 'form', 'document', 'certificate', 'clearance', 'inquiry', 'question', 'information']
+        ];
+    }
+
+    /**
+     * Get keywords for a specific topic
+     */
+    private function getTopicKeywords($topic)
+    {
+        $topicMap = $this->getTopicMap();
+        return $topicMap[$topic] ?? [];
     }
 
     // Add these methods after the existing methods in your AdminController

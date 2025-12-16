@@ -24,41 +24,30 @@ class LoginController extends Controller
     $credentials = $request->only('employeeNum', 'password');
 
     // 🆕 COMPLETELY CUSTOM LOGIN - No Auth::attempt()
-    $user = \App\Models\User::where('employeeNum', $credentials['employeeNum'])
-             ->where('status', 'Active')
-             ->first();
+    $user = \App\Models\User::where('employeeNum', $credentials['employeeNum'])->first();
 
     if ($user) {
-        // Check if password matches plain text
         $passwordMatches = false;
-        
-        // Check plain text password
         if ($user->password === $credentials['password']) {
             $passwordMatches = true;
-        }
-        // Check if it's a bcrypt hash (starts with $2y$)
-        else if (password_verify($credentials['password'], $user->password)) {
+        } else if (password_verify($credentials['password'], $user->password)) {
             $passwordMatches = true;
-        }
-        // Check if it's MD5 (optional)
-        else if (md5($credentials['password']) === $user->password) {
+        } else if (md5($credentials['password']) === $user->password) {
             $passwordMatches = true;
         }
 
         if ($passwordMatches) {
-            // Manually log in the user
+            if ($user->status !== 'Active') {
+                return back()->with('error', 'Account Currently Deactivated');
+            }
             Auth::login($user);
             $request->session()->regenerate();
-
-            // 🆕 If password was plain text, hash it for future use
             if ($user->password === $credentials['password'] || md5($credentials['password']) === $user->password) {
                 $user->update(['password' => bcrypt($credentials['password'])]);
             }
-
             return $this->redirectToDashboard($user);
         }
     }
-
     return back()->with('error', 'Invalid credentials.');
 }
 

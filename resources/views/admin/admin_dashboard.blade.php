@@ -777,7 +777,7 @@ use Illuminate\Support\Str;
     .btn-view { background: #e3f2fd; color: var(--secondary); }
     .btn-edit { background: #fff3e0; color: var(--warning); }
     .btn-reset { background: #e8f5e8; color: var(--success); }
-    .btn-delete { background: #ffebee; color: var(--danger); }
+    .btn-archive { background: #ffebee; color: var(--danger); }
 
     .btn-action:hover {
         opacity: 0.8;
@@ -1165,6 +1165,19 @@ use Illuminate\Support\Str;
         }
     }
 
+    /* Online indicator pulse animation */
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 6px rgba(40, 167, 69, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+        }
+    }
+
     /* Responsive Design */
     @media (max-width: 1600px) {
         :root {
@@ -1316,30 +1329,30 @@ use Illuminate\Support\Str;
                 <h1 id="page-title">Dashboard Overview</h1>
             </div>
             <div class="header-info">
-    <div class="date-range-filter" id="dateRangeFilterContainer">
-        <label for="dateRangeSelect" style="margin-right: 8px; font-weight: 500; color: var(--primary);">
-            <i class="fas fa-calendar-alt"></i> Range:
-        </label>
-        <select id="dateRangeSelect" onchange="applyDateRangeFilter()" style="padding: 8px 15px; border: 1px solid #e0efe5; border-radius: 20px; background: white; color: var(--primary); font-size: 0.9rem; cursor: pointer; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08);">
-            <option value="daily">Today</option>
-            <option value="weekly">This Week</option>
-            <option value="monthly">This Month</option>
-            <option value="annually">This Year</option>
-            <option value="overall" selected>Overall</option>
-        </select>
-        <span id="dateRangeDisplay" style="margin-left: 10px; color: #666; font-size: 0.85rem;">All Time</span>
-    </div>
-    <div class="user-account">
-        <div class="user-avatar">
-            @if(Auth::user()->profile_picture)
-                <img src="{{ asset('uploads/'.Auth::user()->profile_picture) }}" alt="Profile">
-            @else
-                <span class="user-avatar-text">{{ substr(Auth::user()->firstName, 0, 1) }}{{ substr(Auth::user()->lastName, 0, 1) }}</span>
-            @endif
-        </div>
-        <span>{{ Auth::user()->firstName }}</span>
-    </div>
-</div>
+                <div class="date-range-filter" id="dateRangeFilterContainer">
+                    <label for="dateRangeSelect" style="margin-right: 8px; font-weight: 500; color: var(--primary);">
+                        <i class="fas fa-calendar-alt"></i> Range:
+                    </label>
+                    <select id="dateRangeSelect" onchange="applyDateRangeFilter()" style="padding: 8px 15px; border: 1px solid #e0efe5; border-radius: 20px; background: white; color: var(--primary); font-size: 0.9rem; cursor: pointer; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08);">
+                        <option value="daily">Today</option>
+                        <option value="weekly">This Week</option>
+                        <option value="monthly">This Month</option>
+                        <option value="annually">This Year</option>
+                        <option value="overall" selected>Overall</option>
+                    </select>
+                    <span id="dateRangeDisplay" style="margin-left: 10px; color: #666; font-size: 0.85rem;">All Time</span>
+                </div>
+                <div class="user-account">
+                    <div class="user-avatar">
+                        @if(Auth::user()->profile_picture)
+                            <img src="{{ asset('uploads/'.Auth::user()->profile_picture) }}" alt="Profile">
+                        @else
+                            <span class="user-avatar-text">{{ substr(Auth::user()->firstName, 0, 1) }}{{ substr(Auth::user()->lastName, 0, 1) }}</span>
+                        @endif
+                    </div>
+                    <span>{{ Auth::user()->firstName }}</span>
+                </div>
+            </div>
         </div>
         
         <!-- Dashboard Section (Default) -->
@@ -1384,18 +1397,19 @@ use Illuminate\Support\Str;
             
             <!-- Overview Tab -->
             <div id="overview" class="dashboard-tab-content active">
-                <div class="chart-container" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08); margin-bottom: 20px;">
-                    <h3>Resolution Breakdown</h3>
-                    <div class="chart-box" style="height: 400px;">
-                        <canvas id="resolutionChart"></canvas>
-                    </div>
-                </div>
-                
-                <div class="topics-container" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
+                <div class="topics-container" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08); margin-bottom: 20px;">
                     <h3>Most Asked Topics</h3>
                     @forelse($mostAskedTopics as $topic)
-                    <div class="topic-item">
-                        <span class="topic-name">{{ $topic['topic'] }}</span>
+                    <div class="topic-item" style="cursor: pointer; transition: background 0.2s;" onclick="filterByTopic('{{ $topic['topic'] }}')" onmouseover="this.style.background='#f0f8f4'" onmouseout="this.style.background='transparent'">
+                        <span class="topic-name">
+                            @php
+                                $words = explode(' ', strtolower($topic['topic']));
+                                $formatted = array_map(function($word) {
+                                    return strlen($word) >= 4 ? ucfirst($word) : $word;
+                                }, $words);
+                                echo implode(' ', $formatted);
+                            @endphp
+                        </span>
                         <span class="topic-count">{{ $topic['count'] }} inquir{{ $topic['count'] == 1 ? 'y' : 'ies' }}</span>
                     </div>
                     @empty
@@ -1404,6 +1418,12 @@ use Illuminate\Support\Str;
                         <span class="topic-count">0 inquiries</span>
                     </div>
                     @endforelse
+                </div>
+                <div class="chart-container" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
+                    <h3>Resolution Breakdown</h3>
+                    <div class="chart-box" style="height: 400px;">
+                        <canvas id="resolutionChart"></canvas>
+                    </div>
                 </div>
             </div>
             
@@ -1427,7 +1447,7 @@ use Illuminate\Support\Str;
                 </div>
 
                 <div class="data-table">
-                    <h3>Recent Chatbot Interactions ({{ $recentInteractions->total() }} total)</h3>
+                    <h3>Recent Chatbot Interactions ({{ $recentInteractions->count() }} total)</h3>
                     <table id="interactionsTable">
                         <thead>
                             <tr>
@@ -1467,42 +1487,10 @@ use Illuminate\Support\Str;
                             @endforelse
                         </tbody>
                     </table>
-                    @if($recentInteractions->hasPages())
                     <div style="margin-top: 20px;">
-                        <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;">
-                            Showing {{ $recentInteractions->firstItem() }} to {{ $recentInteractions->lastItem() }} of {{ $recentInteractions->total() }} results
-                        </div>
-                        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
-                            @if ($recentInteractions->onFirstPage())
-                                <span style="padding: 8px 12px; color: #ccc;">« Previous</span>
-                            @else
-                                <a href="{{ $recentInteractions->appends(['active_tab' => $active_tab])->previousPageUrl() }}" style="padding: 8px 12px; color: var(--secondary); text-decoration: none;">« Previous</a>
-                            @endif
-                            @if ($recentInteractions->hasMorePages())
-                                <a href="{{ $recentInteractions->appends(['active_tab' => $active_tab])->nextPageUrl() }}" style="padding: 8px 12px; color: var(--secondary); text-decoration: none;">Next »</a>
-                            @else
-                                <span style="padding: 8px 12px; color: #ccc;">Next »</span>
-                            @endif
-                        </div>
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                            @if ($recentInteractions->currentPage() > 1)
-                                <a href="{{ $recentInteractions->appends(['active_tab' => $active_tab])->url(1) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">‹</a>
-                            @endif
-                            @foreach(range(1, $recentInteractions->lastPage()) as $page)
-                                @if($page == $recentInteractions->currentPage())
-                                    <span style="padding: 6px 10px; border: 1px solid var(--secondary); border-radius: 4px; background: var(--secondary); color: white; font-weight: bold;">{{ $page }}</span>
-                                @elseif($page == 1 || $page == $recentInteractions->lastPage() || abs($page - $recentInteractions->currentPage()) < 3)
-                                    <a href="{{ $recentInteractions->appends(['active_tab' => $active_tab])->url($page) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">{{ $page }}</a>
-                                @elseif(abs($page - $recentInteractions->currentPage()) == 3)
-                                    <span style="padding: 6px 10px; color: #666;">...</span>
-                                @endif
-                            @endforeach
-                            @if ($recentInteractions->currentPage() < $recentInteractions->lastPage())
-                                <a href="{{ $recentInteractions->appends(['active_tab' => $active_tab])->url($recentInteractions->lastPage()) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">›</a>
-                            @endif
-                        </div>
+                        <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;" data-pagify="interactions-info"></div>
+                        <div style="text-align: center;"><div style="display: inline-flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;" data-pagify="interactions-nav"></div></div>
                     </div>
-                    @endif
                 </div>
                 
             </div>
@@ -1535,6 +1523,17 @@ use Illuminate\Support\Str;
                     </div>
                 </div>
 
+                <!-- Star Rating Filter -->
+                <div style="margin-bottom: 20px; background: white; padding: 15px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08); display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <label style="font-weight: 600; color: var(--primary);">Filter by Rating:</label>
+                    <button onclick="filterFeedbackByStars('all', this)" class="star-filter-btn active" data-stars="all" style="padding: 8px 16px; border: 2px solid var(--primary); background: var(--primary); color: white; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">All Ratings</button>
+                    <button onclick="filterFeedbackByStars('5', this)" class="star-filter-btn" data-stars="5" style="padding: 8px 16px; border: 2px solid #27ae60; background: white; color: #27ae60; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">⭐⭐⭐⭐⭐ 5 Stars</button>
+                    <button onclick="filterFeedbackByStars('4', this)" class="star-filter-btn" data-stars="4" style="padding: 8px 16px; border: 2px solid #2ecc71; background: white; color: #2ecc71; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">⭐⭐⭐⭐ 4 Stars</button>
+                    <button onclick="filterFeedbackByStars('3', this)" class="star-filter-btn" data-stars="3" style="padding: 8px 16px; border: 2px solid #f39c12; background: white; color: #f39c12; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">⭐⭐⭐ 3 Stars</button>
+                    <button onclick="filterFeedbackByStars('2', this)" class="star-filter-btn" data-stars="2" style="padding: 8px 16px; border: 2px solid #e67e22; background: white; color: #e67e22; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">⭐⭐ 2 Stars</button>
+                    <button onclick="filterFeedbackByStars('1', this)" class="star-filter-btn" data-stars="1" style="padding: 8px 16px; border: 2px solid #e74c3c; background: white; color: #e74c3c; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">⭐ 1 Star</button>
+                </div>
+
                 <!-- Feedback Analytics Charts -->
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
                     <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
@@ -1547,6 +1546,88 @@ use Illuminate\Support\Str;
                     </div>
                 </div>
         <script>
+                // --- Ticket KPI and Filter Logic ---
+                let selectedKPI = 'all';
+                function filterTicketsByKPI(kpi, el) {
+                    selectedKPI = kpi;
+                    // Set active class on KPI cards
+                    document.querySelectorAll('#ticketKpiCards .kpi-card').forEach(card => {
+                        card.classList.remove('active');
+                    });
+                    if (el) el.classList.add('active');
+                    else document.querySelector(`#ticketKpiCards .kpi-card[data-kpi="${kpi}"]`).classList.add('active');
+                    applyCombinedTicketFilters();
+                }
+
+                function applyCombinedTicketFilters() {
+                    const priority = document.getElementById('priorityFilter')?.value || 'all';
+                    const status = document.getElementById('statusFilter')?.value || 'all';
+                    const search = document.getElementById('searchTickets')?.value?.toLowerCase() || '';
+                    
+                    // Get date range from central state (defined later in file, so check if exists)
+                    const startDate = (typeof dateRangeData !== 'undefined') ? dateRangeData.start : null;
+                    const endDate = (typeof dateRangeData !== 'undefined') ? dateRangeData.end : null;
+                    
+                    // Check if any filter is actually applied
+                    const isFiltered = selectedKPI !== 'all' || priority !== 'all' || status !== 'all' || search !== '' || startDate !== null;
+                    
+                    const rows = document.querySelectorAll('#ticketsTableBody tr');
+                    let total = 0, unresolved = 0, resolved = 0;
+                    rows.forEach(row => {
+                        // Skip empty row
+                        if (row.querySelector('td[colspan]')) { row.style.display = ''; return; }
+                        const prio = row.querySelector('.priority')?.textContent?.trim().toLowerCase() || '';
+                        const stat = row.querySelector('.status')?.textContent?.trim().toLowerCase() || '';
+                        const msg = row.cells[1]?.textContent?.toLowerCase() || '';
+                        let show = true;
+                        
+                        // Date filter (from global date range selector)
+                        if (startDate !== null && endDate !== null) {
+                            const dateCell = row.querySelector('td:nth-child(5)'); // Date column
+                            if (dateCell && dateCell.textContent.trim()) {
+                                const rowDate = (typeof parseDateFromCell === 'function') ? 
+                                    parseDateFromCell(dateCell.textContent) : new Date(dateCell.textContent);
+                                if (rowDate < startDate || rowDate > endDate) show = false;
+                            }
+                        }
+                        
+                        // KPI filter
+                        if (show && selectedKPI === 'unresolved' && stat !== 'open') show = false;
+                        if (show && selectedKPI === 'resolved' && stat !== 'resolved') show = false;
+                        // Priority filter
+                        if (show && priority !== 'all' && prio !== priority) show = false;
+                        // Status filter
+                        if (show && status !== 'all' && stat !== status) show = false;
+                        // Search filter
+                        if (show && search && !msg.includes(search)) show = false;
+                        row.style.display = show ? '' : 'none';
+                        if (show) {
+                            total++;
+                            if (stat === 'open') unresolved++;
+                            if (stat === 'resolved') resolved++;
+                        }
+                    });
+                    document.getElementById('totalTickets').textContent = total;
+                    document.getElementById('unresolvedTickets').textContent = unresolved;
+                    document.getElementById('resolvedTickets').textContent = resolved;
+                    
+                    // Update pagination
+                    updatePagificationDisplay('tickets', total, isFiltered);
+                    
+                    // Update charts to reflect filtered data
+                    if (typeof initTicketCharts === 'function') {
+                        initTicketCharts();
+                    }
+                }
+
+                // Hook up dropdowns and search to unified filter
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.getElementById('priorityFilter')?.addEventListener('change', applyCombinedTicketFilters);
+                    document.getElementById('statusFilter')?.addEventListener('change', applyCombinedTicketFilters);
+                    document.getElementById('searchTickets')?.addEventListener('input', applyCombinedTicketFilters);
+                    // Default: show all
+                    filterTicketsByKPI('all');
+                });
         // Store all flagged data for KPI calculation
         let allFlaggedData = @json(isset($allFlaggedData) ? $allFlaggedData : (isset($flaggedResponses) ? $flaggedResponses : []));
         // If flaggedResponses is a Laravel Collection, convert to array
@@ -1554,7 +1635,7 @@ use Illuminate\Support\Str;
             allFlaggedData = allFlaggedData.data;
         }
         // ...existing allFeedbackData code...
-        const allFeedbackData = @json((isset($allFeedbackData) && count($allFeedbackData)) ? $allFeedbackData : (isset($feedbackData) ? $feedbackData->items() : []));
+        const allFeedbackData = @json((isset($allFeedbackData) && count($allFeedbackData)) ? $allFeedbackData : (isset($feedbackData) ? $feedbackData->toArray() : []));
 
         // Update both KPIs on date range change
         function updateFlaggedReasonKPI() {
@@ -1644,41 +1725,9 @@ use Illuminate\Support\Str;
                         </tbody>
                     </table>
                     <div style="margin-top: 20px;">
-                        <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;" data-pagify="feedback-info">
-                            Showing {{ $feedbackData->firstItem() }} to {{ $feedbackData->lastItem() }} of {{ $feedbackData->total() }} results
-                        </div>
-                        @if($feedbackData->hasPages())
-                        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;" data-pagify="feedback-nav">
-                            @if ($feedbackData->onFirstPage())
-                                <span style="padding: 8px 12px; color: #ccc;">« Previous</span>
-                            @else
-                                <a href="{{ $feedbackData->appends(['active_tab' => $active_tab])->previousPageUrl() }}" style="padding: 8px 12px; color: var(--secondary); text-decoration: none;">« Previous</a>
-                            @endif
-                            @if ($feedbackData->hasMorePages())
-                                <a href="{{ $feedbackData->appends(['active_tab' => $active_tab])->nextPageUrl() }}" style="padding: 8px 12px; color: var(--secondary); text-decoration: none;">Next »</a>
-                            @else
-                                <span style="padding: 8px 12px; color: #ccc;">Next »</span>
-                            @endif
-                        </div>
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                            @if ($feedbackData->currentPage() > 1)
-                                <a href="{{ $feedbackData->appends(['active_tab' => $active_tab])->url(1) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">‹</a>
-                            @endif
-                            @foreach(range(1, $feedbackData->lastPage()) as $page)
-                                @if($page == $feedbackData->currentPage())
-                                    <span style="padding: 6px 10px; border: 1px solid var(--secondary); border-radius: 4px; background: var(--secondary); color: white; font-weight: bold;">{{ $page }}</span>
-                                @elseif($page == 1 || $page == $feedbackData->lastPage() || abs($page - $feedbackData->currentPage()) < 3)
-                                    <a href="{{ $feedbackData->appends(['active_tab' => $active_tab])->url($page) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">{{ $page }}</a>
-                                @elseif(abs($page - $feedbackData->currentPage()) == 3)
-                                    <span style="padding: 6px 10px; color: #666;">...</span>
-                                @endif
-                            @endforeach
-                            @if ($feedbackData->currentPage() < $feedbackData->lastPage())
-                                <a href="{{ $feedbackData->appends(['active_tab' => $active_tab])->url($feedbackData->lastPage()) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">›</a>
-                            @endif
-                        </div>
+                        <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;" data-pagify="feedback-info"></div>
+                        <div style="text-align: center;"><div style="display: inline-flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;" data-pagify="feedback-nav"></div></div>
                     </div>
-                    @endif
                 </div>
 
                 <div class="data-table" style="margin-top: 30px;">
@@ -1699,7 +1748,7 @@ use Illuminate\Support\Str;
                             <tr id="flag-row-{{ $flagged->flaggedID }}">
                                 <td><strong>#{{ str_pad($flagged->flaggedID, 6, '0', STR_PAD_LEFT) }}</strong></td>
                                 <td title="{{ $flagged->question }}">{{ \Illuminate\Support\Str::limit($flagged->question, 50) }}</td>
-                                <td>{{ $flagged->description ?? $flagged->reasonID ?? 'Unknown' }}</td>
+                                <td>{{ $flagged->reason ?? 'Unknown' }}</td>
                                 <td>{{ \Carbon\Carbon::parse($flagged->timeStamp)->format('d/m/y') }}</td>
                                 <td><span class="status {{ strtolower($flagged->status) }}">{{ $flagged->status }}</span></td>
                                 <td>
@@ -1728,44 +1777,74 @@ use Illuminate\Support\Str;
                             @endforelse
                         </tbody>
                     </table>
+                    <div style="margin-top: 20px;">
+                        <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;" data-pagify="flagged-dash-info"></div>
+                        <div style="text-align: center;"><div style="display: inline-flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;" data-pagify="flagged-dash-nav"></div></div>
+                    </div>
                 </div>
             </div>
         </div>
         
         <!-- Chatbot Performance Section -->
         <div id="performance-section" class="section-content">
-            <div class="data-table">
-                <h3>Performance Metrics</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Metric</th>
-                            <th>Value</th>
-                            <th>Trend</th>
-                            <th>Target</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Response Accuracy</td>
-                            <td>92%</td>
-                            <td><span class="trend up">+2%</span></td>
-                            <td>95%</td>
-                        </tr>
-                        <tr>
-                            <td>User Satisfaction</td>
-                            <td>88%</td>
-                            <td><span class="trend up">+5%</span></td>
-                            <td>90%</td>
-                        </tr>
-                        <tr>
-                            <td>Average Response Time</td>
-                            <td>1.2s</td>
-                            <td><span class="trend down">-0.3s</span></td>
-                            <td>1.0s</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <!-- Date Range Filter -->
+            <div style="background: white; padding: 15px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08); margin-bottom: 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <label style="font-weight: 600; color: var(--primary);"><i class="fas fa-calendar-alt"></i> Date Range:</label>
+                <input type="date" id="performanceStartDate" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                <span style="color: #666;">to</span>
+                <input type="date" id="performanceEndDate" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                <button onclick="applyPerformanceDateFilter()" style="padding: 8px 16px; background: var(--secondary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+                    <i class="fas fa-filter"></i> Apply Filter
+                </button>
+                <button onclick="resetPerformanceDateFilter()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+            </div>
+
+            <!-- KPI Cards Row -->
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 25px;">
+                <!-- Total Interactions KPI -->
+                <div style="background: linear-gradient(135deg, #2d5a3d 0%, #3d7a4d 100%); padding: 20px 28px; border-radius: 14px; box-shadow: 0 4px 15px rgba(45, 90, 61, 0.2); display: flex; align-items: center; gap: 18px; flex: 1; min-width: 280px;">
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px;">
+                        <i class="fas fa-comments" style="font-size: 2rem; color: white;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.95rem; color: rgba(255,255,255,0.85); font-weight: 500;">Total Interactions</div>
+                        <div id="performanceTotalInteractions" style="font-size: 2.2rem; font-weight: bold; color: white;">{{ $totalInteractions }}</div>
+                        <div id="performanceInteractionsRange" style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">All time</div>
+                    </div>
+                </div>
+                
+                <!-- Average Response Time KPI -->
+                <div style="background: linear-gradient(135deg, #1565c0 0%, #1976d2 100%); padding: 20px 28px; border-radius: 14px; box-shadow: 0 4px 15px rgba(21, 101, 192, 0.2); display: flex; align-items: center; gap: 18px; flex: 1; min-width: 280px;">
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px;">
+                        <i class="fas fa-clock" style="font-size: 2rem; color: white;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.95rem; color: rgba(255,255,255,0.85); font-weight: 500;">Avg Response Time</div>
+                        <div id="performanceAvgResponseTime" style="font-size: 2.2rem; font-weight: bold; color: white;">{{ number_format($avgResponseTime ?? 0, 2) }}s</div>
+                        <div id="performanceResponseTimeRange" style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">All time</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Area Charts Row -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
+                <!-- Response Time Trend Chart -->
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
+                    <h3 style="margin: 0 0 15px 0; color: var(--primary); font-size: 1.1rem;">
+                        <i class="fas fa-chart-area" style="margin-right: 8px;"></i>Average Response Time Trend
+                    </h3>
+                    <canvas id="responseTimeTrendChart" style="max-height: 300px;"></canvas>
+                </div>
+                
+                <!-- Interactions Over Time Chart -->
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
+                    <h3 style="margin: 0 0 15px 0; color: var(--primary); font-size: 1.1rem;">
+                        <i class="fas fa-chart-line" style="margin-right: 8px;"></i>Interactions Over Time
+                    </h3>
+                    <canvas id="interactionsOverTimeChart" style="max-height: 300px;"></canvas>
+                </div>
             </div>
         </div>
         
@@ -1790,10 +1869,36 @@ use Illuminate\Support\Str;
                     <div>
                         <div style="font-size: 1.1rem; color: var(--danger); font-weight: 600;">Most Common Flagged Reason</div>
                         <div id="commonFlaggedReasonValueSection" style="font-size: 1.2rem; font-weight: bold; color: var(--danger);">N/A</div>
-                        <div id="commonFlaggedReasonCountSection" style="font-size: 0.95rem; color: #666;">Based on 0 flags</div>
+                        <div id="commonFlaggedReasonCountSection" style="font-size: 0.95rem; color: #666;">
+                            Based on {{ $flaggedCount }} flag{{ $flaggedCount == 1 ? '' : 's' }}
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Star Rating Filter -->
+            <div style="margin-bottom: 20px; background: white; padding: 15px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08); display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <label style="font-weight: 600; color: var(--primary);">Filter by Rating:</label>
+                <button onclick="filterFeedbackSectionByStars('all', this)" class="star-filter-section-btn active" data-stars="all" style="padding: 8px 16px; border: 2px solid var(--primary); background: var(--primary); color: white; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">All Ratings</button>
+                <button onclick="filterFeedbackSectionByStars('5', this)" class="star-filter-section-btn" data-stars="5" style="padding: 8px 16px; border: 2px solid #27ae60; background: white; color: #27ae60; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">⭐⭐⭐⭐⭐ 5 Stars</button>
+                <button onclick="filterFeedbackSectionByStars('4', this)" class="star-filter-section-btn" data-stars="4" style="padding: 8px 16px; border: 2px solid #2ecc71; background: white; color: #2ecc71; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">⭐⭐⭐⭐ 4 Stars</button>
+                <button onclick="filterFeedbackSectionByStars('3', this)" class="star-filter-section-btn" data-stars="3" style="padding: 8px 16px; border: 2px solid #f39c12; background: white; color: #f39c12; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">⭐⭐⭐ 3 Stars</button>
+                <button onclick="filterFeedbackSectionByStars('2', this)" class="star-filter-section-btn" data-stars="2" style="padding: 8px 16px; border: 2px solid #e67e22; background: white; color: #e67e22; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">⭐⭐ 2 Stars</button>
+                <button onclick="filterFeedbackSectionByStars('1', this)" class="star-filter-section-btn" data-stars="1" style="padding: 8px 16px; border: 2px solid #e74c3c; background: white; color: #e74c3c; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">⭐ 1 Star</button>
+            </div>
+
+            <!-- Feedback Analytics Charts -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
+                    <h3 style="margin: 0 0 15px 0; color: var(--primary); font-size: 1.1rem;">Feedback Summary</h3>
+                    <canvas id="feedbackRatingChartSection" style="max-height: 300px;"></canvas>
+                </div>
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
+                    <h3 style="margin: 0 0 15px 0; color: var(--primary); font-size: 1.1rem;">Flagged Responses Summary</h3>
+                    <canvas id="flaggedReasonChartSection" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+            
             <div class="data-table">
                 <h3>User Feedback</h3>
                 <table id="feedbackSectionTable">
@@ -1831,49 +1936,17 @@ use Illuminate\Support\Str;
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" style="text-align: center; padding: 30px; color: #666;">
+                            <td colspan="5" style="text-align: center; padding: 30px; color: #666;">
                                 No feedback received yet.
                             </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
-                @if($feedbackData->hasPages())
                 <div style="margin-top: 20px;">
-                    <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;">
-                        Showing {{ $feedbackData->firstItem() }} to {{ $feedbackData->lastItem() }} of {{ $feedbackData->total() }} results
-                    </div>
-                    <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
-                        @if ($feedbackData->onFirstPage())
-                            <span style="padding: 8px 12px; color: #ccc;">« Previous</span>
-                        @else
-                            <a href="{{ $feedbackData->appends(['active_tab' => $active_tab])->previousPageUrl() }}" style="padding: 8px 12px; color: var(--secondary); text-decoration: none;">« Previous</a>
-                        @endif
-                        @if ($feedbackData->hasMorePages())
-                            <a href="{{ $feedbackData->appends(['active_tab' => $active_tab])->nextPageUrl() }}" style="padding: 8px 12px; color: var(--secondary); text-decoration: none;">Next »</a>
-                        @else
-                            <span style="padding: 8px 12px; color: #ccc;">Next »</span>
-                        @endif
-                    </div>
-                    <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                        @if ($feedbackData->currentPage() > 1)
-                            <a href="{{ $feedbackData->appends(['active_tab' => $active_tab])->url(1) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">‹</a>
-                        @endif
-                        @foreach(range(1, $feedbackData->lastPage()) as $page)
-                            @if($page == $feedbackData->currentPage())
-                                <span style="padding: 6px 10px; border: 1px solid var(--secondary); border-radius: 4px; background: var(--secondary); color: white; font-weight: bold;">{{ $page }}</span>
-                            @elseif($page == 1 || $page == $feedbackData->lastPage() || abs($page - $feedbackData->currentPage()) < 3)
-                                <a href="{{ $feedbackData->appends(['active_tab' => $active_tab])->url($page) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">{{ $page }}</a>
-                            @elseif(abs($page - $feedbackData->currentPage()) == 3)
-                                <span style="padding: 6px 10px; color: #666;">...</span>
-                            @endif
-                        @endforeach
-                        @if ($feedbackData->currentPage() < $feedbackData->lastPage())
-                            <a href="{{ $feedbackData->appends(['active_tab' => $active_tab])->url($feedbackData->lastPage()) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">›</a>
-                        @endif
-                    </div>
+                    <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;" data-pagify="feedback-section-info"></div>
+                    <div style="text-align: center;"><div style="display: inline-flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;" data-pagify="feedback-section-nav"></div></div>
                 </div>
-                @endif
             </div>
 
             <div class="data-table" style="margin-top: 30px;">
@@ -1894,7 +1967,7 @@ use Illuminate\Support\Str;
                         <tr id="flag-row-{{ $flagged->flaggedID }}">
                             <td><strong>#{{ str_pad($flagged->flaggedID, 6, '0', STR_PAD_LEFT) }}</strong></td>
                             <td title="{{ $flagged->question }}">{{ \Illuminate\Support\Str::limit($flagged->question, 50) }}</td>
-                            <td>{{ $flagged->description ?? $flagged->reasonID ?? 'Unknown' }}</td>
+                            <td>{{ $flagged->reason ?? 'Unknown' }}</td>
                             <td>{{ \Carbon\Carbon::parse($flagged->timeStamp)->format('d/m/y') }}</td>
                             <td><span class="status {{ strtolower($flagged->status) }}">{{ $flagged->status }}</span></td>
                             <td style="display: flex; gap: 5px; align-items: center;">
@@ -1923,42 +1996,10 @@ use Illuminate\Support\Str;
                         @endforelse
                     </tbody>
                 </table>
-                @if($flaggedResponses->hasPages())
                 <div style="margin-top: 20px;">
-                    <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;">
-                        Showing {{ $flaggedResponses->firstItem() }} to {{ $flaggedResponses->lastItem() }} of {{ $flaggedResponses->total() }} results
-                    </div>
-                    <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
-                        @if ($flaggedResponses->onFirstPage())
-                            <span style="padding: 8px 12px; color: #ccc;">« Previous</span>
-                        @else
-                            <a href="{{ $flaggedResponses->appends(['active_tab' => $active_tab])->previousPageUrl() }}" style="padding: 8px 12px; color: var(--secondary); text-decoration: none;">« Previous</a>
-                        @endif
-                        @if ($flaggedResponses->hasMorePages())
-                            <a href="{{ $flaggedResponses->appends(['active_tab' => $active_tab])->nextPageUrl() }}" style="padding: 8px 12px; color: var(--secondary); text-decoration: none;">Next »</a>
-                        @else
-                            <span style="padding: 8px 12px; color: #ccc;">Next »</span>
-                        @endif
-                    </div>
-                    <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                        @if ($flaggedResponses->currentPage() > 1)
-                            <a href="{{ $flaggedResponses->appends(['active_tab' => $active_tab])->url(1) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">‹</a>
-                        @endif
-                        @foreach(range(1, $flaggedResponses->lastPage()) as $page)
-                            @if($page == $flaggedResponses->currentPage())
-                                <span style="padding: 6px 10px; border: 1px solid var(--secondary); border-radius: 4px; background: var(--secondary); color: white; font-weight: bold;">{{ $page }}</span>
-                            @elseif($page == 1 || $page == $flaggedResponses->lastPage() || abs($page - $flaggedResponses->currentPage()) < 3)
-                                <a href="{{ $flaggedResponses->appends(['active_tab' => $active_tab])->url($page) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">{{ $page }}</a>
-                            @elseif(abs($page - $flaggedResponses->currentPage()) == 3)
-                                <span style="padding: 6px 10px; color: #666;">...</span>
-                            @endif
-                        @endforeach
-                        @if ($flaggedResponses->currentPage() < $flaggedResponses->lastPage())
-                            <a href="{{ $flaggedResponses->appends(['active_tab' => $active_tab])->url($flaggedResponses->lastPage()) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">›</a>
-                        @endif
-                    </div>
+                    <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;" data-pagify="flagged-section-info"></div>
+                    <div style="text-align: center;"><div style="display: inline-flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;" data-pagify="flagged-section-nav"></div></div>
                 </div>
-                @endif
             </div>
         </div>
         
@@ -2095,6 +2136,40 @@ use Illuminate\Support\Str;
     </div>
 </div>
 
+<!-- Unresolved Tickets Warning Modal -->
+<div id="unresolvedTicketsModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header" style="background: #ffebee; border-bottom: 1px solid #ffcdd2;">
+            <h3 style="color: #c62828; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-exclamation-triangle"></i> Cannot Archive Account
+            </h3>
+            <button class="close-modal" onclick="closeUnresolvedTicketsModal()">×</button>
+        </div>
+        <div class="modal-body" style="padding: 24px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <i class="fas fa-ticket-alt" style="font-size: 48px; color: #f44336; margin-bottom: 15px;"></i>
+                <p style="font-size: 16px; color: #333; margin-bottom: 10px;">
+                    This employee has <strong id="unresolvedTicketCount">0</strong> unresolved ticket(s).
+                </p>
+                <p style="font-size: 14px; color: #666;">
+                    Please resolve all pending tickets before archiving this account.
+                </p>
+            </div>
+            <div id="unresolvedTicketsList" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; display: none;">
+                <!-- Tickets will be populated here -->
+            </div>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button type="button" class="btn btn-secondary" onclick="closeUnresolvedTicketsModal()" style="padding: 10px 24px;">
+                    Close
+                </button>
+                <button type="button" class="btn btn-primary" onclick="goToTicketsTab()" style="padding: 10px 24px; background: var(--primary);">
+                    <i class="fas fa-ticket-alt"></i> View Tickets
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Create/Edit Intent Modal -->
 <div id="intentModal" class="modal">
     <div class="modal-content" style="max-width: 800px;">
@@ -2168,8 +2243,8 @@ You can check your leave balance in the employee portal."></textarea>
                     </div>
                     
                     <div class="form-group" style="flex: 1;">
-                        <label for="status">Status</label>
-                        <select id="status" name="status">
+                        <label for="intentStatus">Status</label>
+                        <select id="intentStatus" name="status">
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                         </select>
@@ -2284,27 +2359,25 @@ You can check your leave balance in the employee portal."></textarea>
 
  <!-- Chatbot Ticket Details Section -->
         <div id="tickets" class="section-content">
-            <div class="dashboard-cards">
-                <div class="card stat-card">
+            <div class="dashboard-cards" id="ticketKpiCards">
+                <div class="card stat-card kpi-card active" data-kpi="all" onclick="filterTicketsByKPI('all', this)">
                     <h3>Total Tickets</h3>
                     <div class="value" id="totalTickets">{{ $totalTickets ?? 0 }}</div>
-                    <div class="trend" id="totalTicketsTrend" style="display: none;">
-                        <span class="trend-value"></span>
-                    </div>
                 </div>
-                <div class="card stat-card">
+                <div class="card stat-card kpi-card" data-kpi="unresolved" onclick="filterTicketsByKPI('unresolved', this)">
                     <h3>Unresolved Tickets</h3>
                     <div class="value" id="unresolvedTickets">{{ $unresolvedTickets ?? 0 }}</div>
-                    <div class="trend" id="unresolvedTicketsTrend" style="display: none;">
-                        <span class="trend-value"></span>
-                    </div>
                 </div>
-                <div class="card stat-card">
+                <div class="card stat-card kpi-card" data-kpi="resolved" onclick="filterTicketsByKPI('resolved', this)">
                     <h3>Resolved Tickets</h3>
                     <div class="value" id="resolvedTickets">{{ $resolvedTickets ?? 0 }}</div>
-                    <div class="trend" id="resolvedTicketsTrend" style="display: none;">
-                        <span class="trend-value"></span>
-                    </div>
+                </div>
+                <div class="card stat-card" style="cursor: default;">
+                    <h3>Most Frequent Category</h3>
+                    <div class="value" style="font-size: 1.2rem; color: var(--primary);">{{ \Illuminate\Support\Str::title($mostFrequentCategory ?? 'N/A') }}</div>
+                    @if(isset($mostFrequentCategoryCount))
+                    <div style="font-size: 0.85rem; color: #666; margin-top: 5px;">{{ $mostFrequentCategoryCount }} tickets</div>
+                    @endif
                 </div>
             </div>
 
@@ -2356,9 +2429,10 @@ You can check your leave balance in the employee portal."></textarea>
                         <tr>
                             <th>Ticket #</th>
                             <th>Message</th>
-                            <th class="sortable" onclick="sortTable('ticketsTable', 2, 'text')">Priority</th>
-                            <th class="sortable" onclick="sortTable('ticketsTable', 3, 'text')">Status</th>
-                            <th class="sortable" onclick="sortTable('ticketsTable', 4, 'date')">Date</th>
+                            <th class="sortable" onclick="sortTable('ticketsTable', 2, 'text')">Category</th>
+                            <th class="sortable" onclick="sortTable('ticketsTable', 3, 'text')">Priority</th>
+                            <th class="sortable" onclick="sortTable('ticketsTable', 4, 'text')">Status</th>
+                            <th class="sortable" onclick="sortTable('ticketsTable', 5, 'date')">Date</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -2367,6 +2441,16 @@ You can check your leave balance in the employee portal."></textarea>
                         <tr>
                             <td>{{ $ticket->ticket_no ?? $ticket->id }}</td>
                             <td>{{ \Illuminate\Support\Str::limit($ticket->message ?? 'No message', 50) }}</td>
+                            <td>
+                                @php
+                                    $category = $ticket->category ?? 'General';
+                                    $words = explode(' ', strtolower($category));
+                                    $formatted = array_map(function($word) {
+                                        return strlen($word) >= 4 ? ucfirst($word) : $word;
+                                    }, $words);
+                                    echo implode(' ', $formatted);
+                                @endphp
+                            </td>
                             <td>
                                 <span class="priority {{ $ticket->priority ?? 'medium' }}">
                                     {{ ucfirst($ticket->priority ?? 'medium') }}
@@ -2386,49 +2470,17 @@ You can check your leave balance in the employee portal."></textarea>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 30px; color: #666;">
+                            <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
                                 No tickets found in the system.
                             </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
-                @if($tickets->hasPages())
                 <div style="margin-top: 20px;">
-                    <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;">
-                        Showing {{ $tickets->firstItem() }} to {{ $tickets->lastItem() }} of {{ $tickets->total() }} results
-                    </div>
-                    <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
-                        @if ($tickets->onFirstPage())
-                            <span style="padding: 8px 12px; color: #ccc;">« Previous</span>
-                        @else
-                            <a href="{{ $tickets->appends(['active_tab' => $active_tab])->previousPageUrl() }}" style="padding: 8px 12px; color: var(--secondary); text-decoration: none;">« Previous</a>
-                        @endif
-                        @if ($tickets->hasMorePages())
-                            <a href="{{ $tickets->appends(['active_tab' => $active_tab])->nextPageUrl() }}" style="padding: 8px 12px; color: var(--secondary); text-decoration: none;">Next »</a>
-                        @else
-                            <span style="padding: 8px 12px; color: #ccc;">Next »</span>
-                        @endif
-                    </div>
-                    <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                        @if ($tickets->currentPage() > 1)
-                            <a href="{{ $tickets->appends(['active_tab' => $active_tab])->url(1) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">‹</a>
-                        @endif
-                        @foreach(range(1, $tickets->lastPage()) as $page)
-                            @if($page == $tickets->currentPage())
-                                <span style="padding: 6px 10px; border: 1px solid var(--secondary); border-radius: 4px; background: var(--secondary); color: white; font-weight: bold;">{{ $page }}</span>
-                            @elseif($page == 1 || $page == $tickets->lastPage() || abs($page - $tickets->currentPage()) < 3)
-                                <a href="{{ $tickets->appends(['active_tab' => $active_tab])->url($page) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">{{ $page }}</a>
-                            @elseif(abs($page - $tickets->currentPage()) == 3)
-                                <span style="padding: 6px 10px; color: #666;">...</span>
-                            @endif
-                        @endforeach
-                        @if ($tickets->currentPage() < $tickets->lastPage())
-                            <a href="{{ $tickets->appends(['active_tab' => $active_tab])->url($tickets->lastPage()) }}" style="padding: 6px 10px; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); text-decoration: none; background: white;">›</a>
-                        @endif
-                    </div>
+                    <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;" data-pagify="tickets-info"></div>
+                    <div style="text-align: center;"><div style="display: inline-flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;" data-pagify="tickets-nav"></div></div>
                 </div>
-                @endif
             </div>
         </div>
         
@@ -2469,14 +2521,35 @@ You can check your leave balance in the employee portal."></textarea>
             </div>
 
             @if(session('import_errors'))
-                <div class="error-message" style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffc107; max-height: 200px; overflow-y: auto;">
-                    <strong>Import Errors:</strong>
-                    <ul style="margin: 5px 0 0 20px; padding: 0;">
-                        @foreach(session('import_errors') as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+                <div id="importErrorPopup" class="modal active" style="display:block;">
+                    <div class="modal-content" style="max-width: 500px;">
+                        <div class="modal-header">
+                            <h3 style="color: var(--danger);">Import Errors</h3>
+                            <button class="close-modal" onclick="closeImportErrorPopup()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <p style="color: #856404;">The following errors occurred during import:</p>
+                            <ul style="margin: 5px 0 0 20px; padding: 0; color: #856404;">
+                                @foreach(session('import_errors') as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <div style="margin-top: 20px; text-align: right;">
+                                <button class="btn-secondary" onclick="closeImportErrorPopup()">Close</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                <script>
+                // Auto-open import modal if errors exist
+                document.addEventListener('DOMContentLoaded', function() {
+                    openImportModal();
+                });
+                function closeImportErrorPopup() {
+                    var popup = document.getElementById('importErrorPopup');
+                    if (popup) popup.style.display = 'none';
+                }
+                </script>
             @endif
 
             <!-- Accounts Table -->
@@ -2496,7 +2569,12 @@ You can check your leave balance in the employee portal."></textarea>
                     <tbody id="accountsTableBody">
                         @forelse($users as $user)
                         <tr>
-                            <td>{{ $user->employeeNum }}</td>
+                            <td>
+                                {{ $user->employeeNum }}
+                                @if($user->is_online)
+                                <span class="online-indicator" title="User is currently online" style="display: inline-block; width: 8px; height: 8px; background-color: #28a745; border-radius: 50%; margin-left: 5px; animation: pulse 1.5s infinite;"></span>
+                                @endif
+                            </td>
                             <td>{{ $user->firstName }}</td>
                             <td>{{ $user->lastName }}</td>
                             <td>{{ $user->email }}</td>
@@ -2509,13 +2587,16 @@ You can check your leave balance in the employee portal."></textarea>
                                 <span class="status-badge status-{{ strtolower($user->status) }}">
                                     {{ $user->status }}
                                 </span>
+                                @if($user->is_online)
+                                <span class="badge" style="background-color: #28a745; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; margin-left: 5px;">Online</span>
+                                @endif
                             </td>
                             <td class="action-buttons-cell">
                                 <button class="btn-action btn-view" onclick="viewAccount('{{ $user->employeeNum }}')">
                                     <i class="fas fa-eye"></i> View
                                 </button>
-                                @if($user->role != 'Admin' || $user->employeeNum == Auth::user()->employeeNum)
-                                <button class="btn-action btn-edit" onclick="editAccountModal('{{ $user->employeeNum }}')">
+                                @if($user->role != 'Admin')
+                                <button class="btn-action btn-edit" onclick="editAccountModal('{{ $user->employeeNum }}')" @if($user->is_online && $user->employeeNum != Auth::user()->employeeNum) title="Cannot edit while user is online" @endif>
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
                                 <button class="btn-action btn-reset" onclick="resetPasswordModal('{{ $user->employeeNum }}')">
@@ -2523,8 +2604,8 @@ You can check your leave balance in the employee portal."></textarea>
                                 </button>
                                 @endif
                                 @if($user->employeeNum != Auth::user()->employeeNum && $user->role != 'Admin')
-                                <button class="btn-action btn-delete" onclick="deleteAccount('{{ $user->employeeNum }}')">
-                                    <i class="fas fa-trash"></i> Delete
+                                <button class="btn-action btn-archive" onclick="archiveAccount('{{ $user->employeeNum }}')" @if($user->is_online) disabled title="Cannot archive while user is online" style="opacity: 0.5; cursor: not-allowed;" @endif>
+                                    <i class="fas fa-archive"></i> Archive
                                 </button>
                                 @endif
                             </td>
@@ -2635,29 +2716,14 @@ You can check your leave balance in the employee portal."></textarea>
             </div>
             @endif
         </div>
-    </div>
 
-    <style>
-    /* Ensure Account Settings section content is below the header when active */
-    #account-settings.section-content.active {
-        margin-left: auto;
-        margin-right: auto;
-        max-width: 1100px;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    </style>
-
-    <!-- Account Settings Section -->
-    <div id="account-settings" class="section-content">
-        <div class="header-content-separator" style="height: 32px;"></div>
-        <div style="width: 100%; max-width: 1000px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-                <!-- Left Panel - Profile -->
-                <div class="profile-panel" style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <h3 style="margin-bottom: 25px; color: var(--primary); font-size: 1.3rem;">Profile</h3>
+        <!-- Account Settings Section -->
+        <div id="account-settings" class="section-content">
+            <div style="width: 100%; max-width: 1000px; margin: 0 auto;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <!-- Left Panel - Profile -->
+                    <div class="profile-panel" style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3 style="margin-bottom: 25px; color: var(--primary); font-size: 1.3rem;">Profile</h3>
                     
                     <div class="profile-image-container" style="text-align: center; margin-bottom: 25px;">
                         <img src="{{ Auth::user()->profile_picture ? asset('uploads/'.Auth::user()->profile_picture) : asset('assets/Logo.png') }}" 
@@ -2740,10 +2806,11 @@ You can check your leave balance in the employee portal."></textarea>
                             <i class="fas fa-sign-out-alt"></i> Log out
                         </button>
                     </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </div> <!-- End main-content -->
 
     <!-- View Ticket Modal -->
     <div id="viewTicketModal" class="modal">
@@ -2847,8 +2914,7 @@ You can check your leave balance in the employee portal."></textarea>
                             <select id="role" name="role" required>
                                 <option value="">Select Role</option>
                                 <option value="Employee" {{ old('role') == 'Employee' ? 'selected' : '' }}>Employee</option>
-                                <option value="Admin" {{ old('role') == 'Admin' ? 'selected' : '' }}>Administrator</option>
-                                <option value="HR" {{ old('role') == 'HR' ? 'selected' : '' }}>HR Manager</option>
+                                <option value="HR" {{ old('role') == 'HR' ? 'selected' : '' }}>Human Resources</option>
                             </select>
                             @error('role')
                                 <span style="color: #e74c3c; font-size: 0.8rem;">{{ $message }}</span>
@@ -2882,8 +2948,8 @@ You can check your leave balance in the employee portal."></textarea>
                         </div>
 
                         <div class="form-group">
-                            <label for="status">Account Status *</label>
-                            <select id="status" name="status" required>
+                            <label for="accountStatus">Account Status *</label>
+                            <select id="accountStatus" name="status" required>
                                 <option value="Active" {{ old('status') == 'Active' ? 'selected' : '' }}>Active</option>
                                 <option value="Deactivated" {{ old('status') == 'Deactivated' ? 'selected' : '' }}>Deactivated</option>
                             </select>
@@ -3042,8 +3108,7 @@ You can check your leave balance in the employee portal."></textarea>
                             <select id="edit_role" name="role" required>
                                 <option value="">Select Role</option>
                                 <option value="Employee">Employee</option>
-                                <option value="Admin">Administrator</option>
-                                <option value="HR">HR Manager</option>
+                                <option value="HR">Human Resources</option>
                             </select>
                         </div>
 
@@ -3265,6 +3330,14 @@ You can check your leave balance in the employee portal."></textarea>
 
         // Store all interactions data for filtering (date + response time)
         const allInteractionsData = @json($allInteractionsData);
+        
+        // DEBUG: Log data count on load
+        console.log('=== INTERACTIONS DATA DEBUG ===');
+        console.log('allInteractionsData loaded, count:', allInteractionsData.length);
+        if (allInteractionsData.length > 0) {
+            console.log('First item sample:', JSON.stringify(allInteractionsData[0]));
+            console.log('Last item sample:', JSON.stringify(allInteractionsData[allInteractionsData.length - 1]));
+        }
 
         // Store all tickets data for filtering (date + priority + status)
         const allTicketsData = @json($allTicketsData);
@@ -3633,6 +3706,23 @@ You can check your leave balance in the employee portal."></textarea>
         }
 
         // =============================================
+        // UNIFIED FILTER STATE SYSTEM
+        // =============================================
+        // Central filter state - all filters read from and write to this
+        const filterState = {
+            dateRange: {
+                type: 'overall',
+                start: null,
+                end: null,
+                label: 'Overall'
+            },
+            starRating: {
+                feedback: 'all',      // For feedback tab (dashboard)
+                feedbackSection: 'all' // For feedback section
+            }
+        };
+
+        // =============================================
         // DATE RANGE FILTER FUNCTIONALITY
         // =============================================
         
@@ -3655,8 +3745,8 @@ You can check your leave balance in the employee portal."></textarea>
             
             switch(currentDateRange) {
                 case 'daily':
-                    startDate = new Date(today.setHours(0, 0, 0, 0));
-                    endDate = new Date(today.setHours(23, 59, 59, 999));
+                    startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+                    endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
                     displayText = formatDate(startDate);
                     dateRangeData = {
                         start: startDate,
@@ -3667,11 +3757,8 @@ You can check your leave balance in the employee portal."></textarea>
                     
                 case 'weekly':
                     const firstDayOfWeek = today.getDate() - today.getDay();
-                    startDate = new Date(today.setDate(firstDayOfWeek));
-                    startDate.setHours(0, 0, 0, 0);
-                    endDate = new Date(startDate);
-                    endDate.setDate(startDate.getDate() + 6);
-                    endDate.setHours(23, 59, 59, 999);
+                    startDate = new Date(today.getFullYear(), today.getMonth(), firstDayOfWeek, 0, 0, 0, 0);
+                    endDate = new Date(today.getFullYear(), today.getMonth(), firstDayOfWeek + 6, 23, 59, 59, 999);
                     displayText = formatDate(startDate) + ' - ' + formatDate(endDate);
                     dateRangeData = {
                         start: startDate,
@@ -3681,9 +3768,8 @@ You can check your leave balance in the employee portal."></textarea>
                     break;
                     
                 case 'monthly':
-                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                    endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                    endDate.setHours(23, 59, 59, 999);
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+                    endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
                     displayText = startDate.toLocaleString('default', { month: 'long', year: 'numeric' });
                     dateRangeData = {
                         start: startDate,
@@ -3693,9 +3779,8 @@ You can check your leave balance in the employee portal."></textarea>
                     break;
                     
                 case 'annually':
-                    startDate = new Date(today.getFullYear(), 0, 1);
-                    endDate = new Date(today.getFullYear(), 11, 31);
-                    endDate.setHours(23, 59, 59, 999);
+                    startDate = new Date(today.getFullYear(), 0, 1, 0, 0, 0, 0);
+                    endDate = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
                     displayText = today.getFullYear().toString();
                     dateRangeData = {
                         start: startDate,
@@ -3767,71 +3852,111 @@ You can check your leave balance in the employee portal."></textarea>
             updateStatistics();
         }
 
-        // Filter tickets by date range
+        // Filter tickets by date range - now delegates to combined filter
         function filterTicketsByDate(startDate, endDate) {
-            const ticketRows = document.querySelectorAll('#ticketsTable tbody tr');
-            
-            ticketRows.forEach(row => {
-                const dateCell = row.querySelector('td:nth-child(5)'); // Date column
-                if (!dateCell || !dateCell.textContent.trim()) {
-                    return;
-                }
-                
-                const rowDate = parseDateFromCell(dateCell.textContent);
-                
-                if (startDate === null && endDate === null) {
-                    // Overall - show all
-                    row.style.display = '';
-                } else if (rowDate >= startDate && rowDate <= endDate) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+            // The date range is already stored in dateRangeData by applyDateRangeFilter
+            // Just call the combined filter which reads from dateRangeData
+            if (typeof applyCombinedTicketFilters === 'function') {
+                applyCombinedTicketFilters();
+            }
         }
 
-        // Filter feedback by date range
-        function filterFeedbackByDate(startDate, endDate) {
-            // Only count rows in the currently visible table (feedbackDashTable or feedbackSectionTable)
-            let table = document.getElementById('feedbackDashTable');
-            if (!table || table.offsetParent === null) {
-                table = document.getElementById('feedbackSectionTable');
-            }
+        // =============================================
+        // UNIFIED FEEDBACK FILTER (chains date + star filters)
+        // =============================================
+        function applyAllFeedbackFilters(tableId, starFilterKey) {
+            const table = document.getElementById(tableId);
+            if (!table) return;
+            
             const feedbackRows = table.querySelectorAll('tbody tr');
+            const { start: startDate, end: endDate } = dateRangeData;
+            const starFilter = filterState.starRating[starFilterKey];
+            
             let visibleCount = 0;
+            let totalRating = 0;
+            const isFiltered = (startDate !== null || endDate !== null) || starFilter !== 'all';
+            
             feedbackRows.forEach(row => {
                 // Skip empty state rows (with colspan)
                 if (row.querySelector('td[colspan]')) {
                     row.style.display = 'none';
                     return;
                 }
+                
+                let passesDateFilter = true;
+                let passesStarFilter = true;
+                
+                // Check date filter
                 const dateCell = row.cells[3];
-                if (!dateCell || !dateCell.textContent.trim()) {
-                    row.style.display = 'none';
-                    return;
+                if (dateCell && dateCell.textContent.trim()) {
+                    const rowDate = parseDateFromCell(dateCell.textContent);
+                    if (startDate !== null && endDate !== null) {
+                        passesDateFilter = (rowDate >= startDate && rowDate <= endDate);
+                    }
                 }
-                const rowDate = parseDateFromCell(dateCell.textContent);
-                if (startDate === null && endDate === null) {
+                
+                // Check star filter
+                const ratingCell = row.cells[1];
+                let rating = null;
+                if (ratingCell) {
+                    const ratingMatch = ratingCell.textContent.match(/\((\d)\/5\)/);
+                    if (ratingMatch) {
+                        rating = ratingMatch[1];
+                        if (starFilter !== 'all') {
+                            passesStarFilter = (rating === starFilter);
+                        }
+                    }
+                }
+                
+                // Row is visible only if it passes ALL filters
+                if (passesDateFilter && passesStarFilter) {
                     row.style.display = '';
                     visibleCount++;
-                } else if (rowDate >= startDate && rowDate <= endDate) {
-                    row.style.display = '';
-                    visibleCount++;
+                    if (rating) totalRating += parseInt(rating);
                 } else {
                     row.style.display = 'none';
                 }
             });
-            updatePagificationDisplay('feedback', visibleCount);
+            
+            return { visibleCount, totalRating, isFiltered };
+        }
+
+        // Filter feedback by date range (now uses unified filter)
+        function filterFeedbackByDate(startDate, endDate) {
+            // Update dateRangeData (already done by caller, but ensure consistency)
+            // Filter dashboard feedback table
+            const dashResult = applyAllFeedbackFilters('feedbackDashTable', 'feedback');
+            if (dashResult) {
+                const avgRating = dashResult.visibleCount > 0 ? (dashResult.totalRating / dashResult.visibleCount).toFixed(2) : 'N/A';
+                if (document.getElementById('avgFeedbackValue')) {
+                    document.getElementById('avgFeedbackValue').textContent = avgRating;
+                    document.getElementById('avgFeedbackCount').textContent = `Based on ${dashResult.visibleCount} feedback${dashResult.visibleCount === 1 ? '' : 's'}`;
+                }
+                updatePagificationDisplay('feedback', dashResult.visibleCount, dashResult.isFiltered);
+            }
+            
+            // Filter feedback section table
+            const sectionResult = applyAllFeedbackFilters('feedbackSectionTable', 'feedbackSection');
+            if (sectionResult) {
+                const avgRating = sectionResult.visibleCount > 0 ? (sectionResult.totalRating / sectionResult.visibleCount).toFixed(2) : 'N/A';
+                if (document.getElementById('avgFeedbackValueSection')) {
+                    document.getElementById('avgFeedbackValueSection').textContent = avgRating;
+                    document.getElementById('avgFeedbackCountSection').textContent = `Based on ${sectionResult.visibleCount} feedback${sectionResult.visibleCount === 1 ? '' : 's'}`;
+                }
+                updatePagificationDisplay('feedback-section', sectionResult.visibleCount, sectionResult.isFiltered);
+            }
         }
 
         // Ensure pagification is updated on load and tab switch
         document.addEventListener('DOMContentLoaded', function() {
-            // Initial pagification update for feedback tables
+            // Initialize client-side pagination for all tables
             setTimeout(function() {
-                const feedbackRows = document.querySelectorAll('#feedbackDashTable tbody tr:not([colspan]), #feedbackSectionTable tbody tr:not([colspan])');
-                let visibleCount = 0;
-                feedbackRows.forEach(row => { if (row.style.display !== 'none') visibleCount++; });
-                updatePagificationDisplay('feedback', visibleCount);
+                paginateTable('feedback');
+                paginateTable('feedback-section');
+                paginateTable('interactions');
+                paginateTable('flagged-dash');
+                paginateTable('flagged-section');
+                paginateTable('tickets');
             }, 200);
         });
 
@@ -3839,49 +3964,203 @@ You can check your leave balance in the employee portal."></textarea>
         document.querySelectorAll('.dashboard-tab-btn, [data-tab]').forEach(btn => {
             btn.addEventListener('click', function() {
                 setTimeout(function() {
-                    const feedbackRows = document.querySelectorAll('#feedbackDashTable tbody tr:not([colspan]), #feedbackSectionTable tbody tr:not([colspan])');
-                    let visibleCount = 0;
-                    feedbackRows.forEach(row => { if (row.style.display !== 'none') visibleCount++; });
-                    updatePagificationDisplay('feedback', visibleCount);
+                    // Re-paginate relevant tables after tab switch
+                    paginateTable('feedback');
+                    paginateTable('feedback-section');
                 }, 200);
             });
         });
 
-        // Hide/show pagification info and navigation based on visible count and per-page
-        function updatePagificationDisplay(type, visibleCount) {
-            // type: 'feedback'
-            let perPage = 20;
+        // ========== CLIENT-SIDE PAGINATION SYSTEM ==========
+        const paginationState = {
+            feedback: { currentPage: 1, perPage: 20 },
+            'feedback-section': { currentPage: 1, perPage: 20 },
+            interactions: { currentPage: 1, perPage: 20 },
+            'flagged-dash': { currentPage: 1, perPage: 20 },
+            'flagged-section': { currentPage: 1, perPage: 20 },
+            tickets: { currentPage: 1, perPage: 20 }
+        };
+
+        function paginateTable(type) {
+            const state = paginationState[type];
+            let tableSelector = '';
+            
+            switch(type) {
+                case 'feedback': tableSelector = '#feedbackDashTable tbody tr:not([colspan])'; break;
+                case 'feedback-section': tableSelector = '#feedbackSectionTable tbody tr:not([colspan])'; break;
+                case 'interactions': tableSelector = '#interactionsTable tbody tr:not([colspan])'; break;
+                case 'flagged-dash': tableSelector = '#flaggedDashTable tbody tr:not([colspan])'; break;
+                case 'flagged-section': tableSelector = '#flaggedSectionTable tbody tr:not([colspan])'; break;
+                case 'tickets': tableSelector = '#ticketsTable tbody tr:not([colspan])'; break;
+            }
+            
+            const allRows = document.querySelectorAll(tableSelector);
+            
+            // Get only visible rows (not filtered out)
+            const visibleRows = Array.from(allRows).filter(row => row.style.display !== 'none');
+            const totalVisible = visibleRows.length;
+            const totalPages = Math.ceil(totalVisible / state.perPage);
+            
+            // Ensure current page is valid
+            if (state.currentPage > totalPages && totalPages > 0) {
+                state.currentPage = totalPages;
+            }
+            if (state.currentPage < 1) {
+                state.currentPage = 1;
+            }
+            
+            // Hide all rows first
+            allRows.forEach(row => {
+                if (row.style.display !== 'none') { // Don't change filtered rows
+                    row.classList.add('paginated-hidden');
+                    row.style.visibility = 'hidden';
+                    row.style.position = 'absolute';
+                }
+            });
+            
+            // Show only current page rows
+            const startIdx = (state.currentPage - 1) * state.perPage;
+            const endIdx = Math.min(startIdx + state.perPage, totalVisible);
+            
+            for (let i = startIdx; i < endIdx; i++) {
+                visibleRows[i].classList.remove('paginated-hidden');
+                visibleRows[i].style.visibility = '';
+                visibleRows[i].style.position = '';
+            }
+            
+            // Update pagination UI
+            updatePaginationUI(type, totalVisible, startIdx, endIdx, totalPages);
+        }
+
+        function updatePaginationUI(type, totalVisible, startIdx, endIdx, totalPages) {
+            const state = paginationState[type];
             let infoSelector = '';
             let navSelector = '';
+            
             switch(type) {
                 case 'feedback':
                     infoSelector = '[data-pagify="feedback-info"]';
                     navSelector = '[data-pagify="feedback-nav"]';
                     break;
+                case 'feedback-section':
+                    infoSelector = '[data-pagify="feedback-section-info"]';
+                    navSelector = '[data-pagify="feedback-section-nav"]';
+                    break;
+                case 'interactions':
+                    infoSelector = '[data-pagify="interactions-info"]';
+                    navSelector = '[data-pagify="interactions-nav"]';
+                    break;
+                case 'flagged-dash':
+                    infoSelector = '[data-pagify="flagged-dash-info"]';
+                    navSelector = '[data-pagify="flagged-dash-nav"]';
+                    break;
+                case 'flagged-section':
+                    infoSelector = '[data-pagify="flagged-section-info"]';
+                    navSelector = '[data-pagify="flagged-section-nav"]';
+                    break;
+                case 'tickets':
+                    infoSelector = '[data-pagify="tickets-info"]';
+                    navSelector = '[data-pagify="tickets-nav"]';
+                    break;
             }
+            
             const info = document.querySelectorAll(infoSelector);
             const nav = document.querySelectorAll(navSelector);
-            // Always update info text to match visible rows
+            
+            // Update info text
             info.forEach(el => {
-                if (visibleCount === 0) {
-                    el.textContent = 'No results found';
-                    el.style.display = '';
+                if (totalVisible === 0) {
+                    el.textContent = '';  // Clear the text when no results
+                    el.style.display = 'none';  // Hide the info div
                 } else {
-                    el.textContent = `Showing 1 to ${visibleCount} of ${visibleCount} results`;
-                    el.style.display = '';
+                    el.textContent = `Showing ${startIdx + 1} to ${endIdx} of ${totalVisible} result${totalVisible === 1 ? '' : 's'}`;
+                    el.style.display = '';  // Show the info div
                 }
             });
-            // Hide nav if no results or only one page
-            if (visibleCount === 0 || visibleCount <= perPage) {
-                nav.forEach(el => el.style.display = 'none');
+            
+            // Update navigation
+            nav.forEach(el => {
+                if (totalPages <= 1) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = '';
+                    renderPaginationButtons(el, type, totalPages);
+                }
+            });
+        }
+
+        function renderPaginationButtons(container, type, totalPages) {
+            const state = paginationState[type];
+            const currentPage = state.currentPage;
+            
+            let html = '';
+            
+            // Previous button
+            if (currentPage > 1) {
+                html += `<button onclick="goToPage('${type}', ${currentPage - 1})" style="padding: 8px 12px; background: white; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); cursor: pointer;">\u00ab Previous</button>`;
             } else {
-                nav.forEach(el => el.style.display = '');
+                html += `<span style="padding: 8px 12px; color: #ccc;">\u00ab Previous</span>`;
             }
+            
+            // First page
+            if (currentPage > 3) {
+                html += `<button onclick="goToPage('${type}', 1)" style="padding: 6px 10px; background: white; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); cursor: pointer;">1</button>`;
+                if (currentPage > 4) {
+                    html += `<span style="padding: 6px 10px; color: #666;">...</span>`;
+                }
+            }
+            
+            // Page numbers around current page
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                if (i === currentPage) {
+                    html += `<span style="padding: 6px 10px; background: var(--secondary); border: 1px solid var(--secondary); border-radius: 4px; color: white; font-weight: bold;">${i}</span>`;
+                } else {
+                    html += `<button onclick="goToPage('${type}', ${i})" style="padding: 6px 10px; background: white; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); cursor: pointer;">${i}</button>`;
+                }
+            }
+            
+            // Last page
+            if (currentPage < totalPages - 2) {
+                if (currentPage < totalPages - 3) {
+                    html += `<span style="padding: 6px 10px; color: #666;">...</span>`;
+                }
+                html += `<button onclick="goToPage('${type}', ${totalPages})" style="padding: 6px 10px; background: white; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); cursor: pointer;">${totalPages}</button>`;
+            }
+            
+            // Next button
+            if (currentPage < totalPages) {
+                html += `<button onclick="goToPage('${type}', ${currentPage + 1})" style="padding: 8px 12px; background: white; border: 1px solid #e0efe5; border-radius: 4px; color: var(--primary); cursor: pointer;">Next \u00bb</button>`;
+            } else {
+                html += `<span style="padding: 8px 12px; color: #ccc;">Next \u00bb</span>`;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function goToPage(type, page) {
+            paginationState[type].currentPage = page;
+            paginateTable(type);
+        }
+
+        function refreshPagination(type) {
+            if (!paginationState[type]) {
+                console.warn('Pagination state not found for type:', type);
+                return;
+            }
+            paginationState[type].currentPage = 1; // Reset to first page
+            paginateTable(type);
+        }
+
+        // Backward compatibility wrapper - calls new pagination system
+        function updatePagificationDisplay(type, visibleCount, isFiltered = true) {
+            refreshPagination(type);
         }
 
         // Filter interactions by date range
         function filterInteractionsByDate(startDate, endDate) {
             const interactionRows = document.querySelectorAll('#interactionsTable tbody tr');
+            let visibleCount = 0;
+            const isFiltered = startDate !== null || endDate !== null;
             
             interactionRows.forEach(row => {
                 // Skip empty state rows
@@ -3898,18 +4177,24 @@ You can check your leave balance in the employee portal."></textarea>
                 
                 if (startDate === null && endDate === null) {
                     row.style.display = '';
+                    visibleCount++;
                 } else if (rowDate >= startDate && rowDate <= endDate) {
                     row.style.display = '';
+                    visibleCount++;
                 } else {
                     row.style.display = 'none';
                 }
             });
+            
+            updatePagificationDisplay('interactions', visibleCount, isFiltered);
         }
 
         // Filter flagged responses by date range
         function filterFlaggedByDate(startDate, endDate) {
             // Select flagged responses from both dashboard feedback tab and feedback section
             const flaggedTables = document.querySelectorAll('#feedback .data-table:last-child tbody tr, #feedback-section .data-table:last-child tbody tr');
+            let visibleCount = 0;
+            const isFiltered = startDate !== null || endDate !== null;
             
             flaggedTables.forEach(row => {
                 const dateCell = row.querySelector('td:nth-child(4)'); // Date column is 4th for flagged (after removing User column)
@@ -3921,12 +4206,17 @@ You can check your leave balance in the employee portal."></textarea>
                 
                 if (startDate === null && endDate === null) {
                     row.style.display = '';
+                    visibleCount++;
                 } else if (rowDate >= startDate && rowDate <= endDate) {
                     row.style.display = '';
+                    visibleCount++;
                 } else {
                     row.style.display = 'none';
                 }
             });
+            
+            updatePagificationDisplay('flagged', visibleCount, isFiltered);
+            
             // Update flagged reason KPI after filtering
             if (typeof updateFlaggedReasonKPI === 'function') updateFlaggedReasonKPI();
         }
@@ -3956,42 +4246,9 @@ You can check your leave balance in the employee portal."></textarea>
 
         // Update statistics based on filtered data
         function updateStatistics() {
-            const { start, end } = dateRangeData;
-            
-            // Filter tickets from allTicketsData based on date range
-            let filteredTickets = allTicketsData;
-            
-            if (start !== null && end !== null) {
-                filteredTickets = allTicketsData.filter(ticket => {
-                    const ticketDate = new Date(ticket.ticket_date + 'T00:00:00');
-                    return ticketDate >= start && ticketDate <= end;
-                });
-            }
-            
-            // Count tickets accurately from filtered data
-            const totalVisible = filteredTickets.length;
-            const unresolvedVisible = filteredTickets.filter(ticket => 
-                ['Open', 'Replied', 'Waiting for HR'].includes(ticket.status)
-            ).length;
-            const resolvedVisible = filteredTickets.filter(ticket => 
-                ticket.status === 'Resolved'
-            ).length;
-            
-            console.log('updateStatistics:', {
-                totalVisible,
-                unresolvedVisible,
-                resolvedVisible,
-                dateRange: currentDateRange
-            });
-            
-            // Update ticket stats if on tickets page
-            const totalTicketsEl = document.getElementById('totalTickets');
-            const unresolvedTicketsEl = document.getElementById('unresolvedTickets');
-            const resolvedTicketsEl = document.getElementById('resolvedTickets');
-            
-            if (totalTicketsEl) totalTicketsEl.textContent = totalVisible;
-            if (unresolvedTicketsEl) unresolvedTicketsEl.textContent = unresolvedVisible;
-            if (resolvedTicketsEl) resolvedTicketsEl.textContent = resolvedVisible;
+            // NOTE: Ticket KPIs are now handled by applyCombinedTicketFilters()
+            // which respects ALL active filters (date, priority, status, KPI, search)
+            // This function only updates ticket trends and dashboard KPIs
             
             // Update ticket trends
             updateTicketTrends();
@@ -4006,11 +4263,21 @@ You can check your leave balance in the employee portal."></textarea>
             
             console.log('updateTicketTrends called', { start, end, currentDateRange });
             
+            const totalTrend = document.getElementById('totalTicketsTrend');
+            const unresolvedTrend = document.getElementById('unresolvedTicketsTrend');
+            const resolvedTrend = document.getElementById('resolvedTicketsTrend');
+            
+            // Check if elements exist
+            if (!totalTrend || !unresolvedTrend || !resolvedTrend) {
+                console.log('Trend elements not found, skipping update');
+                return;
+            }
+            
             // Hide trends for overall view
             if (start === null || end === null || currentDateRange === 'overall') {
-                document.getElementById('totalTicketsTrend').style.display = 'none';
-                document.getElementById('unresolvedTicketsTrend').style.display = 'none';
-                document.getElementById('resolvedTicketsTrend').style.display = 'none';
+                totalTrend.style.display = 'none';
+                unresolvedTrend.style.display = 'none';
+                resolvedTrend.style.display = 'none';
                 console.log('Trends hidden (overall view)');
                 return;
             }
@@ -4206,15 +4473,18 @@ You can check your leave balance in the employee portal."></textarea>
                 });
             }
             
-            // Calculate average
+            // Calculate average - only from items with valid response time
             let totalResponseTime = 0;
             let count = 0;
             
             filteredData.forEach(interaction => {
-                const responseTime = parseFloat(interaction.response_time_seconds);
-                if (!isNaN(responseTime)) {
-                    totalResponseTime += responseTime;
-                    count++;
+                // Only count items with valid response time (responseTime != questionTime)
+                if (interaction.has_valid_response_time == 1) {
+                    const responseTime = parseFloat(interaction.response_time_seconds);
+                    if (!isNaN(responseTime)) {
+                        totalResponseTime += responseTime;
+                        count++;
+                    }
                 }
             });
             
@@ -4257,7 +4527,7 @@ You can check your leave balance in the employee portal."></textarea>
                     labels: ['Resolved', 'Pending', 'Escalated'],
                     datasets: [{
                         label: 'Queries',
-                        data: [resolved, pending, escalated],
+                        data: [Math.max(0, resolved), Math.max(0, pending), Math.max(0, escalated)],
                         backgroundColor: [
                             '#2ecc71', // Green for resolved
                             '#f39c12', // Orange for pending  
@@ -4307,9 +4577,13 @@ You can check your leave balance in the employee portal."></textarea>
                     scales: {
                         y: {
                             beginAtZero: true,
+                            min: 0,
                             ticks: {
                                 stepSize: 1,
-                                precision: 0
+                                precision: 0,
+                                callback: function(value) {
+                                    return value < 0 ? 0 : value;
+                                }
                             },
                             grid: {
                                 drawBorder: false
@@ -4330,8 +4604,12 @@ You can check your leave balance in the employee portal."></textarea>
         }
 
         // Fetch filtered KPIs from server via AJAX
-        function fetchFilteredKPIs(range) {
-            fetch(`/admin/kpis/filter?range=${range}`)
+        function fetchFilteredKPIs(range, topic = null) {
+            let url = `/admin/kpis/filter?range=${range}`;
+            if (topic) {
+                url += `&topic=${encodeURIComponent(topic)}`;
+            }
+            fetch(url)
                 .then(response => response.json())
                 .then(result => {
                     if (result.success) {
@@ -4358,6 +4636,12 @@ You can check your leave balance in the employee portal."></textarea>
                             document.getElementById('avgFeedbackValueSection').textContent = data.feedbackAvg !== null ? data.feedbackAvg : 'N/A';
                             document.getElementById('avgFeedbackCountSection').textContent = `Based on ${data.feedbackCount} feedback${data.feedbackCount === 1 ? '' : 's'}`;
                         }
+                        // Update Flagged Count KPI
+                        if (document.getElementById('commonFlaggedReasonCountSection')) {
+                            document.getElementById('commonFlaggedReasonCountSection').textContent = `Based on ${data.flaggedCount} flag${data.flaggedCount === 1 ? '' : 's'}`;
+                        }
+                        // Update Most Asked Topics
+                        updateMostAskedTopics(data.mostAskedTopics);
                         // Update chart
                         updateChart(data.resolvedQueries, data.pendingQueries, data.escalatedQueries);
                         console.log('KPIs updated from server:', data);
@@ -4368,6 +4652,84 @@ You can check your leave balance in the employee portal."></textarea>
                 .catch(error => {
                     console.error('Error fetching filtered KPIs:', error);
                 });
+        }
+
+        // Update Most Asked Topics Display
+        function updateMostAskedTopics(topics) {
+            const topicsContainer = document.querySelector('.topics-container');
+            if (!topicsContainer) return;
+            
+            // Keep the heading
+            const heading = topicsContainer.querySelector('h3');
+            topicsContainer.innerHTML = '';
+            if (heading) topicsContainer.appendChild(heading);
+            
+            if (topics && topics.length > 0) {
+                topics.forEach(topic => {
+                    const topicItem = document.createElement('div');
+                    topicItem.className = 'topic-item';
+                    topicItem.style.cursor = 'pointer';
+                    topicItem.style.transition = 'all 0.2s';
+                    topicItem.dataset.topic = topic.topic;
+                    topicItem.onclick = () => filterByTopic(topic.topic);
+                    topicItem.onmouseover = function() {
+                        if (!this.dataset.active) this.style.background = '#f0f8f4';
+                    };
+                    topicItem.onmouseout = function() {
+                        if (!this.dataset.active) this.style.background = 'transparent';
+                    };
+                    
+                    // Apply selective title case (only words with 4+ characters)
+                    const titleCaseTopic = topic.topic.toLowerCase().split(' ').map(word => {
+                        return word.length >= 4 ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+                    }).join(' ');
+                    
+                    topicItem.innerHTML = `
+                        <span class="topic-name">${titleCaseTopic}</span>
+                        <span class="topic-count">${topic.count} inquir${topic.count == 1 ? 'y' : 'ies'}</span>
+                    `;
+                    topicsContainer.appendChild(topicItem);
+                });
+            } else {
+                const noDataItem = document.createElement('div');
+                noDataItem.className = 'topic-item';
+                noDataItem.innerHTML = `
+                    <span class="topic-name" style="color: #666; font-style: italic;">No data available yet</span>
+                    <span class="topic-count">0 inquiries</span>
+                `;
+                topicsContainer.appendChild(noDataItem);
+            }
+        }
+
+        // Filter by topic
+        let currentTopicFilter = null;
+        function filterByTopic(topic) {
+            console.log('Filtering by topic:', topic);
+            
+            // Toggle filter if same topic clicked
+            if (currentTopicFilter === topic) {
+                currentTopicFilter = null;
+                showNotification('Topic filter removed', 'success');
+            } else {
+                currentTopicFilter = topic;
+                showNotification(`Filtering by: ${topic}`, 'success');
+            }
+            
+            // Update visual state
+            document.querySelectorAll('.topic-item').forEach(item => {
+                if (currentTopicFilter && item.dataset.topic === currentTopicFilter) {
+                    item.style.background = '#d4edda';
+                    item.style.borderLeft = '3px solid var(--primary)';
+                    item.dataset.active = 'true';
+                } else {
+                    item.style.background = 'transparent';
+                    item.style.borderLeft = 'none';
+                    delete item.dataset.active;
+                }
+            });
+            
+            // Fetch filtered data
+            fetchFilteredKPIs(currentDateRange, currentTopicFilter);
         }
 
         // Initialize date range filter on page load
@@ -4382,23 +4744,23 @@ You can check your leave balance in the employee portal."></textarea>
             const interactionsDir = urlParams.get('interactions_dir') || 'desc';
             markSortedColumn('interactionsTable', ['question', 'response_time_seconds', 'isEscalated', 'questionTime'], interactionsSort, interactionsDir);
             
-            // Tickets table
+            // Tickets table - columns: 0=Ticket#, 1=Message, 2=Category, 3=Priority, 4=Status, 5=Date, 6=Action
             const ticketsSort = urlParams.get('tickets_sort') || 'created_at';
             const ticketsDir = urlParams.get('tickets_dir') || 'desc';
-            markSortedColumn('ticketsTable', ['ticket_no', 'from_user', 'priority', 'status', 'created_at'], ticketsSort, ticketsDir);
+            markSortedColumn('ticketsTable', ['ticket_no', null, 'category', 'priority', 'status', 'created_at', null], ticketsSort, ticketsDir);
             
-            // Feedback table (both dashboard and section)
+            // Feedback table (both dashboard and section) - columns: 0=ID, 1=Rating, 2=Subject, 3=Date, 4=Actions
             const feedbackSort = urlParams.get('feedback_sort') || 'timeStamp';
             const feedbackDir = urlParams.get('feedback_dir') || 'desc';
-            markSortedColumn('feedbackDashTable', ['feedbackID', 'rating', null, 'timeStamp'], feedbackSort, feedbackDir);
-            markSortedColumn('feedbackSectionTable', ['feedbackID', 'rating', null, 'timeStamp'], feedbackSort, feedbackDir);
+            markSortedColumn('feedbackDashTable', ['feedbackID', 'rating', null, 'timeStamp', null], feedbackSort, feedbackDir);
+            markSortedColumn('feedbackSectionTable', ['feedbackID', 'rating', null, 'timeStamp', null], feedbackSort, feedbackDir);
             
-            // Flags table (all instances)
+            // Flags table (all instances) - columns: 0=ID, 1=Query, 2=Reason, 3=Date, 4=Status, 5=Action
             const flagsSort = urlParams.get('flags_sort') || 'timeStamp';
             const flagsDir = urlParams.get('flags_dir') || 'desc';
-            markSortedColumn('flaggedTable', ['flaggedID', null, null, 'timeStamp', 'status'], flagsSort, flagsDir);
-            markSortedColumn('flaggedDashTable', ['flaggedID', null, null, 'timeStamp', 'status'], flagsSort, flagsDir);
-            markSortedColumn('flaggedSectionTable', ['flaggedID', null, null, 'timeStamp', 'status'], flagsSort, flagsDir);
+            markSortedColumn('flaggedTable', ['flaggedID', null, null, 'timeStamp', 'status', null], flagsSort, flagsDir);
+            markSortedColumn('flaggedDashTable', ['flaggedID', null, null, 'timeStamp', 'status', null], flagsSort, flagsDir);
+            markSortedColumn('flaggedSectionTable', ['flaggedID', null, null, 'timeStamp', 'status', null], flagsSort, flagsDir);
         });
 
         function markSortedColumn(tableId, columns, sortColumn, sortDir) {
@@ -4470,6 +4832,268 @@ You can check your leave balance in the employee portal."></textarea>
             
             // Initialize ticket charts
             initTicketCharts();
+            
+            // Initialize performance charts
+            initPerformanceCharts();
+        }
+
+        // =============================================
+        // CHATBOT PERFORMANCE CHARTS
+        // =============================================
+        let responseTimeTrendChartInstance = null;
+        let interactionsOverTimeChartInstance = null;
+        
+        // Initialize performance section charts
+        function initPerformanceCharts() {
+            // Set default date range (last 30 days)
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            document.getElementById('performanceStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('performanceEndDate').value = today.toISOString().split('T')[0];
+            
+            // Apply initial filter
+            applyPerformanceDateFilter();
+        }
+        
+        // Apply date filter for performance section
+        function applyPerformanceDateFilter() {
+            const startDate = document.getElementById('performanceStartDate').value;
+            const endDate = document.getElementById('performanceEndDate').value;
+            
+            console.log('Performance Filter - Start:', startDate, 'End:', endDate);
+            console.log('Total allInteractionsData count:', allInteractionsData.length);
+            
+            // Filter interaction data by date range
+            let filteredData = allInteractionsData;
+            if (startDate && endDate) {
+                filteredData = allInteractionsData.filter(item => {
+                    // Handle null/undefined query_date
+                    if (!item.query_date) return false;
+                    const itemDate = String(item.query_date);
+                    return itemDate >= startDate && itemDate <= endDate;
+                });
+            }
+            
+            console.log('Filtered data count:', filteredData.length);
+            
+            // Update KPIs
+            updatePerformanceKPIs(filteredData, startDate, endDate);
+            
+            // Update charts
+            updatePerformanceCharts(filteredData);
+        }
+        
+        // Reset date filter
+        function resetPerformanceDateFilter() {
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            document.getElementById('performanceStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('performanceEndDate').value = today.toISOString().split('T')[0];
+            
+            applyPerformanceDateFilter();
+        }
+        
+        // Update KPIs based on filtered data
+        function updatePerformanceKPIs(data, startDate, endDate) {
+            // Total interactions
+            const totalInteractions = data.length;
+            document.getElementById('performanceTotalInteractions').textContent = totalInteractions.toLocaleString();
+            
+            // Average response time - only count items with valid response time
+            // (has_valid_response_time = 1 means responseTime != questionTime)
+            const validResponseItems = data.filter(item => item.has_valid_response_time == 1);
+            let avgResponseTime = 0;
+            if (validResponseItems.length > 0) {
+                const totalTime = validResponseItems.reduce((sum, item) => sum + (parseFloat(item.response_time_seconds) || 0), 0);
+                avgResponseTime = totalTime / validResponseItems.length;
+            }
+            document.getElementById('performanceAvgResponseTime').textContent = avgResponseTime.toFixed(2) + 's';
+            
+            // Update date range labels
+            const rangeText = startDate && endDate ? 
+                `${formatDateShort(startDate)} - ${formatDateShort(endDate)}` : 'All time';
+            document.getElementById('performanceInteractionsRange').textContent = rangeText;
+            document.getElementById('performanceResponseTimeRange').textContent = rangeText + ` (${validResponseItems.length} with timing data)`;
+        }
+        
+        // Format date for display
+        function formatDateShort(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+        
+        // Update performance charts
+        function updatePerformanceCharts(data) {
+            // Group data by date
+            const dateGroups = {};
+            data.forEach(item => {
+                const date = item.query_date;
+                if (!dateGroups[date]) {
+                    dateGroups[date] = { count: 0, totalTime: 0, validTimeCount: 0 };
+                }
+                dateGroups[date].count++;
+                // Only add response time if it's a valid measurement
+                if (item.has_valid_response_time == 1) {
+                    dateGroups[date].totalTime += parseFloat(item.response_time_seconds) || 0;
+                    dateGroups[date].validTimeCount++;
+                }
+            });
+            
+            // Sort dates
+            const sortedDates = Object.keys(dateGroups).sort();
+            
+            // Prepare chart data
+            const labels = sortedDates.map(date => {
+                const d = new Date(date);
+                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            
+            const responseTimeData = sortedDates.map(date => {
+                const group = dateGroups[date];
+                // Only calculate average from valid response times
+                return group.validTimeCount > 0 ? (group.totalTime / group.validTimeCount).toFixed(2) : 0;
+            });
+            
+            const interactionData = sortedDates.map(date => dateGroups[date].count);
+            
+            // Update Response Time Trend Chart
+            const responseTimeCanvas = document.getElementById('responseTimeTrendChart');
+            if (responseTimeCanvas) {
+                const ctx = responseTimeCanvas.getContext('2d');
+                
+                if (responseTimeTrendChartInstance) {
+                    responseTimeTrendChartInstance.destroy();
+                }
+                
+                responseTimeTrendChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Avg Response Time (seconds)',
+                            data: responseTimeData,
+                            borderColor: '#1565c0',
+                            backgroundColor: 'rgba(21, 101, 192, 0.15)',
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#1565c0',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Avg Response Time: ' + context.parsed.y + 's';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Seconds'
+                                }
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
+                    }
+                });
+            }
+            
+            // Update Interactions Over Time Chart
+            const interactionsCanvas = document.getElementById('interactionsOverTimeChart');
+            if (interactionsCanvas) {
+                const ctx = interactionsCanvas.getContext('2d');
+                
+                if (interactionsOverTimeChartInstance) {
+                    interactionsOverTimeChartInstance.destroy();
+                }
+                
+                interactionsOverTimeChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Interactions',
+                            data: interactionData,
+                            borderColor: '#2d5a3d',
+                            backgroundColor: 'rgba(45, 90, 61, 0.15)',
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#2d5a3d',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Interactions: ' + context.parsed.y;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Count'
+                                },
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
+                    }
+                });
+            }
         }
 
         // =============================================
@@ -4481,30 +5105,29 @@ You can check your leave balance in the employee portal."></textarea>
 
         // Initialize ticket charts
         function initTicketCharts() {
-            const { start, end } = dateRangeData;
+            // Count from VISIBLE rows in the table (respects ALL active filters)
+            const visibleRows = document.querySelectorAll('#ticketsTableBody tr:not([style*="display: none"])');
             
-            // Filter tickets by date range
-            let filteredTickets = allTicketsData;
-            
-            if (start !== null && end !== null) {
-                filteredTickets = allTicketsData.filter(ticket => {
-                    const ticketDate = new Date(ticket.ticket_date + 'T00:00:00');
-                    return ticketDate >= start && ticketDate <= end;
-                });
-            }
-            
-            // Count by priority
+            // Count by priority from visible rows
             const priorityCounts = {};
-            filteredTickets.forEach(ticket => {
-                const priority = ticket.priority || 'medium';
-                priorityCounts[priority] = (priorityCounts[priority] || 0) + 1;
+            visibleRows.forEach(row => {
+                if (row.querySelector('td[colspan]')) return; // Skip empty state
+                const priorityEl = row.querySelector('.priority');
+                if (priorityEl) {
+                    const priority = priorityEl.textContent.trim().toLowerCase();
+                    priorityCounts[priority] = (priorityCounts[priority] || 0) + 1;
+                }
             });
             
-            // Count by status
+            // Count by status from visible rows
             const statusCounts = {};
-            filteredTickets.forEach(ticket => {
-                const status = ticket.status || 'Open';
-                statusCounts[status] = (statusCounts[status] || 0) + 1;
+            visibleRows.forEach(row => {
+                if (row.querySelector('td[colspan]')) return; // Skip empty state
+                const statusEl = row.querySelector('.status');
+                if (statusEl) {
+                    const status = statusEl.textContent.trim();
+                    statusCounts[status] = (statusCounts[status] || 0) + 1;
+                }
             });
             
             // Create Priority Chart
@@ -4658,34 +5281,10 @@ You can check your leave balance in the employee portal."></textarea>
         }
 
         function filterTickets() {
-            const priorityFilter = document.getElementById('priorityFilter').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
-            const rows = document.querySelectorAll('#ticketsTable tbody tr');
-            
-            rows.forEach(row => {
-                const priorityElement = row.querySelector('.priority');
-                const statusElement = row.querySelector('.status');
-                
-                if (!priorityElement || !statusElement) return;
-                
-                // Get actual text content and normalize it
-                const priorityText = priorityElement.textContent.trim().toLowerCase();
-                const statusText = statusElement.textContent.trim().toLowerCase();
-                
-                let showRow = true;
-                
-                // Check priority filter
-                if (priorityFilter !== 'all' && priorityText !== priorityFilter) {
-                    showRow = false;
-                }
-                
-                // Check status filter
-                if (statusFilter !== 'all' && statusText !== statusFilter) {
-                    showRow = false;
-                }
-                
-                row.style.display = showRow ? '' : 'none';
-            });
+            // Delegate to the combined filter to ensure all filters chain properly
+            if (typeof applyCombinedTicketFilters === 'function') {
+                applyCombinedTicketFilters();
+            }
         }
 
         function viewTicketModal(ticketId) {
@@ -4708,7 +5307,7 @@ You can check your leave balance in the employee portal."></textarea>
                         const ticket = data.ticket;
                         
                         // Populate modal with ticket data
-                        const ticketContent = `
+                        let ticketContent = `
                             <div class="ticket-details-grid">
                                 <div class="ticket-detail-item">
                                     <label>Ticket Number:</label>
@@ -4732,15 +5331,15 @@ You can check your leave balance in the employee portal."></textarea>
                                 </div>
                                 <div class="ticket-detail-item">
                                     <label>Category:</label>
-                                    <div class="value">${ticket.category || 'N/A'}</div>
+                                    <div class="value">${ticket.category ? ticket.category.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'N/A'}</div>
                                 </div>
                                 <div class="ticket-detail-item">
                                     <label>Intent:</label>
                                     <div class="value">${ticket.intent || 'N/A'}</div>
                                 </div>
                                 <div class="ticket-detail-item">
-                                    <label>Confidence:</label>
-                                    <div class="value">${ticket.confidence ? (ticket.confidence * 100).toFixed(1) + '%' : 'N/A'}</div>
+                                    <label>${ticket.status === 'Resolved' ? 'Resolved By' : 'Assigned To'}:</label>
+                                    <div class="value">${ticket.status === 'Resolved' ? (ticket.resolved_by || 'N/A') : (ticket.assigned_to || 'Unassigned')}</div>
                                 </div>
                                 <div class="ticket-detail-item">
                                     <label>Created:</label>
@@ -5066,7 +5665,7 @@ You can check your leave balance in the employee portal."></textarea>
             });
         }
 
-        // DELETE ACCOUNT FUNCTION
+        // ARCHIVE ACCOUNT FUNCTION
         // Update flag status
         async function updateFlagStatus(flagId, status) {
             if (!confirm(`Mark this flagged response as ${status}?`)) {
@@ -5148,29 +5747,95 @@ You can check your leave balance in the employee portal."></textarea>
             }, 3000);
         }
 
-        function deleteAccount(employeeNum) {
-            if (confirm(`Are you sure you want to delete account ${employeeNum}? The account will be archived and deactivated but data will be preserved.`)) {
-                // Create and submit form
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `/admin/accounts/${employeeNum}`;
-                
-                // Add CSRF token
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = '_token';
-                csrfInput.value = csrfToken;
-                form.appendChild(csrfInput);
-                
-                // Add method spoofing for DELETE
-                const methodInput = document.createElement('input');
-                methodInput.type = 'hidden';
-                methodInput.name = '_method';
-                methodInput.value = 'DELETE';
-                form.appendChild(methodInput);
-                
-                document.body.appendChild(form);
-                form.submit();
+        function archiveAccount(employeeNum) {
+            // Check for unresolved tickets via AJAX
+            fetch(`/admin/accounts/${employeeNum}/unresolved-tickets`, {
+                headers: { 'X-CSRF-TOKEN': csrfToken }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.hasUnresolved) {
+                    // Show the unresolved tickets modal
+                    showUnresolvedTicketsModal(data.unresolvedCount, data.tickets);
+                } else {
+                    if (confirm(`Are you sure you want to archive account ${employeeNum}? The account will be archived and deactivated but data will be preserved.`)) {
+                        // Use AJAX instead of form submission for seamless UX
+                        fetch(`/admin/accounts/${employeeNum}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success) {
+                                showNotification(result.message || 'Account archived successfully!', 'success');
+                                // Reload page to refresh the table
+                                setTimeout(() => {
+                                    window.location.href = window.location.pathname + '?active_tab=account-management';
+                                }, 1000);
+                            } else {
+                                showNotification(result.message || 'Failed to archive account', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error archiving account:', error);
+                            showNotification('An error occurred while archiving the account.', 'error');
+                        });
+                    }
+                }
+            })
+            .catch(() => {
+                showNotification('Could not check unresolved tickets. Please try again.', 'error');
+            });
+        }
+
+        // Show Unresolved Tickets Modal
+        function showUnresolvedTicketsModal(count, tickets) {
+            const modal = document.getElementById('unresolvedTicketsModal');
+            const countElement = document.getElementById('unresolvedTicketCount');
+            const listElement = document.getElementById('unresolvedTicketsList');
+            
+            countElement.textContent = count;
+            
+            // Populate tickets list if available
+            if (tickets && tickets.length > 0) {
+                listElement.style.display = 'block';
+                listElement.innerHTML = tickets.map(ticket => `
+                    <div style="padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color: #333;">#${ticket.ticket_no}</strong>
+                            <span style="font-size: 12px; color: #666; margin-left: 10px;">${new Date(ticket.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <span class="status-badge" style="padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; 
+                            ${ticket.status === 'Open' ? 'background: #fff3e0; color: #e65100;' : 
+                              ticket.status === 'Replied' ? 'background: #e3f2fd; color: #1565c0;' : 
+                              'background: #fce4ec; color: #c62828;'}">
+                            ${ticket.status}
+                        </span>
+                    </div>
+                `).join('');
+            } else {
+                listElement.style.display = 'none';
+            }
+            
+            modal.classList.add('active');
+        }
+
+        // Close Unresolved Tickets Modal
+        function closeUnresolvedTicketsModal() {
+            document.getElementById('unresolvedTicketsModal').classList.remove('active');
+        }
+
+        // Navigate to Tickets Tab
+        function goToTicketsTab() {
+            closeUnresolvedTicketsModal();
+            // Switch to tickets tab
+            const ticketsLink = document.querySelector('a[data-section="tickets"]');
+            if (ticketsLink) {
+                ticketsLink.click();
             }
         }
 
@@ -5179,34 +5844,42 @@ You can check your leave balance in the employee portal."></textarea>
         // =============================================
         function sortTable(tableId, columnIndex, dataType) {
             // Map table IDs to their sort parameter names and column mappings
+            // Each columns array index matches the table column index (0-based)
             const sortConfig = {
                 'ticketsTable': {
                     param: 'tickets',
-                    columns: ['ticket_no', 'from_user', 'priority', 'status', 'created_at']
+                    // Columns: 0=Ticket#, 1=Message, 2=Category, 3=Priority, 4=Status, 5=Date, 6=Action
+                    columns: ['ticket_no', null, 'category', 'priority', 'status', 'created_at', null]
                 },
                 'feedbackDashTable': {
                     param: 'feedback',
-                    columns: ['feedbackID', 'rating', null, 'timeStamp']
+                    // Columns: 0=Feedback ID, 1=Rating, 2=Subject, 3=Date, 4=Actions
+                    columns: ['feedbackID', 'rating', null, 'timeStamp', null]
                 },
                 'feedbackSectionTable': {
                     param: 'feedback',
-                    columns: ['feedbackID', 'rating', null, 'timeStamp']
+                    // Columns: 0=Feedback ID, 1=Rating, 2=Subject, 3=Date, 4=Actions
+                    columns: ['feedbackID', 'rating', null, 'timeStamp', null]
                 },
                 'interactionsTable': {
                     param: 'interactions',
-                    columns: ['question', 'questionTime', 'isEscalated', 'questionTime']
+                    // Columns: 0=Query, 1=Response Time, 2=Status, 3=Date
+                    columns: ['question', 'response_time_seconds', 'isEscalated', 'questionTime']
                 },
                 'flaggedTable': {
                     param: 'flags',
-                    columns: ['flaggedID', null, null, 'timeStamp', 'status']
+                    // Columns: 0=Flag ID, 1=Query, 2=Reason, 3=Date, 4=Status, 5=Action
+                    columns: ['flaggedID', null, null, 'timeStamp', 'status', null]
                 },
                 'flaggedDashTable': {
                     param: 'flags',
-                    columns: ['flaggedID', null, null, 'timeStamp', 'status']
+                    // Columns: 0=Flag ID, 1=Query, 2=Reason, 3=Date, 4=Status, 5=Action
+                    columns: ['flaggedID', null, null, 'timeStamp', 'status', null]
                 },
                 'flaggedSectionTable': {
                     param: 'flags',
-                    columns: ['flaggedID', null, null, 'timeStamp', 'status']
+                    // Columns: 0=Flag ID, 1=Query, 2=Reason, 3=Date, 4=Status, 5=Action
+                    columns: ['flaggedID', null, null, 'timeStamp', 'status', null]
                 }
             };
 
@@ -5331,6 +6004,8 @@ You can check your leave balance in the employee portal."></textarea>
         // =============================================
         let feedbackRatingChartInstance = null;
         let flaggedReasonChartInstance = null;
+        let feedbackRatingChartSectionInstance = null;
+        let flaggedReasonChartSectionInstance = null;
 
         function initFeedbackCharts() {
             // Get feedback rating data from table (only visible rows)
@@ -5349,7 +6024,7 @@ You can check your leave balance in the employee portal."></textarea>
                 }
             });
 
-            // Create Feedback Rating Chart
+            // Create Feedback Rating Chart (Dashboard)
             const ratingCanvas = document.getElementById('feedbackRatingChart');
             if (ratingCanvas) {
                 const ctx = ratingCanvas.getContext('2d');
@@ -5415,7 +6090,7 @@ You can check your leave balance in the employee portal."></textarea>
                 }
             });
 
-            // Create Flagged Reason Chart
+            // Create Flagged Reason Chart (Dashboard)
             const reasonCanvas = document.getElementById('flaggedReasonChart');
             if (reasonCanvas) {
                 const ctx = reasonCanvas.getContext('2d');
@@ -5432,6 +6107,146 @@ You can check your leave balance in the employee portal."></textarea>
                 ];
                 
                 flaggedReasonChartInstance = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    padding: 15,
+                                    font: { size: 12 }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const value = context.parsed;
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return context.label + ': ' + value + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Create charts for Feedback Section as well
+            initFeedbackSectionCharts();
+        }
+
+        function initFeedbackSectionCharts() {
+            // Get feedback rating data from feedback section table (only visible rows)
+            const feedbackRows = document.querySelectorAll('#feedbackSectionTable tbody tr:not([colspan])');
+            const ratingCounts = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+            
+            feedbackRows.forEach(row => {
+                // Skip hidden rows (filtered out by date range)
+                if (row.style.display === 'none') return;
+                
+                const ratingText = row.cells[1]?.textContent;
+                const match = ratingText?.match(/\((\d)\/5\)/);
+                if (match) {
+                    const rating = match[1];
+                    ratingCounts[rating]++;
+                }
+            });
+
+            // Create Feedback Rating Chart (Section)
+            const ratingCanvas = document.getElementById('feedbackRatingChartSection');
+            if (ratingCanvas) {
+                const ctx = ratingCanvas.getContext('2d');
+                
+                if (feedbackRatingChartSectionInstance) {
+                    feedbackRatingChartSectionInstance.destroy();
+                }
+                
+                feedbackRatingChartSectionInstance = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['⭐ 1 Star', '⭐⭐ 2 Stars', '⭐⭐⭐ 3 Stars', '⭐⭐⭐⭐ 4 Stars', '⭐⭐⭐⭐⭐ 5 Stars'],
+                        datasets: [{
+                            data: [ratingCounts['1'], ratingCounts['2'], ratingCounts['3'], ratingCounts['4'], ratingCounts['5']],
+                            backgroundColor: [
+                                '#e74c3c', // Red for 1 star
+                                '#e67e22', // Orange for 2 stars
+                                '#f39c12', // Yellow for 3 stars
+                                '#2ecc71', // Light green for 4 stars
+                                '#27ae60'  // Dark green for 5 stars
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    padding: 15,
+                                    font: { size: 12 }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const value = context.parsed;
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return context.label + ': ' + value + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Get flagged responses reason data from feedback section table (only visible rows)
+            const flaggedRows = document.querySelectorAll('#flaggedSectionTable tbody tr:not([colspan])');
+            const reasonCounts = {};
+            
+            flaggedRows.forEach(row => {
+                // Skip hidden rows (filtered out by date range)
+                if (row.style.display === 'none') return;
+                
+                const reason = row.cells[2]?.textContent.trim();
+                if (reason && reason !== 'Unknown') {
+                    reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+                }
+            });
+
+            // Create Flagged Reason Chart (Section)
+            const reasonCanvas = document.getElementById('flaggedReasonChartSection');
+            if (reasonCanvas) {
+                const ctx = reasonCanvas.getContext('2d');
+                
+                if (flaggedReasonChartSectionInstance) {
+                    flaggedReasonChartSectionInstance.destroy();
+                }
+                
+                const labels = Object.keys(reasonCounts);
+                const data = Object.values(reasonCounts);
+                const colors = [
+                    '#e74c3c', '#3498db', '#f39c12', '#9b59b6', '#1abc9c',
+                    '#e67e22', '#2ecc71', '#34495e', '#16a085', '#d35400'
+                ];
+                
+                flaggedReasonChartSectionInstance = new Chart(ctx, {
                     type: 'pie',
                     data: {
                         labels: labels,
@@ -6130,6 +6945,93 @@ function filterGuidedQuestions() {
     });
 }
 
+// =============================================
+// STAR RATING FILTER FUNCTIONS
+// =============================================
+let currentStarFilter = 'all'; // For feedback tab (backward compat)
+let currentStarFilterSection = 'all'; // For feedback section (backward compat)
+
+function filterFeedbackByStars(stars, btnElement) {
+    currentStarFilter = stars;
+    // Update unified filter state
+    filterState.starRating.feedback = stars;
+    
+    // Update button styles
+    document.querySelectorAll('.star-filter-btn').forEach(btn => {
+        if (btn === btnElement) {
+            btn.style.background = btn.dataset.stars === 'all' ? 'var(--primary)' : btn.style.color;
+            btn.style.color = 'white';
+            btn.classList.add('active');
+        } else {
+            const color = btn.dataset.stars === 'all' ? 'var(--primary)' : 
+                         btn.dataset.stars === '5' ? '#27ae60' :
+                         btn.dataset.stars === '4' ? '#2ecc71' :
+                         btn.dataset.stars === '3' ? '#f39c12' :
+                         btn.dataset.stars === '2' ? '#e67e22' : '#e74c3c';
+            btn.style.background = 'white';
+            btn.style.color = color;
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Apply unified filter (chains with date filter)
+    const result = applyAllFeedbackFilters('feedbackDashTable', 'feedback');
+    if (result) {
+        const avgRating = result.visibleCount > 0 ? (result.totalRating / result.visibleCount).toFixed(2) : 'N/A';
+        document.getElementById('avgFeedbackValue').textContent = avgRating;
+        document.getElementById('avgFeedbackCount').textContent = `Based on ${result.visibleCount} feedback${result.visibleCount === 1 ? '' : 's'}`;
+        updatePagificationDisplay('feedback', result.visibleCount, result.isFiltered);
+    }
+    
+    // Update chart
+    if (typeof initFeedbackCharts === 'function') {
+        initFeedbackCharts();
+    }
+}
+
+function filterFeedbackSectionByStars(stars, btnElement) {
+    currentStarFilterSection = stars;
+    // Update unified filter state
+    filterState.starRating.feedbackSection = stars;
+    
+    // Update button styles
+    document.querySelectorAll('.star-filter-section-btn').forEach(btn => {
+        if (btn === btnElement) {
+            btn.style.background = btn.dataset.stars === 'all' ? 'var(--primary)' : btn.style.color;
+            btn.style.color = 'white';
+            btn.classList.add('active');
+        } else {
+            const color = btn.dataset.stars === 'all' ? 'var(--primary)' : 
+                         btn.dataset.stars === '5' ? '#27ae60' :
+                         btn.dataset.stars === '4' ? '#2ecc71' :
+                         btn.dataset.stars === '3' ? '#f39c12' :
+                         btn.dataset.stars === '2' ? '#e67e22' : '#e74c3c';
+            btn.style.background = 'white';
+            btn.style.color = color;
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Apply unified filter (chains with date filter)
+    const result = applyAllFeedbackFilters('feedbackSectionTable', 'feedbackSection');
+    if (result) {
+        const avgRating = result.visibleCount > 0 ? (result.totalRating / result.visibleCount).toFixed(2) : 'N/A';
+        document.getElementById('avgFeedbackValueSection').textContent = avgRating;
+        document.getElementById('avgFeedbackCountSection').textContent = `Based on ${result.visibleCount} feedback${result.visibleCount === 1 ? '' : 's'}`;
+        updatePagificationDisplay('feedback-section', result.visibleCount, result.isFiltered);
+    }
+    
+    // Update chart
+    if (typeof initFeedbackSectionCharts === 'function') {
+        initFeedbackSectionCharts();
+    }
+    
+    // Also update flagged reason KPI for feedback section
+    if (typeof updateFlaggedReasonKPISection === 'function') {
+        updateFlaggedReasonKPISection();
+    }
+}
+
 // Utility Functions
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
@@ -6181,6 +7083,224 @@ function showNotification(message, type = 'success') {
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
+
+// =============================================
+// AJAX FORM HANDLERS FOR SEAMLESS UX
+// =============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // CREATE ACCOUNT FORM AJAX HANDLER
+    const createForm = document.getElementById('createAccountForm');
+    if (createForm) {
+        createForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = createForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+            
+            try {
+                const formData = new FormData(createForm);
+                const response = await fetch(createForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message || 'Account created successfully!', 'success');
+                    closeCreateModal();
+                    createForm.reset();
+                    // Reload page to refresh the table
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname + '?active_tab=account-management';
+                    }, 1000);
+                } else {
+                    showNotification(result.message || 'Failed to create account', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating account:', error);
+                showNotification('An error occurred while creating the account.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    }
+    
+    // EDIT ACCOUNT FORM AJAX HANDLER
+    const editForm = document.getElementById('editAccountForm');
+    if (editForm) {
+        editForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = editForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            try {
+                const formData = new FormData(editForm);
+                const response = await fetch(editForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message || 'Account updated successfully!', 'success');
+                    closeEditModal();
+                    // Reload page to refresh the table
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname + '?active_tab=account-management';
+                    }, 1000);
+                } else {
+                    showNotification(result.message || 'Failed to update account', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating account:', error);
+                showNotification('An error occurred while updating the account.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    }
+    
+    // RESET PASSWORD FORM AJAX HANDLER
+    const resetForm = document.getElementById('resetPasswordForm');
+    if (resetForm) {
+        resetForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = resetForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+            
+            try {
+                const formData = new FormData(resetForm);
+                const response = await fetch(resetForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message || 'Password reset successfully!', 'success');
+                    closeResetModal();
+                    resetForm.reset();
+                } else {
+                    showNotification(result.message || 'Failed to reset password', 'error');
+                }
+            } catch (error) {
+                console.error('Error resetting password:', error);
+                showNotification('An error occurred while resetting the password.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    }
+    
+    // IMPORT ACCOUNTS FORM AJAX HANDLER
+    const importForm = document.getElementById('importAccountForm');
+    if (importForm) {
+        importForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = importForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+            
+            try {
+                const formData = new FormData(importForm);
+                const response = await fetch(importForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message || 'Accounts imported successfully!', 'success');
+                    closeImportModal();
+                    importForm.reset();
+                    // Reload page to refresh the table
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname + '?active_tab=account-management';
+                    }, 1000);
+                } else {
+                    showNotification(result.message || 'Failed to import accounts', 'error');
+                }
+            } catch (error) {
+                console.error('Error importing accounts:', error);
+                showNotification('An error occurred while importing accounts.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    }
+});
+
+// ARCHIVE ACCOUNT WITH AJAX (updated version)
+function archiveAccountAjax(employeeNum) {
+    if (!confirm(`Are you sure you want to archive account ${employeeNum}? The account will be archived and deactivated but data will be preserved.`)) {
+        return;
+    }
+    
+    fetch(`/admin/accounts/${employeeNum}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showNotification(result.message || 'Account archived successfully!', 'success');
+            // Reload page to refresh the table
+            setTimeout(() => {
+                window.location.href = window.location.pathname + '?active_tab=account-management';
+            }, 1000);
+        } else {
+            showNotification(result.message || 'Failed to archive account', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error archiving account:', error);
+        showNotification('An error occurred while archiving the account.', 'error');
+    });
+}
 </script>
+    <script src="/assets/js/feedback_kpi.js"></script>
 </body>
 </html>

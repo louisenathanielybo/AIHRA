@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class DialogflowController extends Controller
 {
@@ -952,6 +953,16 @@ class DialogflowController extends Controller
 
             // 🆕 CRITICAL FIX: Create HR inbox ticket with multiple fallback attempts
             $inbox = null;
+            // Get random active HR staff to assign ticket (not deactivated or archived)
+            $activeHR = DB::table('users')
+                ->where('role', 'HR')
+                ->where('status', 'Active')
+                ->where('is_archived', 0)
+                ->pluck('employeeNum')
+                ->toArray();
+            
+            $assignedTo = !empty($activeHR) ? $activeHR[array_rand($activeHR)] : null;
+            
             $maxAttempts = 3;
             
             for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
@@ -965,12 +976,19 @@ class DialogflowController extends Controller
                         'category' => $category,
                         'intent' => substr('Escalated: ' . $reason, 0, 50),
                         'confidence' => $originalConfidence ?? 0.0,
+                        'assigned_to' => $assignedTo,
                         'response_deadline' => $deadlines['response_deadline'],
                         'resolution_deadline' => $deadlines['resolution_deadline'],
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
                     Log::info("✅ HR Inbox created successfully on attempt {$attempt}", ['ticket_no' => $ticketNo]);
+                    
+                    // Send email notification to assigned HR
+                    if ($assignedTo) {
+                        $this->sendTicketAssignmentEmail($assignedTo, $ticketNo, $queryText, $priority, $employeeNum);
+                    }
+                    
                     break; // Success, break out of retry loop
                     
                 } catch (\Exception $createError) {
@@ -1352,9 +1370,19 @@ class DialogflowController extends Controller
             $category = $this->determineCategory($queryText);
             $deadlines = $this->calculateDeadlines($priority);
 
+            // Get random active HR staff to assign ticket (not deactivated or archived)
+            $activeHR = DB::table('users')
+                ->where('role', 'HR')
+                ->where('status', 'Active')
+                ->where('is_archived', 0)
+                ->pluck('employeeNum')
+                ->toArray();
+            
+            $assignedTo = !empty($activeHR) ? $activeHR[array_rand($activeHR)] : null;
+            
             // Try multiple creation methods
             $methods = [
-                'eloquent_create' => function() use ($ticketNo, $employeeNum, $queryText, $reason, $priority, $category, $deadlines) {
+                'eloquent_create' => function() use ($ticketNo, $employeeNum, $queryText, $reason, $priority, $category, $deadlines, $assignedTo) {
                     return HrInbox::create([
                         'ticket_no' => $ticketNo,
                         'from_user' => $employeeNum ?: 'GUEST',
@@ -1364,13 +1392,14 @@ class DialogflowController extends Controller
                         'category' => $category,
                         'intent' => substr('EMERGENCY: ' . $reason, 0, 50),
                         'confidence' => 0.0,
+                        'assigned_to' => $assignedTo,
                         'response_deadline' => $deadlines['response_deadline'],
                         'resolution_deadline' => $deadlines['resolution_deadline'],
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
                 },
-                'db_insert' => function() use ($ticketNo, $employeeNum, $queryText, $reason, $priority, $category, $deadlines) {
+                'db_insert' => function() use ($ticketNo, $employeeNum, $queryText, $reason, $priority, $category, $deadlines, $assignedTo) {
                     return DB::table('hr_inbox')->insert([
                         'ticket_no' => $ticketNo,
                         'from_user' => $employeeNum ?: 'GUEST',
@@ -1378,6 +1407,9 @@ class DialogflowController extends Controller
                         'status' => 'Open',
                         'priority' => strtolower($priority),
                         'category' => $category,
+                        'intent' => substr('EMERGENCY: ' . $reason, 0, 50),
+                        'confidence' => 0.0,
+                        'assigned_to' => $assignedTo,
                         'intent' => substr('EMERGENCY: ' . $reason, 0, 50),
                         'confidence' => 0.0,
                         'response_deadline' => $deadlines['response_deadline'],
@@ -1698,5 +1730,136 @@ class DialogflowController extends Controller
         }
     }
 
+    /**
+     * Send email notification to HR staff when a ticket is assigned to them
+     */
+    private function sendTicketAssignmentEmail($hrEmployeeNum, $ticketNo, $message, $priority, $fromUser)
+    {
+        try {
+            // Get HR staff email
+            $hrUser = DB::table('users')
+                ->where('employeeNum', $hrEmployeeNum)
+                ->first(['email', 'firstName', 'lastName', 'name']);
+            
+            if (!$hrUser || empty($hrUser->email)) {
+                Log::warning('Cannot send ticket assignment email - HR user has no email', [
+                    'hr_employee_num' => $hrEmployeeNum,
+                    'ticket_no' => $ticketNo
+                ]);
+                return;
+            }
+            
+            $hrName = !empty($hrUser->firstName) ? $hrUser->firstName : ($hrUser->name ?? 'HR Staff');
+            
+            // Determine time remaining based on priority
+            $timeRemaining = match(strtolower($priority)) {
+                'urgent' => '30 minutes',
+                'high' => '1 hour',
+                'medium' => '8 hours',
+                'low' => '24 hours',
+                default => '24 hours'
+            };
+            
+            $subject = "A new Ticket has been assigned to you";
+            
+            $htmlContent = "
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                    <div style='background: linear-gradient(135deg, #2D5A3D 0%, #4A7C59 100%); padding: 20px; text-align: center;'>
+                        <h1 style='color: white; margin: 0;'>AIHRA</h1>
+                        <p style='color: #E8F5E8; margin: 5px 0 0 0;'>Ticket Assignment Notification</p>
+                    </div>
+                    <div style='padding: 30px; background: #f8f9fa;'>
+                        <p style='font-size: 16px; color: #333;'>Hey,</p>
+                        <p style='font-size: 14px; color: #333; line-height: 1.6;'>You have received a message regarding <strong>\"" . htmlspecialchars($message) . "\"</strong> kindly respond within the given time frame.</p>
+                        <p style='font-size: 14px; color: #333; margin-top: 15px;'><strong>Time remaining: {$timeRemaining}</strong></p>
+                        
+                        <div style='text-align: center; margin-top: 30px;'>
+                            <a href='" . url('/hr/dashboard') . "' style='background: #2D5A3D; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;'>View Ticket</a>
+                        </div>
+                    </div>
+                    <div style='background: #333; padding: 15px; text-align: center;'>
+                        <p style='color: #999; font-size: 12px; margin: 0;'>This is an automated message from AIHRA. Please do not reply to this email.</p>
+                    </div>
+                </div>
+            ";
+            
+            Mail::html($htmlContent, function ($mail) use ($hrUser, $subject) {
+                $mail->to($hrUser->email)
+                     ->subject($subject);
+            });
+            
+            Log::info('✅ Ticket assignment email sent', [
+                'to' => $hrUser->email,
+                'ticket_no' => $ticketNo
+            ]);
+            
+        } catch (\Exception $e) {
+            // Don't fail the ticket creation if email fails
+            Log::error('Failed to send ticket assignment email', [
+                'error' => $e->getMessage(),
+                'hr_employee_num' => $hrEmployeeNum,
+                'ticket_no' => $ticketNo
+            ]);
+        }
+    }
+
     
+
+    public function getIntents()
+    {
+        try {
+            return response()->json(['success' => true, 'data' => [], 'message' => 'Intents management coming soon']);
+        } catch (\Exception $e) {
+            Log::error('Error loading intents: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to load intents'], 500);
+        }
+    }
+
+    public function getGuidedQuestions()
+    {
+        try {
+            $questions = GuidedQuestion::with('children')->whereNull('parent_id')->orderBy('display_order')->get();
+            return response()->json(['success' => true, 'data' => $questions]);
+        } catch (\Exception $e) {
+            Log::error('Error loading guided questions: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to load guided questions'], 500);
+        }
+    }
+
+    public function createGuidedQuestion(Request $request)
+    {
+        try {
+            $validated = $request->validate(['question_text' => 'required|string', 'parent_id' => 'nullable|exists:guided_questions,gq_id', 'answer_text' => 'nullable|string', 'LEVEL' => 'required|integer', 'display_order' => 'nullable|integer']);
+            $question = GuidedQuestion::create($validated);
+            return response()->json(['success' => true, 'data' => $question]);
+        } catch (\Exception $e) {
+            Log::error('Error creating guided question: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to create guided question'], 500);
+        }
+    }
+
+    public function updateGuidedQuestion(Request $request, $id)
+    {
+        try {
+            $question = GuidedQuestion::findOrFail($id);
+            $validated = $request->validate(['question_text' => 'sometimes|string', 'answer_text' => 'nullable|string', 'display_order' => 'nullable|integer', 'status' => 'sometimes|in:active,inactive']);
+            $question->update($validated);
+            return response()->json(['success' => true, 'data' => $question]);
+        } catch (\Exception $e) {
+            Log::error('Error updating guided question: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to update guided question'], 500);
+        }
+    }
+
+    public function deleteGuidedQuestion($id)
+    {
+        try {
+            $question = GuidedQuestion::findOrFail($id);
+            $question->delete();
+            return response()->json(['success' => true, 'message' => 'Guided question deleted successfully']);
+        } catch (\Exception $e) {
+            Log::error('Error deleting guided question: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to delete guided question'], 500);
+        }
+    }
 }

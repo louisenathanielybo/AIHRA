@@ -17,10 +17,12 @@ class HrInbox extends Model
         'category',
         'intent',
         'confidence',
+        'assigned_to',
         'response_deadline',
         'resolution_deadline',
         'responded_at',
         'resolved_at',
+        'resolved_by',
         'is_expired',
     ];
 

@@ -5,6 +5,14 @@
     <title>AIHRA - HR Dashboard</title>
     @include('includes.header')
     <style>
+                /* Highlight active KPI card */
+                .dashboard-cards .card.active {
+                    border: 2px solid #1A6B61;
+                    box-shadow: 0 4px 16px rgba(26,107,97,0.10);
+                    background: #e6f7f0;
+                    transform: scale(1.04);
+                    z-index: 1;
+                }
         /* HR Dashboard Styles - Version 2.0 - Updated {{ date('Y-m-d H:i:s') }} */
         /* Layout */
         .sidebar {
@@ -1081,6 +1089,43 @@
             }
         }
 
+        /* Search Box Styles */
+        .search-box {
+            position: relative;
+            width: 100%;
+            max-width: 250px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border: 1px solid #e0efe5;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            background: white;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(74, 140, 94, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+        
+        @media (max-width: 768px) {
+            .search-box {
+                max-width: 100%;
+            }
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 220px;
@@ -1320,27 +1365,27 @@
 
                 <!-- Dashboard Cards -->
                 <div class="dashboard-cards">
-                    <div class="card">
+                    <div class="card" id="kpi-total" onclick="filterTicketsByKPI('all')" style="cursor:pointer;">
                         <h3>{{ $inbox->count() }}</h3>
                         <p>Total Tickets</p>
                     </div>
-                    <div class="card urgent">
+                    <div class="card urgent" id="kpi-urgent" onclick="filterTicketsByKPI('urgent')" style="cursor:pointer;">
                         <h3>{{ $inbox->where('priority', 'urgent')->count() }}</h3>
                         <p>Urgent Priority</p>
                     </div>
-                    <div class="card high">
+                    <div class="card high" id="kpi-high" onclick="filterTicketsByKPI('high')" style="cursor:pointer;">
                         <h3>{{ $inbox->where('priority', 'high')->count() }}</h3>
                         <p>High Priority</p>
                     </div>
-                    <div class="card medium">
+                    <div class="card medium" id="kpi-medium" onclick="filterTicketsByKPI('medium')" style="cursor:pointer;">
                         <h3>{{ $inbox->where('priority', 'medium')->count() }}</h3>
                         <p>Medium Priority</p>
                     </div>
-                    <div class="card low">
+                    <div class="card low" id="kpi-low" onclick="filterTicketsByKPI('low')" style="cursor:pointer;">
                         <h3>{{ $inbox->where('priority', 'low')->count() }}</h3>
                         <p>Low Priority</p>
                     </div>
-                    <div class="card replied">
+                    <div class="card replied" id="kpi-replied" onclick="filterTicketsByKPI('replied')" style="cursor:pointer;">
                         <h3>{{ $inbox->where('status', 'Replied')->count() }}</h3>
                         <p>Replied</p>
                     </div>
@@ -1348,7 +1393,145 @@
 
                 <div class="ticket-container">
                     <!-- Ticket List with Pending/Resolved toggle -->
+                    <script>
+                    // Unified filter state
+                    let currentKPI = 'all';
+                    let currentDateRange = 'overall';
+
+                    function filterTicketsByKPI(type) {
+                        currentKPI = type;
+                        // Remove active class from all KPI cards
+                        document.querySelectorAll('.dashboard-cards .card').forEach(card => card.classList.remove('active'));
+                        // Add active class to selected
+                        let activeId = 'kpi-' + (type === 'all' ? 'total' : type);
+                        let activeCard = document.getElementById(activeId);
+                        if (activeCard) activeCard.classList.add('active');
+                        applyCombinedFilters();
+                    }
+
+                    function applyInboxDateFilter() {
+                        const rangeSelect = document.getElementById('inboxDateRangeSelect');
+                        const rangeDisplay = document.getElementById('inboxDateRangeDisplay');
+                        currentDateRange = rangeSelect.value;
+                        const today = new Date();
+                        let startDate, endDate, displayText;
+                        switch(currentDateRange) {
+                            case 'daily':
+                                startDate = new Date(today.setHours(0, 0, 0, 0));
+                                endDate = new Date(today.setHours(23, 59, 59, 999));
+                                displayText = 'Today';
+                                break;
+                            case 'weekly':
+                                const firstDayOfWeek = today.getDate() - today.getDay();
+                                startDate = new Date(today.setDate(firstDayOfWeek));
+                                startDate.setHours(0, 0, 0, 0);
+                                endDate = new Date();
+                                displayText = 'This Week';
+                                break;
+                            case 'monthly':
+                                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                                endDate = new Date();
+                                displayText = 'This Month';
+                                break;
+                            case 'annually':
+                                startDate = new Date(today.getFullYear(), 0, 1);
+                                endDate = new Date();
+                                displayText = 'This Year';
+                                break;
+                            case 'overall':
+                            default:
+                                startDate = null;
+                                endDate = null;
+                                displayText = 'All Time';
+                        }
+                        rangeDisplay.textContent = displayText;
+                        applyCombinedFilters();
+                    }
+
+                    function applyCombinedFilters() {
+                        // Get search term
+                        const searchTerm = document.getElementById('searchInboxTickets')?.value?.toLowerCase() || '';
+                        
+                        // Date range logic
+                        const today = new Date();
+                        let startDate, endDate;
+                        switch(currentDateRange) {
+                            case 'daily':
+                                startDate = new Date(today.setHours(0, 0, 0, 0));
+                                endDate = new Date(today.setHours(23, 59, 59, 999));
+                                break;
+                            case 'weekly':
+                                const firstDayOfWeek = today.getDate() - today.getDay();
+                                startDate = new Date(today.setDate(firstDayOfWeek));
+                                startDate.setHours(0, 0, 0, 0);
+                                endDate = new Date();
+                                break;
+                            case 'monthly':
+                                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                                endDate = new Date();
+                                break;
+                            case 'annually':
+                                startDate = new Date(today.getFullYear(), 0, 1);
+                                endDate = new Date();
+                                break;
+                            case 'overall':
+                            default:
+                                startDate = null;
+                                endDate = null;
+                        }
+                        // Filter tickets by KPI, date, and search
+                        let allTickets = document.querySelectorAll('#inbox .ticket-item');
+                        allTickets.forEach(ticket => {
+                            let show = true;
+                            
+                            // Search filter
+                            if (searchTerm && show) {
+                                const ticketText = ticket.textContent.toLowerCase();
+                                show = ticketText.includes(searchTerm);
+                            }
+                            
+                            // KPI filter
+                            if(currentKPI !== 'all' && show) {
+                                if(currentKPI === 'replied') {
+                                    show = ticket.getAttribute('data-status') === 'Replied';
+                                } else {
+                                    show = ticket.getAttribute('data-priority') === currentKPI;
+                                }
+                            }
+                            // Date filter
+                            if(show && startDate && endDate) {
+                                const createdDate = ticket.getAttribute('data-created');
+                                if (!createdDate) {
+                                    show = false;
+                                } else {
+                                    const ticketDate = new Date(createdDate);
+                                    show = (ticketDate >= startDate && ticketDate <= endDate);
+                                }
+                            }
+                            ticket.style.display = show ? '' : 'none';
+                        });
+                        updateInboxCards();
+                        updateTabCounts();
+                    }
+
+                    // Set default active on load
+                    document.addEventListener('DOMContentLoaded', function() {
+                        filterTicketsByKPI('all');
+                        
+                        // Add search functionality
+                        const searchInput = document.getElementById('searchInboxTickets');
+                        if (searchInput) {
+                            searchInput.addEventListener('input', applyCombinedFilters);
+                        }
+                    });
+                    </script>
                     <div class="ticket-list">
+                        <!-- Search Box -->
+                        <div class="search-box" style="margin-bottom: 15px; max-width: 220px;">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="searchInboxTickets" placeholder="Search tickets...">
+                        </div>
+
                         <div class="split-tabs">
                             <button type="button" class="split-tab active" id="btn-pending" onclick="switchTicketList('pending')">
                                 <i class="fa-regular fa-clock"></i>
@@ -1529,6 +1712,11 @@
                                         @endif
                                     </div>
                                     <span class="resolved-badge">✅ Resolved</span>
+                                    @if($ticket->resolved_by)
+                                        <div class="resolved-by-info" style="margin-top: 4px; color: #155724; font-size: 12px;">
+                                            <strong>Resolved by Employee ID:</strong> {{ $ticket->resolved_by }}
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         @empty
@@ -1881,8 +2069,62 @@
     </div>
 </div>
 
+<!-- Category Assignment Modal for Ticket Resolution -->
+<div id="categoryModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Assign Category Before Resolving</h3>
+        </div>
+        <form id="categoryForm" class="modal-form">
+            <input type="hidden" id="categoryTicketNo">
+            
+            <div class="form-group">
+                <label>Select Category <span style="color: red;">*</span></label>
+                <select name="category" id="categorySelect" required style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 100%;" onchange="toggleCustomCategory()">
+                    <option value="">-- Select a category --</option>
+                    <option value="Conditions on employment">Conditions on employment</option>
+                    <option value="Compensation and benefits">Compensation and benefits</option>
+                    <option value="Employee Development">Employee Development</option>
+                    <option value="Ranking and Promotion">Ranking and Promotion</option>
+                    <option value="General">General</option>
+                    <option value="CUSTOM">Custom Category</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="customCategoryGroup" style="display: none;">
+                <label>Enter Custom Category <span style="color: red;">*</span></label>
+                <input type="text" id="customCategoryInput" placeholder="Type custom category here..." style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 100%;">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="submit-button" style="flex: 1; padding: 12px; background: #1A6B61; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    Resolve Ticket
+                </button>
+                <button type="button" class="cancel-button" onclick="closeCategoryModal()" style="flex: 1; padding: 12px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer;">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     let currentTicket = null;
+
+    function toggleCustomCategory() {
+        const categorySelect = document.getElementById('categorySelect');
+        const customCategoryGroup = document.getElementById('customCategoryGroup');
+        const customCategoryInput = document.getElementById('customCategoryInput');
+        
+        if (categorySelect.value === 'CUSTOM') {
+            customCategoryGroup.style.display = 'block';
+            customCategoryInput.required = true;
+        } else {
+            customCategoryGroup.style.display = 'none';
+            customCategoryInput.required = false;
+            customCategoryInput.value = '';
+        }
+    }
 
     function showSection(id) {
         // Scroll to top smoothly
@@ -1924,7 +2166,45 @@
     }
 
     async function resolveTicket(ticketNo) {
-        if (!confirm('Mark this ticket as resolved?')) return;
+        // Show category modal instead of immediate confirmation
+        document.getElementById('categoryTicketNo').value = ticketNo;
+        document.getElementById('categoryModal').style.display = 'flex';
+        document.getElementById('categorySelect').value = ''; // Reset selection
+    }
+
+    function closeCategoryModal() {
+        document.getElementById('categoryModal').style.display = 'none';
+        document.getElementById('categorySelect').value = '';
+        document.getElementById('customCategoryInput').value = '';
+        document.getElementById('customCategoryGroup').style.display = 'none';
+        document.getElementById('customCategoryInput').required = false;
+    }
+
+    // Handle category form submission
+    document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const ticketNo = document.getElementById('categoryTicketNo').value;
+        const categorySelect = document.getElementById('categorySelect').value;
+        const customCategoryInput = document.getElementById('customCategoryInput').value;
+        
+        let category;
+        if (categorySelect === 'CUSTOM') {
+            if (!customCategoryInput.trim()) {
+                alert('Please enter a custom category');
+                return;
+            }
+            // Uppercase the custom category before sending
+            category = customCategoryInput.trim().toUpperCase();
+        } else {
+            category = categorySelect;
+        }
+        
+        if (!category) {
+            alert('Please select a category');
+            return;
+        }
+        
         try {
             const res = await fetch('/hr/resolve-ticket', {
                 method: 'POST',
@@ -1933,12 +2213,16 @@
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ ticket_no: ticketNo })
+                body: JSON.stringify({ 
+                    ticket_no: ticketNo,
+                    category: category
+                })
             });
             const result = await res.json();
             console.log('Resolve response:', result);
             if (result.success) {
-                alert('Ticket resolved!');
+                closeCategoryModal();
+                alert('Ticket resolved successfully!');
                 location.reload();
             } else {
                 alert('Error: ' + result.message);
@@ -1947,7 +2231,7 @@
             console.error('Resolve error:', error);
             alert('Failed to resolve ticket');
         }
-    }
+    });
 
     // Update tab badge counts based on visible filtered tickets
     function updateTabCounts() {
@@ -2022,7 +2306,7 @@
                 messageDiv.innerHTML = `
                     <div>${msg.message}</div>
                     <div class="message-meta">
-                        ${msg.sender === 'employee' ? 'Employee' : 'HR'} • 
+                        ${msg.sender_name || (msg.sender === 'employee' ? 'Employee' : 'HR')} • 
                         ${new Date(msg.created_at).toLocaleString()}
                     </div>
                 `;
@@ -2096,7 +2380,37 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
     submitButton.innerHTML = 'Creating...';
     submitButton.disabled = true;
     
-    form.submit();
+    const formData = new FormData(form);
+    
+    fetch(form.action, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('✅ ' + (data.message || 'Announcement created successfully!'));
+            closeAddAnnouncementModal();
+            form.reset();
+            // Reload to refresh announcements
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification('❌ ' + (data.message || 'Failed to create announcement'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('❌ Failed to create announcement');
+    })
+    .finally(() => {
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+    });
     
 });
     
@@ -2471,6 +2785,7 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
     }
     
     function updateInboxCards() {
+        // Get all visible tickets from all tabs (pending, overdue, resolved)
         const tickets = Array.from(document.querySelectorAll('#inbox .ticket-item'))
             .filter(ticket => ticket.style.display !== 'none');
         
@@ -2479,7 +2794,7 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
             // Total tickets
             cards[0].querySelector('h3').textContent = tickets.length;
             
-            // Count by priority
+            // Count by priority (only from visible tickets)
             const urgent = tickets.filter(ticket => ticket.getAttribute('data-priority') === 'urgent').length;
             const high = tickets.filter(ticket => ticket.getAttribute('data-priority') === 'high').length;
             const medium = tickets.filter(ticket => ticket.getAttribute('data-priority') === 'medium').length;
@@ -2490,7 +2805,7 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
             cards[3].querySelector('h3').textContent = medium;
             cards[4].querySelector('h3').textContent = low;
             
-            // Count replied
+            // Count replied (only from visible tickets)
             const replied = tickets.filter(ticket => ticket.getAttribute('data-status') === 'Replied').length;
             cards[5].querySelector('h3').textContent = replied;
         }

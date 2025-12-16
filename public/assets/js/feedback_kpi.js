@@ -11,12 +11,19 @@ function updateFlaggedReasonKPISection() {
         reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
         visibleCount++;
     });
-    let mostCommon = 'N/A', mostCount = 0;
+    let mostCommon = 'N/A', mostCount = 0, tiedReasons = [];
     for (const [reason, count] of Object.entries(reasonCounts)) {
         if (count > mostCount) {
-            mostCommon = reason;
             mostCount = count;
+            tiedReasons = [reason];
+        } else if (count === mostCount && count > 0) {
+            tiedReasons.push(reason);
         }
+    }
+    if (tiedReasons.length === 1) {
+        mostCommon = tiedReasons[0];
+    } else if (tiedReasons.length > 1) {
+        mostCommon = tiedReasons.join(', ');
     }
     const valueElem = document.getElementById('commonFlaggedReasonValueSection');
     const countElem = document.getElementById('commonFlaggedReasonCountSection');
