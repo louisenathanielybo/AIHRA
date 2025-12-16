@@ -25,7 +25,7 @@ class DialogflowService
     {
         try {
             $this->projectId = env('DIALOGFLOW_PROJECT_ID', 'aihra-472311');
-            $credentialsPath = env('DIALOGFLOW_CREDENTIALS_PATH', 'aihra-key.json');
+            $credentialsPath = env('DIALOGFLOW_CREDENTIALS_PATH', '/etc/secrets/aihra-key.json');
             $fullCredentialsPath = base_path($credentialsPath);
             
             Log::info('DialogflowService initializing', [
