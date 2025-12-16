@@ -6519,6 +6519,8 @@ function confirmDelete() {
 // API Functions
 async function loadIntents() {
     try {
+        console.log('Loading intents from server...');
+        
         const response = await fetch('/admin/dialogflow/intents', {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -6526,20 +6528,33 @@ async function loadIntents() {
             }
         });
         
-        if (!response.ok) throw new Error('Failed to load intents');
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Response error:', errorText.substring(0, 500));
+            throw new Error('Failed to load intents - HTTP ' + response.status);
+        }
         
         const data = await response.json();
+        console.log('Received data:', data);
         
         if (data.success) {
+            console.log('Intents received:', data.intents);
+            console.log('Number of intents:', data.intents.length);
             updateIntentsTable(data.intents);
             updateStats(data.stats);
+        } else {
+            console.error('API returned failure:', data);
+            throw new Error(data.message || 'Failed to load intents');
         }
     } catch (error) {
         console.error('Error loading intents:', error);
         document.getElementById('intentsTableBody').innerHTML = `
             <tr>
                 <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
-                    Error loading intents. Please try again.
+                    Error loading intents. Please try again.<br>
+                    <small>Error: ${error.message}</small>
                 </td>
             </tr>
         `;
