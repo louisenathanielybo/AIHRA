@@ -1508,6 +1508,8 @@ class DialogflowController extends Controller
     private function ensureTicketCreation(?string $originalTicketNo, $employeeNum, string $queryText, string $reason, float $originalConfidence = null): string
     {
         $ticketNo = $originalTicketNo ?: 'TKT-EMERGENCY-' . time();
+
+         $questionTimeFormatted = \Carbon\Carbon::now()->format('Y-m-d H:i:s.u');
         
         try {
             Log::info("🚨 EMERGENCY: Ensuring ticket creation with final fallback", ['ticket_no' => $ticketNo]);
@@ -1652,7 +1654,7 @@ class DialogflowController extends Controller
         }
     }
 
-       public function sync(Request $request)
+  public function sync(Request $request)
 {
     try {
         Log::info('Admin attempting to sync with Dialogflow', [
@@ -1668,27 +1670,73 @@ class DialogflowController extends Controller
             ], 403);
         }
 
-        $dialogflow = new DialogflowService();
-        
-        // Get intents from Dialogflow
-        $intents = $dialogflow->listIntents();
-        
-        $dialogflow->close();
+        try {
+            $dialogflow = new DialogflowService();
+            
+            // Get intents from Dialogflow
+            $intents = $dialogflow->listIntents();
+            
+            $dialogflow->close();
+            
+            $intentsCount = is_array($intents) ? count($intents) : 0;
+            
+            Log::info('Dialogflow sync completed', [
+                'intents_count' => $intentsCount,
+                'user' => Auth::user()->email
+            ]);
 
-        Log::info('Dialogflow sync completed', [
-            'intents_count' => count($intents),
-            'user' => Auth::user()->email
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Successfully synchronized with Dialogflow. Found ' . count($intents) . ' intents.',
-            'data' => [
-                'intents_synced' => count($intents),
-                'timestamp' => now()->toDateTimeString(),
-                'intents' => $intents
-            ]
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully synchronized with Dialogflow. Found ' . $intentsCount . ' intents.',
+                'data' => [
+                    'intents_synced' => $intentsCount,
+                    'timestamp' => now()->toDateTimeString(),
+                    'intents' => $intents
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::warning('DialogflowService instantiation failed, returning mock data: ' . $e->getMessage());
+            
+            // Return mock data if Dialogflow service fails
+            $mockIntents = [
+                [
+                    'id' => 'mock-1',
+                    'display_name' => 'Leave Policy Inquiry',
+                    'training_phrases_count' => 3,
+                    'responses_count' => 2,
+                    'status' => 'active',
+                    'updated_at' => now()->toDateTimeString(),
+                ],
+                [
+                    'id' => 'mock-2',
+                    'display_name' => 'Salary Inquiry',
+                    'training_phrases_count' => 4,
+                    'responses_count' => 2,
+                    'status' => 'active',
+                    'updated_at' => now()->subDays(1)->toDateTimeString(),
+                ],
+                [
+                    'id' => 'mock-3',
+                    'display_name' => 'Benefits Information',
+                    'training_phrases_count' => 5,
+                    'responses_count' => 3,
+                    'status' => 'active',
+                    'updated_at' => now()->subDays(2)->toDateTimeString(),
+                ]
+            ];
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Sync completed (using development data)',
+                'data' => [
+                    'intents_synced' => count($mockIntents),
+                    'timestamp' => now()->toDateTimeString(),
+                    'intents' => $mockIntents,
+                    'note' => 'Dialogflow API connection failed. Using development data.'
+                ]
+            ]);
+        }
 
     } catch (\Exception $e) {
         Log::error('Dialogflow sync error: ' . $e->getMessage(), [
@@ -1697,28 +1745,12 @@ class DialogflowController extends Controller
             'line' => $e->getLine()
         ]);
 
-        // Return success with mock data instead of error
-        $mockIntents = [
-            [
-                'id' => 'mock-1',
-                'display_name' => 'Leave Policy Inquiry',
-                'training_phrases_count' => 3,
-                'responses_count' => 2,
-                'status' => 'active',
-                'updated_at' => now()->toDateTimeString(),
-            ]
-        ];
-        
+        // Return error response
         return response()->json([
-            'success' => true,
-            'message' => 'Sync completed (using development data)',
-            'data' => [
-                'intents_synced' => count($mockIntents),
-                'timestamp' => now()->toDateTimeString(),
-                'intents' => $mockIntents,
-                'note' => 'Dialogflow API connection failed. Using development data.'
-            ]
-        ]);
+            'success' => false,
+            'message' => 'Failed to sync with Dialogflow: ' . $e->getMessage(),
+            'error' => 'Internal Server Error'
+        ], 500);
     }
 }
 
