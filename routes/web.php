@@ -134,7 +134,8 @@ Route::middleware(['auth'])->group(function () {
         
         // 🆕 ADD THIS ROUTE - Dialogflow intents management
         // Add this route to your existing Dialogflow routes
-        Route::post('/dialogflow/sync', [DialogflowController::class, 'syncIntents'])->name('admin.dialogflow.sync');
+        Route::post('/dialogflow/sync', [DialogflowController::class, 'syncFromDialogflow'])->name('admin.dialogflow.sync');
+
         Route::get('/dialogflow/intents', [AdminController::class, 'getDialogflowIntents'])->name('admin.dialogflow.intents');
         Route::get('/dialogflow/intents/active', [AdminController::class, 'getActiveDialogflowIntents'])->name('admin.dialogflow.intents.active');
         Route::post('/dialogflow/intents', [AdminController::class, 'createDialogflowIntent'])->name('admin.dialogflow.intents.create');
