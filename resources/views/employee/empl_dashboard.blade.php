@@ -2208,9 +2208,9 @@ async function loadGuidedQuestions(parentId = null) {
         const data = await res.json();
         console.log('✅ Guided questions data:', data);
 
-        // Handle error type response (e.g., no questions)
-        if (data.type === 'error') {
-            console.log('Guided questions returned error, showing Dialogflow prompt');
+        // Handle empty or error type response (e.g., no questions configured)
+        if (data.type === 'error' || data.type === 'empty') {
+            console.log('Guided questions not available, showing Dialogflow prompt');
             guidedContainer.innerHTML = `
                 <div class="chat-row bot">
                     <div class="chat-bubble">
