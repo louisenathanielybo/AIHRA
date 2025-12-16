@@ -215,67 +215,64 @@ try {
     $dialogflow->close();
 
     // SAFE HANDLING: Check if we got a valid Dialogflow response
-    $confidence = 0.0;
-    $fulfillmentText = '';
-    $intentName = 'Default Fallback Intent';
-    
+$confidence = 0.0;
+$fulfillmentText = '';
+$intentName = 'Default Fallback Intent';
+
+// SAFER CHECK: Handle both real Dialogflow objects and our mock objects
+try {
+    // Try to extract fulfillment text
     if (is_object($result) && method_exists($result, 'getFulfillmentText')) {
-        // It's a real Dialogflow QueryResult
-        try {
-            $confidence = $result->getIntentDetectionConfidence() ?? 0.0;
-            $fulfillmentText = $result->getFulfillmentText() ?? "I'd love to help you find exactly what you're looking for! 😊 Could you tell me a bit more about what you need?";
-            $intent = $result->getIntent();
-            $intentName = $intent ? $intent->getDisplayName() : 'Default Fallback Intent';
-            
-            Log::info('✅ Dialogflow Response (Real)', [
-                'confidence' => $confidence,
-                'intent' => $intentName,
-                'fulfillmentText' => substr($fulfillmentText, 0, 200)
-            ]);
-        } catch (\Exception $e) {
-            Log::warning('Error extracting Dialogflow response: ' . $e->getMessage());
-            // Use fallback
-            $fulfillmentText = "Thanks for your question! I want to make sure I understand correctly. Could you provide more details about '{$queryText}'?";
+        $fulfillmentText = $result->getFulfillmentText();
+    } elseif (is_object($result) && property_exists($result, 'fulfillmentText')) {
+        $fulfillmentText = $result->fulfillmentText;
+    }
+    
+    // Try to extract confidence
+    if (is_object($result) && method_exists($result, 'getIntentDetectionConfidence')) {
+        $confidence = $result->getIntentDetectionConfidence() ?? 0.0;
+    } elseif (is_object($result) && property_exists($result, 'intentDetectionConfidence')) {
+        $confidence = $result->intentDetectionConfidence ?? 0.0;
+    }
+    
+    // Try to extract intent name
+    if (is_object($result) && method_exists($result, 'getIntent')) {
+        $intent = $result->getIntent();
+        if (is_object($intent) && method_exists($intent, 'getDisplayName')) {
+            $intentName = $intent->getDisplayName();
         }
-    } else {
-        // It's a mock response or null
-        Log::info('⚠️ Dialogflow Response (Mock/Fallback)', ['result_type' => gettype($result)]);
-        
-        // Generate a helpful response based on keywords
+    } elseif (is_object($result) && property_exists($result, 'intent')) {
+        $intentObj = $result->intent;
+        if (is_object($intentObj) && property_exists($intentObj, 'displayName')) {
+            $intentName = $intentObj->displayName;
+        }
+    }
+    
+    // If we still don't have a fulfillment text, create one
+    if (empty($fulfillmentText)) {
         $queryLower = strtolower($queryText);
         
-        // Check for common questions
         if (strpos($queryLower, 'working hours') !== false || strpos($queryLower, 'work hours') !== false) {
             $fulfillmentText = "Our standard working hours are from 8:00 AM to 5:00 PM, Monday to Friday, with a 1-hour lunch break from 12:00 PM to 1:00 PM. We also offer flexible time arrangements for eligible employees!";
             $confidence = 0.9;
             $intentName = 'working.hours.inquiry';
-        } elseif (strpos($queryLower, 'probation') !== false) {
-            $fulfillmentText = "The probation period is typically 6 months with monthly performance reviews. After successful completion, you'll be regularized with full benefits.";
-            $confidence = 0.9;
-            $intentName = 'probation.inquiry';
-        } elseif (strpos($queryLower, 'flexible') !== false || strpos($queryLower, 'flexi') !== false) {
-            $fulfillmentText = "Yes, we offer flexible time arrangements including flexi-time, compressed workweeks, and remote work options. For specific details about eligibility and how to apply, please submit a Flexible Work Request Form through the HR portal.";
-            $confidence = 0.9;
-            $intentName = 'flexible.work.inquiry';
-        } elseif (strpos($queryLower, 'salary') !== false || strpos($queryLower, 'pay') !== false) {
-            $fulfillmentText = "Payday is on the 30th of each month. You can view your payslip in the Employee Portal under 'My Payslips'.";
-            $confidence = 0.8;
-            $intentName = 'payroll.inquiry';
-        } elseif (strpos($queryLower, 'leave') !== false) {
-            $fulfillmentText = "We offer 20 days annual leave, 15 days sick leave, and various special leaves. Apply through the HR portal with 2 weeks notice.";
-            $confidence = 0.8;
-            $intentName = 'leave.inquiry';
-        } elseif (strpos($queryLower, 'benefit') !== false) {
-            $fulfillmentText = "Our benefits package includes health insurance, dental coverage, retirement plan, and various allowances. For specific details, check the Employee Handbook or contact HR.";
-            $confidence = 0.8;
-            $intentName = 'benefits.inquiry';
-        } else {
-            // Generic helpful response
-            $fulfillmentText = "Thanks for your question about '{$queryText}'! I want to make sure I give you the most accurate information. Could you tell me a bit more about what you're looking for?";
-            $confidence = 0.5;
-            $intentName = 'Default Fallback Intent';
         }
+        // ... add other keyword checks if needed
     }
+    
+    Log::info('✅ Dialogflow Response Processed', [
+        'confidence' => $confidence,
+        'intent' => $intentName,
+        'fulfillmentText' => substr($fulfillmentText, 0, 200),
+        'result_type' => get_class($result) ?? gettype($result)
+    ]);
+    
+} catch (\Exception $e) {
+    Log::warning('Error processing Dialogflow response: ' . $e->getMessage());
+    // Use keyword-based fallback
+    $fulfillmentText = $this->getKeywordResponse($queryText);
+    $confidence = 0.6;
+}
 
     // 🆕 NEW: Check if this is HR-related but bot can't answer properly
     $isHRRelated = $this->isHRRelatedQuestion($queryText);
@@ -1649,6 +1646,40 @@ return response()->json([
 
         return 'General';
     }
+
+    /**
+ * Get keyword-based response when Dialogflow fails
+ */
+private function getKeywordResponse(string $queryText): string
+{
+    $queryLower = strtolower($queryText);
+    
+    if (strpos($queryLower, 'working hours') !== false || strpos($queryLower, 'work hours') !== false) {
+        return "Our standard working hours are from 8:00 AM to 5:00 PM, Monday to Friday, with a 1-hour lunch break from 12:00 PM to 1:00 PM. We also offer flexible time arrangements for eligible employees!";
+    }
+    
+    if (strpos($queryLower, 'probation') !== false) {
+        return "The probation period is typically 6 months with monthly performance reviews. After successful completion, you'll be regularized with full benefits.";
+    }
+    
+    if (strpos($queryLower, 'flexible') !== false || strpos($queryLower, 'flexi') !== false) {
+        return "Yes, we offer flexible time arrangements including flexi-time, compressed workweeks, and remote work options. For specific details about eligibility and how to apply, please submit a Flexible Work Request Form through the HR portal.";
+    }
+    
+    if (strpos($queryLower, 'salary') !== false || strpos($queryLower, 'pay') !== false) {
+        return "Payday is on the 30th of each month. You can view your payslip in the Employee Portal under 'My Payslips'.";
+    }
+    
+    if (strpos($queryLower, 'leave') !== false) {
+        return "We offer 20 days annual leave, 15 days sick leave, and various special leaves. Apply through the HR portal with 2 weeks notice.";
+    }
+    
+    if (strpos($queryLower, 'benefit') !== false) {
+        return "Our benefits package includes health insurance, dental coverage, retirement plan, and various allowances. For specific details, check the Employee Handbook or contact HR.";
+    }
+    
+    return "Thanks for your question! I want to make sure I understand correctly. Could you provide more details about '{$queryText}'?";
+}
 
     /**
      * 🆕 NEW: Alternative ticket creation method using DB facade
