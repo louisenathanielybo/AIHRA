@@ -35,36 +35,20 @@ class HRController extends Controller
             ->orderBy('createdAt', 'desc')
             ->get();
 
-        // ✅ Get all inbox tickets (newest first) - assigned to this HR OR unassigned
+        // ✅ Get all inbox tickets (newest first) - only assigned to this HR
         $currentHR = Auth::user()->employeeNum ?? null;
-        $inbox = HrInbox::where(function($query) use ($currentHR) {
-                $query->where('assigned_to', $currentHR)
-                      ->orWhereNull('assigned_to')
-                      ->orWhere('assigned_to', '');
-            })
+        $inbox = HrInbox::where('assigned_to', $currentHR)
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // ✅ Compute inbox stats - for assigned tickets OR unassigned
+        // ✅ Compute inbox stats - only for assigned tickets
         $inboxStats = [
-            'total' => HrInbox::where(function($q) use ($currentHR) {
-                $q->where('assigned_to', $currentHR)->orWhereNull('assigned_to')->orWhere('assigned_to', '');
-            })->count(),
-            'urgent' => HrInbox::where(function($q) use ($currentHR) {
-                $q->where('assigned_to', $currentHR)->orWhereNull('assigned_to')->orWhere('assigned_to', '');
-            })->where('priority', 'urgent')->count(),
-            'high' => HrInbox::where(function($q) use ($currentHR) {
-                $q->where('assigned_to', $currentHR)->orWhereNull('assigned_to')->orWhere('assigned_to', '');
-            })->where('priority', 'high')->count(),
-            'medium' => HrInbox::where(function($q) use ($currentHR) {
-                $q->where('assigned_to', $currentHR)->orWhereNull('assigned_to')->orWhere('assigned_to', '');
-            })->where('priority', 'medium')->count(),
-            'low' => HrInbox::where(function($q) use ($currentHR) {
-                $q->where('assigned_to', $currentHR)->orWhereNull('assigned_to')->orWhere('assigned_to', '');
-            })->where('priority', 'low')->count(),
-            'replied' => HrInbox::where(function($q) use ($currentHR) {
-                $q->where('assigned_to', $currentHR)->orWhereNull('assigned_to')->orWhere('assigned_to', '');
-            })->where('status', 'Replied')->count(),
+            'total' => HrInbox::where('assigned_to', $currentHR)->count(),
+            'urgent' => HrInbox::where('assigned_to', $currentHR)->where('priority', 'urgent')->count(),
+            'high' => HrInbox::where('assigned_to', $currentHR)->where('priority', 'high')->count(),
+            'medium' => HrInbox::where('assigned_to', $currentHR)->where('priority', 'medium')->count(),
+            'low' => HrInbox::where('assigned_to', $currentHR)->where('priority', 'low')->count(),
+            'replied' => HrInbox::where('assigned_to', $currentHR)->where('status', 'Replied')->count(),
         ];
 
         // ✅ Get the currently logged-in user

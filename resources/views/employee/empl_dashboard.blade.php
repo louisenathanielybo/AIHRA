@@ -2178,6 +2178,27 @@ async function loadGuidedQuestions(parentId = null) {
             return;
         }
 
+        // Handle 404 (no guided questions) gracefully - show Dialogflow-first UI
+        if (res.status === 404) {
+            console.log('No guided questions in database, showing Dialogflow prompt');
+            guidedContainer.innerHTML = `
+                <div class="chat-row bot">
+                    <div class="chat-bubble">
+                        <strong>How can I help you today?</strong>
+                        <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                            💬 Type your question below, or try one of these topics:
+                        </div>
+                        <div class="suggestion-box" style="margin-top: 10px;">
+                            <div class="suggestion" onclick="sendQuick('What are the employment requirements?')">Employment</div>
+                            <div class="suggestion" onclick="sendQuick('Tell me about employee benefits')">Benefits</div>
+                            <div class="suggestion" onclick="sendQuick('How do promotions work?')">Promotion</div>
+                            <div class="suggestion" onclick="sendQuick('What training programs are available?')">Training</div>
+                        </div>
+                    </div>
+                </div>`;
+            return;
+        }
+
         if (!res.ok) {
             const errorText = await res.text();
             console.error('Server error response:', errorText);
@@ -2187,7 +2208,26 @@ async function loadGuidedQuestions(parentId = null) {
         const data = await res.json();
         console.log('✅ Guided questions data:', data);
 
-        if (data.type === 'error') throw new Error(data.message);
+        // Handle error type response (e.g., no questions)
+        if (data.type === 'error') {
+            console.log('Guided questions returned error, showing Dialogflow prompt');
+            guidedContainer.innerHTML = `
+                <div class="chat-row bot">
+                    <div class="chat-bubble">
+                        <strong>How can I help you today?</strong>
+                        <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                            💬 Type your question below, or try one of these topics:
+                        </div>
+                        <div class="suggestion-box" style="margin-top: 10px;">
+                            <div class="suggestion" onclick="sendQuick('What are the employment requirements?')">Employment</div>
+                            <div class="suggestion" onclick="sendQuick('Tell me about employee benefits')">Benefits</div>
+                            <div class="suggestion" onclick="sendQuick('How do promotions work?')">Promotion</div>
+                            <div class="suggestion" onclick="sendQuick('What training programs are available?')">Training</div>
+                        </div>
+                    </div>
+                </div>`;
+            return;
+        }
         if (data.type === 'final' || data.type === 'escalate') {
             // Final answer: render into the main messages area (not the guided box),
             // then ask if user needs more help
@@ -2212,7 +2252,22 @@ async function loadGuidedQuestions(parentId = null) {
         }
 
         if (!data.data || data.data.length === 0) {
-            addMessageToChat(guidedContainer, 'bot', "No questions available. Please try rephrasing your question.");
+            // No guided questions available - show friendly prompt to use Dialogflow
+            guidedContainer.innerHTML = `
+                <div class="chat-row bot">
+                    <div class="chat-bubble">
+                        <strong>How can I help you today?</strong>
+                        <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                            💬 Type your question below, or try one of these topics:
+                        </div>
+                        <div class="suggestion-box" style="margin-top: 10px;">
+                            <div class="suggestion" onclick="sendQuick('What are the employment requirements?')">Employment</div>
+                            <div class="suggestion" onclick="sendQuick('Tell me about employee benefits')">Benefits</div>
+                            <div class="suggestion" onclick="sendQuick('How do promotions work?')">Promotion</div>
+                            <div class="suggestion" onclick="sendQuick('What training programs are available?')">Training</div>
+                        </div>
+                    </div>
+                </div>`;
             return;
         }
 
@@ -2241,25 +2296,23 @@ async function loadGuidedQuestions(parentId = null) {
             parentId: parentId,
             url: parentId ? `{{ url('guided') }}/${parentId}` : `{{ url('guided') }}`
         });
-        addMessageToChat(guidedContainer, 'bot', 
-            "Sorry, I cannot load the questions right now. Here are some common topics:", 
-            'error'
-        );
         
-        if (!parentId) {
-            // Replace fallback options as well
-            guidedContainer.innerHTML = `
-                <div class="chat-row bot">
-                    <div class="chat-bubble">
-                        <div class="suggestion-box">
-                            <div class="suggestion" onclick="sendQuick('Employment questions')">Employment</div>
-                            <div class="suggestion" onclick="sendQuick('Benefits information')">Benefits</div>
-                            <div class="suggestion" onclick="sendQuick('Promotion requirements')">Promotion</div>
-                            <div class="suggestion" onclick="sendQuick('Training and development')">Development</div>
-                        </div>
+        // Show friendly Dialogflow-first UI instead of error
+        guidedContainer.innerHTML = `
+            <div class="chat-row bot">
+                <div class="chat-bubble">
+                    <strong>How can I help you today?</strong>
+                    <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                        💬 Type your question below, or try one of these topics:
                     </div>
-                </div>`;
-        }
+                    <div class="suggestion-box" style="margin-top: 10px;">
+                        <div class="suggestion" onclick="sendQuick('What are the employment requirements?')">Employment</div>
+                        <div class="suggestion" onclick="sendQuick('Tell me about employee benefits')">Benefits</div>
+                        <div class="suggestion" onclick="sendQuick('How do promotions work?')">Promotion</div>
+                        <div class="suggestion" onclick="sendQuick('What training programs are available?')">Training</div>
+                    </div>
+                </div>
+            </div>`;
         scrollChat('messagesContainer');
     }
 }
