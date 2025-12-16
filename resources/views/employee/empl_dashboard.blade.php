@@ -63,8 +63,6 @@
         list-style: none;
         padding: 0;
         margin: 0;
-        flex: 1;
-        overflow-y: auto;
         padding-bottom: 120px; /* Space for footer */
     }
 
@@ -113,6 +111,7 @@
     .section {
         flex: 1;
         min-height: 600px;
+        padding-bottom: 60px;
     }
 
     /* Chat Container */
@@ -598,10 +597,11 @@
 
     /* Sidebar Footer */
     .sidebar-footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
         padding: 20px;
-        margin-top: auto;
-        flex-shrink: 0;
-        box-sizing: border-box;
     }
 
     .account-info {
