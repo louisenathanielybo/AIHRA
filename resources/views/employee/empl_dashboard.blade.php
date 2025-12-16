@@ -598,10 +598,9 @@
 
     /* Sidebar Footer */
     .sidebar-footer {
-        position: absolute;
-        bottom: 20px;
-        width: 100%;
-        padding: 0 20px;
+        padding: 20px;
+        margin-top: auto;
+        flex-shrink: 0;
         box-sizing: border-box;
     }
 

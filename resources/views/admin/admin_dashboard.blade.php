@@ -73,7 +73,6 @@ use Illuminate\Support\Str;
         margin: 0;
         flex: 1;
         overflow-y: auto;
-        padding-bottom: 160px; /* Space for footer with account settings link */
     }
 
     .sidebar-menu li {
@@ -105,10 +104,9 @@ use Illuminate\Support\Str;
     }
 
     .sidebar-footer {
-        position: absolute;
-        bottom: 20px;
-        width: 100%;
-        padding: 0 20px;
+        padding: 20px;
+        margin-top: auto;
+        flex-shrink: 0;
         box-sizing: border-box;
     }
     
