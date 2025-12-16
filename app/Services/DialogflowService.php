@@ -100,14 +100,11 @@ class DialogflowService
         
         \Log::info('DialogflowService: Fetching intents from parent: ' . $parent);
         
-        // FIX: Create ListIntentsRequest object instead of passing string
+        // Create ListIntentsRequest object for v2.2.1
         $request = new ListIntentsRequest();
         $request->setParent($parent);
-        // Add optional parameters if needed:
-        // $request->setLanguageCode('en-US');
-        // $request->setIntentView(IntentView::INTENT_VIEW_FULL);
         
-        // List intents using the request object
+        // List intents
         $intents = $this->intentsClient->listIntents($request);
         
         $intentList = [];
@@ -120,11 +117,19 @@ class DialogflowService
         return $intentList;
         
     } catch (\Google\ApiCore\ApiException $e) {
+        // CORRECT EXCEPTION HANDLING FOR v2.2.1
         \Log::error('Dialogflow API Exception in listIntents: ' . $e->getMessage(), [
-            'status' => $e->getStatus(),
-            'details' => $e->getDetails(),
-            'metadata' => $e->getMetadata(),
+            'status' => $e->getStatus(), // This should work
+            'code' => $e->getCode(),
+            // Use getMetadata() instead of getDetails()
+            'metadata' => method_exists($e, 'getMetadata') ? $e->getMetadata() : null,
         ]);
+        
+        // For additional debugging, you can get the failure info
+        if (method_exists($e, 'getFailureInfo')) {
+            $failureInfo = $e->getFailureInfo();
+            \Log::debug('Failure info:', (array) $failureInfo);
+        }
         
         // Return mock data for development
         return $this->getMockIntents();
