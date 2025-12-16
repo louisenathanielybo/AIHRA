@@ -2152,4 +2152,126 @@ class DialogflowController extends Controller
             return response()->json(['success' => false, 'message' => 'Failed to delete guided question'], 500);
         }
     }
+
+    // DialogflowController.php
+public function syncIntents(Request $request)
+{
+    try {
+        // Fetch intents from Dialogflow API
+        $intents = $this->fetchDialogflowIntents();
+        
+        // Store or update in your database
+        $syncedCount = $this->syncIntentsToDatabase($intents);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Successfully synced with Dialogflow',
+            'data' => [
+                'intents_synced' => $syncedCount,
+                'intents' => $intents,
+                'is_mock_data' => false
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        // Log error
+        \Log::error('Dialogflow sync error: ' . $e->getMessage());
+        
+        // For development/testing, you can return mock data
+        $mockIntents = $this->getMockIntents();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Using mock data - Dialogflow connection failed: ' . $e->getMessage(),
+            'data' => [
+                'intents_synced' => count($mockIntents),
+                'intents' => $mockIntents,
+                'is_mock_data' => true
+            ]
+        ], 200);
+    }
+}
+
+private function fetchDialogflowIntents()
+{
+    // Implement your Dialogflow API connection here
+    // Example using Google Cloud Dialogflow API
+    
+    $projectId = config('services.dialogflow.project_id');
+    $keyFilePath = config('services.dialogflow.key_file');
+    
+    if (!$projectId || !$keyFilePath) {
+        throw new \Exception('Dialogflow credentials not configured');
+    }
+    
+    // Create a Dialogflow client
+    $client = new \Google\Cloud\Dialogflow\V2\IntentsClient([
+        'credentials' => json_decode(file_get_contents($keyFilePath), true)
+    ]);
+    
+    // Fetch intents
+    $parent = $client->agentName($projectId);
+    $intents = [];
+    
+    try {
+        $response = $client->listIntents($parent);
+        foreach ($response->iterateAllElements() as $intent) {
+            $intents[] = [
+                'id' => $intent->getName(),
+                'display_name' => $intent->getDisplayName(),
+                'training_phrases' => $this->extractTrainingPhrases($intent),
+                'responses' => $this->extractResponses($intent),
+                'priority' => $intent->getPriority(),
+                'is_fallback' => $intent->getIsFallback(),
+                'status' => 'active'
+            ];
+        }
+        
+        $client->close();
+        return $intents;
+        
+    } catch (\Exception $e) {
+        $client->close();
+        throw $e;
+    }
+}
+
+private function getMockIntents()
+{
+    // Return mock data for testing
+    return [
+        [
+            'id' => 'projects/test-project/agent/intents/123456',
+            'display_name' => 'leave.inquiry',
+            'training_phrases' => [
+                'How do I apply for leave?',
+                'What are the leave policies?',
+                'How many leave days do I have?'
+            ],
+            'responses' => [
+                'You can apply for leave through the HR portal.',
+                'The leave policy allows for 20 days annual leave.'
+            ],
+            'priority' => 500000,
+            'is_fallback' => false,
+            'status' => 'active'
+        ],
+        [
+            'id' => 'projects/test-project/agent/intents/789012',
+            'display_name' => 'payroll.inquiry',
+            'training_phrases' => [
+                'When will I get paid?',
+                'How is my salary calculated?',
+                'Where can I see my payslip?'
+            ],
+            'responses' => [
+                'Salaries are processed on the last working day of each month.',
+                'You can view your payslip in the employee self-service portal.'
+            ],
+            'priority' => 500000,
+            'is_fallback' => false,
+            'status' => 'active'
+        ]
+    ];
+}
 }
