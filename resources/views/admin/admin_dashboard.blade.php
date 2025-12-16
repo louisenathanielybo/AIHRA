@@ -6744,12 +6744,15 @@ async function deleteGuidedQuestion(questionId) {
 }
 
 async function syncWithDialogflow() {
+    let originalText = 'Sync with Dialogflow'; // Declare here, outside try block
+    let syncBtn = null;
+    
     try {
-        const syncBtn = document.querySelector('button[onclick="syncWithDialogflow()"]') || 
-                       document.querySelector('button[onclick*="syncWithDialogflow"]');
+        syncBtn = document.querySelector('button[onclick="syncWithDialogflow()"]') || 
+                 document.querySelector('button[onclick*="syncWithDialogflow"]');
         
         // Store original button state
-        const originalText = syncBtn ? syncBtn.innerHTML : 'Sync with Dialogflow';
+        originalText = syncBtn ? syncBtn.innerHTML : 'Sync with Dialogflow';
         if (syncBtn) {
             syncBtn.disabled = true;
             syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
@@ -6770,7 +6773,6 @@ async function syncWithDialogflow() {
         // Check if response is JSON
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-            // Response is not JSON, it's probably an HTML error page
             const text = await response.text();
             console.error('Non-JSON response:', text.substring(0, 500));
             throw new Error('Server returned an HTML error page instead of JSON');
@@ -6785,10 +6787,8 @@ async function syncWithDialogflow() {
             // Reload intents table
             await loadIntents();
             
-            // Show detailed result if available
             if (result.data.note) {
                 console.log('Sync note:', result.data.note);
-                // You could optionally show this in a tooltip or modal
             }
         } else {
             showNotification(result.message || 'Failed to sync with Dialogflow', 'error');
@@ -6797,7 +6797,6 @@ async function syncWithDialogflow() {
     } catch (error) {
         console.error('Error syncing with Dialogflow:', error);
         
-        // Check for specific error types
         let errorMessage = 'Error syncing with Dialogflow';
         if (error.message.includes('HTML error page')) {
             errorMessage = 'Dialogflow API connection failed. Please check server configuration.';
@@ -6809,7 +6808,6 @@ async function syncWithDialogflow() {
         
         showNotification(errorMessage, 'error');
         
-        // Fallback: Load intents anyway (they'll use mock data)
         try {
             await loadIntents();
             showNotification('Loaded intents with available data.', 'info');
@@ -6817,9 +6815,7 @@ async function syncWithDialogflow() {
             console.error('Failed to load intents:', loadError);
         }
     } finally {
-        // Restore button state
-        const syncBtn = document.querySelector('button[onclick="syncWithDialogflow()"]') || 
-                       document.querySelector('button[onclick*="syncWithDialogflow"]');
+        // Restore button state - now originalText is accessible
         if (syncBtn) {
             syncBtn.disabled = false;
             syncBtn.innerHTML = originalText;
