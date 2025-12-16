@@ -3326,10 +3326,19 @@ function handleFeedbackSubmit(event) {
         method: 'POST',
         body: formData,
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('Server error:', text);
+                throw new Error('Server error');
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showNotification('✅ Thank you for your feedback!');

@@ -11,7 +11,6 @@ class Feedback extends Model
     public $timestamps = false; // since your table uses "timeStamp" not created_at/updated_at
 
     protected $fillable = [
-        'feedbackID',
         'employeeNum',
         'queryID',
         'rating',
