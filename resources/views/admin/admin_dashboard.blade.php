@@ -3384,6 +3384,23 @@ You can check your leave balance in the employee portal."></textarea>
             }
         });
 
+        document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing...');
+    console.log('Available tables:', {
+        intentsTable: !!document.getElementById('intentsTableBody'),
+        guidedQuestionsTable: !!document.getElementById('guidedQuestionsTableBody')
+    });
+    
+    // Initialize content management tabs
+    initContentManagementTabs();
+    
+    // Load intents and guided questions
+    loadIntents();
+    loadGuidedQuestions();
+    
+    // Rest of your code...
+});
+
         // Intercept pagination links to add current hash
         function interceptPaginationLinks() {
             // Use event delegation on the document
