@@ -2372,7 +2372,29 @@ private function fetchDialogflowIntents()
         throw $e;
     }
 }
+public function testConnection()
+{
+    try {
+        // Test the service directly
+        $service = new \App\Services\DialogflowService();
+        // Use a simple query
+        $result = $service->detectIntent('Hello', 'render-test-session');
+        $service->close();
 
+        return response()->json([
+            'status' => 'success',
+            'fulfillmentText' => $result->fulfillmentText ?? 'No text',
+            'intent' => $result->intent->displayName ?? 'None'
+        ]);
+    } catch (\Exception $e) {
+        // This will show the real error
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString() // Remove this line in production
+        ], 500);
+    }
+}
 private function getMockIntents()
 {
     // Return mock data for testing
