@@ -308,3 +308,5 @@ Route::get('/debug-dialogflow-sync', function() {
     return '';
 });
 });
+
+Route::get('/test-dialogflow', [App\Http\Controllers\DialogflowController::class, 'testConnection']);
