@@ -140,7 +140,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/dialogflow/intents', [AdminController::class, 'createDialogflowIntent'])->name('admin.dialogflow.intents.create');
         Route::put('/dialogflow/intents/{id}', [AdminController::class, 'updateDialogflowIntent'])->name('admin.dialogflow.intents.update');
         Route::delete('/dialogflow/intents/{id}', [AdminController::class, 'deleteDialogflowIntent'])->name('admin.dialogflow.intents.delete');
-        Route::get('/dialogflow/intents/active', [DialogflowController::class, 'getActiveIntents'])->name('admin.dialogflow.intents.active');
         Route::post('/dialogflow/intents', [DialogflowController::class, 'createIntent'])->name('admin.dialogflow.intents.create');
         Route::put('/dialogflow/intents/{id}', [DialogflowController::class, 'updateIntent'])->name('admin.dialogflow.intents.update');
         Route::delete('/dialogflow/intents/{id}', [DialogflowController::class, 'deleteIntent'])->name('admin.dialogflow.intents.delete');
