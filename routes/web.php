@@ -130,11 +130,17 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/flags/{id}/update-status', [FlagController::class, 'updateStatus'])->name('admin.flags.update-status');
         
         // 🆕 ADD THIS ROUTE - Dialogflow sync
-        Route::post('/dialogflow/sync', [DialogflowController::class, 'sync'])->name('admin.dialogflow.sync');
+ 
         
         // 🆕 ADD THIS ROUTE - Dialogflow intents management
-        Route::get('/dialogflow/intents', [DialogflowController::class, 'getIntents'])->name('admin.dialogflow.intents');
-        Route::get('/dialogflow/intents/active', [DialogflowController::class, 'getActiveIntents'])->name('admin.dialogflow.intents.active');
+        // Add this route to your existing Dialogflow routes
+       // Add this route to match your JavaScript call
+       Route::post('/admin/dialogflow/sync', [DialogflowController::class, 'syncIntents'])->name('admin.dialogflow.sync');
+        Route::get('/dialogflow/intents', [AdminController::class, 'getDialogflowIntents'])->name('admin.dialogflow.intents');
+        Route::get('/dialogflow/intents/active', [AdminController::class, 'getActiveDialogflowIntents'])->name('admin.dialogflow.intents.active');
+        Route::post('/dialogflow/intents', [AdminController::class, 'createDialogflowIntent'])->name('admin.dialogflow.intents.create');
+        Route::put('/dialogflow/intents/{id}', [AdminController::class, 'updateDialogflowIntent'])->name('admin.dialogflow.intents.update');
+        Route::delete('/dialogflow/intents/{id}', [AdminController::class, 'deleteDialogflowIntent'])->name('admin.dialogflow.intents.delete');
         Route::post('/dialogflow/intents', [DialogflowController::class, 'createIntent'])->name('admin.dialogflow.intents.create');
         Route::put('/dialogflow/intents/{id}', [DialogflowController::class, 'updateIntent'])->name('admin.dialogflow.intents.update');
         Route::delete('/dialogflow/intents/{id}', [DialogflowController::class, 'deleteIntent'])->name('admin.dialogflow.intents.delete');
