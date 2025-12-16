@@ -91,6 +91,10 @@
         .sb-nav {
             list-style: none;
             padding: 0;
+            margin: 0;
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 120px; /* Space for footer */
         }
         
         .sb-nav li {
@@ -543,10 +547,7 @@
             left: 0;
             right: 0;
             padding: 0 12px;
-        }
-
-        .sb-nav {
-            padding-bottom: 140px; /* Prevent overlap with sidebar footer */
+            box-sizing: border-box;
         }
 
         .account-info {

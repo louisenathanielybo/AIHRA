@@ -69,6 +69,11 @@ use Illuminate\Support\Str;
 
     .sidebar-menu {
         list-style: none;
+        padding: 0;
+        margin: 0;
+        flex: 1;
+        overflow-y: auto;
+        padding-bottom: 160px; /* Space for footer with account settings link */
     }
 
     .sidebar-menu li {
@@ -104,10 +109,7 @@ use Illuminate\Support\Str;
         bottom: 20px;
         width: 100%;
         padding: 0 20px;
-    }
-
-    .sidebar-menu {
-        padding-bottom: 180px; /* Prevent overlap with sidebar footer (includes account settings link) */
+        box-sizing: border-box;
     }
     
     .sidebar-footer a[data-section="account-settings"]:hover {

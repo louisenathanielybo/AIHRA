@@ -62,6 +62,10 @@
     .sidebar-menu {
         list-style: none;
         padding: 0;
+        margin: 0;
+        flex: 1;
+        overflow-y: auto;
+        padding-bottom: 120px; /* Space for footer */
     }
 
     .sidebar-menu li {
@@ -598,10 +602,7 @@
         bottom: 20px;
         width: 100%;
         padding: 0 20px;
-    }
-
-    .sidebar-menu {
-        padding-bottom: 140px; /* Prevent overlap with sidebar footer */
+        box-sizing: border-box;
     }
 
     .account-info {
