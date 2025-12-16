@@ -13,6 +13,7 @@ use Google\Cloud\Dialogflow\V2\Intent\TrainingPhrase\Part;
 use Google\Cloud\Dialogflow\V2\Intent\Message;
 use Google\Cloud\Dialogflow\V2\Intent\Message\Text;
 use Google\ApiCore\ApiException;
+use Google\Cloud\Dialogflow\V2\ListIntentsRequest;
 
 class DialogflowService
 {
@@ -83,55 +84,62 @@ class DialogflowService
      * List all intents from Dialogflow
      */
     public function listIntents()
-    {
-        try {
-            \Log::info('DialogflowService: Starting listIntents()', [
-                'projectId' => $this->projectId
-            ]);
-            
-            // Check if intentsClient is initialized
-            if (!$this->intentsClient) {
-                \Log::error('DialogflowService: intentsClient not initialized');
-                return $this->getMockIntents(); // Return mock data
-            }
-            
-            $parent = $this->intentsClient->projectAgentName($this->projectId);
-            
-            \Log::info('DialogflowService: Fetching intents from parent: ' . $parent);
-            
-            // List intents - this might throw an ApiException if credentials are wrong
-            $intents = $this->intentsClient->listIntents($parent);
-            
-            $intentList = [];
-            foreach ($intents as $intent) {
-                $intentList[] = $this->formatIntent($intent);
-            }
-            
-            \Log::info('DialogflowService: Successfully fetched ' . count($intentList) . ' intents');
-            
-            return $intentList;
-            
-        } catch (\Google\ApiCore\ApiException $e) {
-            \Log::error('Dialogflow API Exception in listIntents: ' . $e->getMessage(), [
-                'status' => $e->getStatus(),
-                'details' => $e->getDetails(),
-                'metadata' => $e->getMetadata(),
-            ]);
-            
-            // Return mock data for development
-            return $this->getMockIntents();
-            
-        } catch (\Exception $e) {
-            \Log::error('General Exception in listIntents: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            // Return mock data for development
-            return $this->getMockIntents();
+{
+    try {
+        \Log::info('DialogflowService: Starting listIntents()', [
+            'projectId' => $this->projectId
+        ]);
+        
+        // Check if intentsClient is initialized
+        if (!$this->intentsClient) {
+            \Log::error('DialogflowService: intentsClient not initialized');
+            return $this->getMockIntents(); // Return mock data
         }
+        
+        $parent = $this->intentsClient->projectAgentName($this->projectId);
+        
+        \Log::info('DialogflowService: Fetching intents from parent: ' . $parent);
+        
+        // FIX: Create ListIntentsRequest object instead of passing string
+        $request = new ListIntentsRequest();
+        $request->setParent($parent);
+        // Add optional parameters if needed:
+        // $request->setLanguageCode('en-US');
+        // $request->setIntentView(IntentView::INTENT_VIEW_FULL);
+        
+        // List intents using the request object
+        $intents = $this->intentsClient->listIntents($request);
+        
+        $intentList = [];
+        foreach ($intents as $intent) {
+            $intentList[] = $this->formatIntent($intent);
+        }
+        
+        \Log::info('DialogflowService: Successfully fetched ' . count($intentList) . ' intents');
+        
+        return $intentList;
+        
+    } catch (\Google\ApiCore\ApiException $e) {
+        \Log::error('Dialogflow API Exception in listIntents: ' . $e->getMessage(), [
+            'status' => $e->getStatus(),
+            'details' => $e->getDetails(),
+            'metadata' => $e->getMetadata(),
+        ]);
+        
+        // Return mock data for development
+        return $this->getMockIntents();
+        
+    } catch (\Exception $e) {
+        \Log::error('General Exception in listIntents: ' . $e->getMessage(), [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        // Return mock data for development
+        return $this->getMockIntents();
     }
+}
 
     /**
      * Return mock intents for development/testing
