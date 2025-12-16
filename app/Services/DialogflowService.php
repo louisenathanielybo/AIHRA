@@ -13,7 +13,7 @@ use Google\Cloud\Dialogflow\V2\Intent\TrainingPhrase\Part;
 use Google\Cloud\Dialogflow\V2\Intent\Message;
 use Google\Cloud\Dialogflow\V2\Intent\Message\Text;
 use Google\ApiCore\ApiException;
-use Google\Protobuf\Internal\RepeatedField;
+use Google\Cloud\Dialogflow\V2\ListIntentsRequest;
 
 class DialogflowService
 {
@@ -22,43 +22,43 @@ class DialogflowService
     protected $projectId;
 
     public function __construct()
-{
-    // Get from environment variables
-    $this->projectId = env('DIALOGFLOW_PROJECT_ID', 'aihra-472311');
-    
-    // Check if credentials file exists
-    $credentialsPath = env('DIALOGFLOW_CREDENTIALS_PATH', 'aihra-key.json');
-    $fullCredentialsPath = base_path($credentialsPath);
-    
-    if (!file_exists($fullCredentialsPath)) {
-        \Log::error('Dialogflow credentials file not found: ' . $fullCredentialsPath);
-        throw new \Exception('Dialogflow credentials file not found at: ' . $credentialsPath);
-    }
-    
-    // Read the JSON credentials file content
-    $credentialsContent = json_decode(file_get_contents($fullCredentialsPath), true);
-    
-    \Log::info('DialogflowService initialized', [
-        'project_id' => $this->projectId,
-        'credentials_path' => $fullCredentialsPath,
-        'file_exists' => file_exists($fullCredentialsPath),
-        'client_email' => $credentialsContent['client_email'] ?? 'unknown'
-    ]);
-    
-    try {
-        // Pass credentials as array directly to the clients
-        $this->sessionsClient = new SessionsClient([
-            'credentials' => $credentialsContent
+    {
+        // Get from environment variables
+        $this->projectId = env('DIALOGFLOW_PROJECT_ID', 'aihra-472311');
+        
+        // Check if credentials file exists
+        $credentialsPath = env('DIALOGFLOW_CREDENTIALS_PATH', 'aihra-key.json');
+        $fullCredentialsPath = base_path($credentialsPath);
+        
+        if (!file_exists($fullCredentialsPath)) {
+            \Log::error('Dialogflow credentials file not found: ' . $fullCredentialsPath);
+            throw new \Exception('Dialogflow credentials file not found at: ' . $credentialsPath);
+        }
+        
+        // Read the JSON credentials file content
+        $credentialsContent = json_decode(file_get_contents($fullCredentialsPath), true);
+        
+        \Log::info('DialogflowService initialized', [
+            'project_id' => $this->projectId,
+            'credentials_path' => $fullCredentialsPath,
+            'file_exists' => file_exists($fullCredentialsPath),
+            'client_email' => $credentialsContent['client_email'] ?? 'unknown'
         ]);
-        $this->intentsClient = new IntentsClient([
-            'credentials' => $credentialsContent
-        ]);
-        \Log::info('Dialogflow clients initialized successfully');
-    } catch (\Exception $e) {
-        \Log::error('Failed to initialize Dialogflow clients: ' . $e->getMessage());
-        throw $e;
+        
+        try {
+            // Pass credentials as array directly to the clients
+            $this->sessionsClient = new SessionsClient([
+                'credentials' => $credentialsContent
+            ]);
+            $this->intentsClient = new IntentsClient([
+                'credentials' => $credentialsContent
+            ]);
+            \Log::info('Dialogflow clients initialized successfully');
+        } catch (\Exception $e) {
+            \Log::error('Failed to initialize Dialogflow clients: ' . $e->getMessage());
+            throw $e;
+        }
     }
-}
 
     public function detectIntent($queryText, $sessionId)
     {
@@ -83,14 +83,7 @@ class DialogflowService
     /**
      * List all intents from Dialogflow
      */
-    // app/Services/DialogflowService.php
-/**
- * List all intents from Dialogflow
- */
-/**
- * List all intents from Dialogflow
- */
-public function listIntents()
+    public function listIntents()
 {
     try {
         \Log::info('DialogflowService: Starting listIntents()', [
@@ -100,15 +93,22 @@ public function listIntents()
         // Check if intentsClient is initialized
         if (!$this->intentsClient) {
             \Log::error('DialogflowService: intentsClient not initialized');
-            return []; // Return empty array instead of throwing error
+            return $this->getMockIntents(); // Return mock data
         }
         
         $parent = $this->intentsClient->projectAgentName($this->projectId);
         
         \Log::info('DialogflowService: Fetching intents from parent: ' . $parent);
         
-        // List intents - this might throw an ApiException if credentials are wrong
-        $intents = $this->intentsClient->listIntents($parent);
+        // FIX: Create ListIntentsRequest object instead of passing string
+        $request = new ListIntentsRequest();
+        $request->setParent($parent);
+        // Add optional parameters if needed:
+        // $request->setLanguageCode('en-US');
+        // $request->setIntentView(IntentView::INTENT_VIEW_FULL);
+        
+        // List intents using the request object
+        $intents = $this->intentsClient->listIntents($request);
         
         $intentList = [];
         foreach ($intents as $intent) {
@@ -141,56 +141,57 @@ public function listIntents()
     }
 }
 
-/**
- * Return mock intents for development/testing
- */
-private function getMockIntents()
-{
-    return [
-        [
-            'id' => 'projects/aihra-472311/agent/intents/1',
-            'intent_name' => 'leave.policy.inquiry',
-            'display_name' => 'Leave Policy Inquiry',
-            'training_phrases' => ['How do I apply for leave?', 'What is the leave policy?', 'How many leave days do I have?'],
-            'training_phrases_count' => 3,
-            'responses' => ['You can apply for leave through the HR portal.', 'The leave policy allows for 20 days annual leave.'],
-            'responses_count' => 2,
-            'priority' => 500000,
-            'is_fallback' => false,
-            'status' => 'active',
-            'created_at' => now()->subDays(5)->toDateTimeString(),
-            'updated_at' => now()->subDays(1)->toDateTimeString(),
-        ],
-        [
-            'id' => 'projects/aihra-472311/agent/intents/2',
-            'intent_name' => 'benefits.information',
-            'display_name' => 'Benefits Information',
-            'training_phrases' => ['What benefits do I get?', 'Tell me about health insurance', 'What are the employee benefits?'],
-            'training_phrases_count' => 3,
-            'responses' => ['Employees receive health insurance, dental coverage, and retirement benefits.', 'Health insurance coverage starts after 90 days of employment.'],
-            'responses_count' => 2,
-            'priority' => 500000,
-            'is_fallback' => false,
-            'status' => 'active',
-            'created_at' => now()->subDays(10)->toDateTimeString(),
-            'updated_at' => now()->subDays(2)->toDateTimeString(),
-        ],
-        [
-            'id' => 'projects/aihra-472311/agent/intents/3',
-            'intent_name' => 'salary.inquiry',
-            'display_name' => 'Salary Inquiry',
-            'training_phrases' => ['When is payday?', 'How do I view my payslip?', 'What is the salary schedule?'],
-            'training_phrases_count' => 3,
-            'responses' => ['Payday is every 15th and 30th of the month.', 'You can view your payslip in the employee portal.'],
-            'responses_count' => 2,
-            'priority' => 500000,
-            'is_fallback' => false,
-            'status' => 'active',
-            'created_at' => now()->subDays(7)->toDateTimeString(),
-            'updated_at' => now()->toDateTimeString(),
-        ],
-    ];
-}
+    /**
+     * Return mock intents for development/testing
+     */
+    private function getMockIntents()
+    {
+        return [
+            [
+                'id' => 'projects/aihra-472311/agent/intents/1',
+                'intent_name' => 'leave.policy.inquiry',
+                'display_name' => 'Leave Policy Inquiry',
+                'training_phrases' => ['How do I apply for leave?', 'What is the leave policy?', 'How many leave days do I have?'],
+                'training_phrases_count' => 3,
+                'responses' => ['You can apply for leave through the HR portal.', 'The leave policy allows for 20 days annual leave.'],
+                'responses_count' => 2,
+                'priority' => 500000,
+                'is_fallback' => false,
+                'status' => 'active',
+                'created_at' => now()->subDays(5)->toDateTimeString(),
+                'updated_at' => now()->subDays(1)->toDateTimeString(),
+            ],
+            [
+                'id' => 'projects/aihra-472311/agent/intents/2',
+                'intent_name' => 'benefits.information',
+                'display_name' => 'Benefits Information',
+                'training_phrases' => ['What benefits do I get?', 'Tell me about health insurance', 'What are the employee benefits?'],
+                'training_phrases_count' => 3,
+                'responses' => ['Employees receive health insurance, dental coverage, and retirement benefits.', 'Health insurance coverage starts after 90 days of employment.'],
+                'responses_count' => 2,
+                'priority' => 500000,
+                'is_fallback' => false,
+                'status' => 'active',
+                'created_at' => now()->subDays(10)->toDateTimeString(),
+                'updated_at' => now()->subDays(2)->toDateTimeString(),
+            ],
+            [
+                'id' => 'projects/aihra-472311/agent/intents/3',
+                'intent_name' => 'salary.inquiry',
+                'display_name' => 'Salary Inquiry',
+                'training_phrases' => ['When is payday?', 'How do I view my payslip?', 'What is the salary schedule?'],
+                'training_phrases_count' => 3,
+                'responses' => ['Payday is every 15th and 30th of the month.', 'You can view your payslip in the employee portal.'],
+                'responses_count' => 2,
+                'priority' => 500000,
+                'is_fallback' => false,
+                'status' => 'active',
+                'created_at' => now()->subDays(7)->toDateTimeString(),
+                'updated_at' => now()->toDateTimeString(),
+            ],
+        ];
+    }
+
     /**
      * Get a specific intent by name
      */
@@ -379,12 +380,11 @@ private function getMockIntents()
 
     public function close()
     {
-        $this->sessionsClient->close();
+        if ($this->sessionsClient) {
+            $this->sessionsClient->close();
+        }
         if ($this->intentsClient) {
             $this->intentsClient->close();
         }
     }
- 
-
-    
 }
