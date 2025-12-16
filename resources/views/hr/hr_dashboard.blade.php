@@ -2069,8 +2069,62 @@
     </div>
 </div>
 
+<!-- Category Assignment Modal for Ticket Resolution -->
+<div id="categoryModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Assign Category Before Resolving</h3>
+        </div>
+        <form id="categoryForm" class="modal-form">
+            <input type="hidden" id="categoryTicketNo">
+            
+            <div class="form-group">
+                <label>Select Category <span style="color: red;">*</span></label>
+                <select name="category" id="categorySelect" required style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 100%;" onchange="toggleCustomCategory()">
+                    <option value="">-- Select a category --</option>
+                    <option value="Conditions on employment">Conditions on employment</option>
+                    <option value="Compensation and benefits">Compensation and benefits</option>
+                    <option value="Employee Development">Employee Development</option>
+                    <option value="Ranking and Promotion">Ranking and Promotion</option>
+                    <option value="General">General</option>
+                    <option value="CUSTOM">Custom Category</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="customCategoryGroup" style="display: none;">
+                <label>Enter Custom Category <span style="color: red;">*</span></label>
+                <input type="text" id="customCategoryInput" placeholder="Type custom category here..." style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 100%;">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="submit-button" style="flex: 1; padding: 12px; background: #1A6B61; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    Resolve Ticket
+                </button>
+                <button type="button" class="cancel-button" onclick="closeCategoryModal()" style="flex: 1; padding: 12px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer;">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     let currentTicket = null;
+
+    function toggleCustomCategory() {
+        const categorySelect = document.getElementById('categorySelect');
+        const customCategoryGroup = document.getElementById('customCategoryGroup');
+        const customCategoryInput = document.getElementById('customCategoryInput');
+        
+        if (categorySelect.value === 'CUSTOM') {
+            customCategoryGroup.style.display = 'block';
+            customCategoryInput.required = true;
+        } else {
+            customCategoryGroup.style.display = 'none';
+            customCategoryInput.required = false;
+            customCategoryInput.value = '';
+        }
+    }
 
     function showSection(id) {
         // Scroll to top smoothly
@@ -2112,7 +2166,45 @@
     }
 
     async function resolveTicket(ticketNo) {
-        if (!confirm('Mark this ticket as resolved?')) return;
+        // Show category modal instead of immediate confirmation
+        document.getElementById('categoryTicketNo').value = ticketNo;
+        document.getElementById('categoryModal').style.display = 'flex';
+        document.getElementById('categorySelect').value = ''; // Reset selection
+    }
+
+    function closeCategoryModal() {
+        document.getElementById('categoryModal').style.display = 'none';
+        document.getElementById('categorySelect').value = '';
+        document.getElementById('customCategoryInput').value = '';
+        document.getElementById('customCategoryGroup').style.display = 'none';
+        document.getElementById('customCategoryInput').required = false;
+    }
+
+    // Handle category form submission
+    document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const ticketNo = document.getElementById('categoryTicketNo').value;
+        const categorySelect = document.getElementById('categorySelect').value;
+        const customCategoryInput = document.getElementById('customCategoryInput').value;
+        
+        let category;
+        if (categorySelect === 'CUSTOM') {
+            if (!customCategoryInput.trim()) {
+                alert('Please enter a custom category');
+                return;
+            }
+            // Uppercase the custom category before sending
+            category = customCategoryInput.trim().toUpperCase();
+        } else {
+            category = categorySelect;
+        }
+        
+        if (!category) {
+            alert('Please select a category');
+            return;
+        }
+        
         try {
             const res = await fetch('/hr/resolve-ticket', {
                 method: 'POST',
@@ -2121,12 +2213,16 @@
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ ticket_no: ticketNo })
+                body: JSON.stringify({ 
+                    ticket_no: ticketNo,
+                    category: category
+                })
             });
             const result = await res.json();
             console.log('Resolve response:', result);
             if (result.success) {
-                alert('Ticket resolved!');
+                closeCategoryModal();
+                alert('Ticket resolved successfully!');
                 location.reload();
             } else {
                 alert('Error: ' + result.message);
@@ -2135,7 +2231,7 @@
             console.error('Resolve error:', error);
             alert('Failed to resolve ticket');
         }
-    }
+    });
 
     // Update tab badge counts based on visible filtered tickets
     function updateTabCounts() {
@@ -2210,7 +2306,7 @@
                 messageDiv.innerHTML = `
                     <div>${msg.message}</div>
                     <div class="message-meta">
-                        ${msg.sender === 'employee' ? 'Employee' : 'HR'} • 
+                        ${msg.sender_name || (msg.sender === 'employee' ? 'Employee' : 'HR')} • 
                         ${new Date(msg.created_at).toLocaleString()}
                     </div>
                 `;

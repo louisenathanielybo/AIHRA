@@ -1165,6 +1165,19 @@ use Illuminate\Support\Str;
         }
     }
 
+    /* Online indicator pulse animation */
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 6px rgba(40, 167, 69, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+        }
+    }
+
     /* Responsive Design */
     @media (max-width: 1600px) {
         :root {
@@ -1384,18 +1397,19 @@ use Illuminate\Support\Str;
             
             <!-- Overview Tab -->
             <div id="overview" class="dashboard-tab-content active">
-                <div class="chart-container" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08); margin-bottom: 20px;">
-                    <h3>Resolution Breakdown</h3>
-                    <div class="chart-box" style="height: 400px;">
-                        <canvas id="resolutionChart"></canvas>
-                    </div>
-                </div>
-                
-                <div class="topics-container" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
+                <div class="topics-container" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08); margin-bottom: 20px;">
                     <h3>Most Asked Topics</h3>
                     @forelse($mostAskedTopics as $topic)
                     <div class="topic-item" style="cursor: pointer; transition: background 0.2s;" onclick="filterByTopic('{{ $topic['topic'] }}')" onmouseover="this.style.background='#f0f8f4'" onmouseout="this.style.background='transparent'">
-                        <span class="topic-name">{{ $topic['topic'] }}</span>
+                        <span class="topic-name">
+                            @php
+                                $words = explode(' ', strtolower($topic['topic']));
+                                $formatted = array_map(function($word) {
+                                    return strlen($word) >= 4 ? ucfirst($word) : $word;
+                                }, $words);
+                                echo implode(' ', $formatted);
+                            @endphp
+                        </span>
                         <span class="topic-count">{{ $topic['count'] }} inquir{{ $topic['count'] == 1 ? 'y' : 'ies' }}</span>
                     </div>
                     @empty
@@ -1404,6 +1418,12 @@ use Illuminate\Support\Str;
                         <span class="topic-count">0 inquiries</span>
                     </div>
                     @endforelse
+                </div>
+                <div class="chart-container" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
+                    <h3>Resolution Breakdown</h3>
+                    <div class="chart-box" style="height: 400px;">
+                        <canvas id="resolutionChart"></canvas>
+                    </div>
                 </div>
             </div>
             
@@ -1757,6 +1777,10 @@ use Illuminate\Support\Str;
                             @endforelse
                         </tbody>
                     </table>
+                    <div style="margin-top: 20px;">
+                        <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;" data-pagify="flagged-dash-info"></div>
+                        <div style="text-align: center;"><div style="display: inline-flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;" data-pagify="flagged-dash-nav"></div></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1886,7 +1910,7 @@ use Illuminate\Support\Str;
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" style="text-align: center; padding: 30px; color: #666;">
+                            <td colspan="5" style="text-align: center; padding: 30px; color: #666;">
                                 No feedback received yet.
                             </td>
                         </tr>
@@ -1947,8 +1971,8 @@ use Illuminate\Support\Str;
                     </tbody>
                 </table>
                 <div style="margin-top: 20px;">
-                    <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;" data-pagify="flagged-info"></div>
-                    <div style="text-align: center;"><div style="display: inline-flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;" data-pagify="flagged-nav"></div></div>
+                    <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.9rem;" data-pagify="flagged-section-info"></div>
+                    <div style="text-align: center;"><div style="display: inline-flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;" data-pagify="flagged-section-nav"></div></div>
                 </div>
             </div>
         </div>
@@ -2322,6 +2346,13 @@ You can check your leave balance in the employee portal."></textarea>
                     <h3>Resolved Tickets</h3>
                     <div class="value" id="resolvedTickets">{{ $resolvedTickets ?? 0 }}</div>
                 </div>
+                <div class="card stat-card" style="cursor: default;">
+                    <h3>Most Frequent Category</h3>
+                    <div class="value" style="font-size: 1.2rem; color: var(--primary);">{{ \Illuminate\Support\Str::title($mostFrequentCategory ?? 'N/A') }}</div>
+                    @if(isset($mostFrequentCategoryCount))
+                    <div style="font-size: 0.85rem; color: #666; margin-top: 5px;">{{ $mostFrequentCategoryCount }} tickets</div>
+                    @endif
+                </div>
             </div>
 
             <!-- Ticket Charts -->
@@ -2372,9 +2403,10 @@ You can check your leave balance in the employee portal."></textarea>
                         <tr>
                             <th>Ticket #</th>
                             <th>Message</th>
-                            <th class="sortable" onclick="sortTable('ticketsTable', 2, 'text')">Priority</th>
-                            <th class="sortable" onclick="sortTable('ticketsTable', 3, 'text')">Status</th>
-                            <th class="sortable" onclick="sortTable('ticketsTable', 4, 'date')">Date</th>
+                            <th class="sortable" onclick="sortTable('ticketsTable', 2, 'text')">Category</th>
+                            <th class="sortable" onclick="sortTable('ticketsTable', 3, 'text')">Priority</th>
+                            <th class="sortable" onclick="sortTable('ticketsTable', 4, 'text')">Status</th>
+                            <th class="sortable" onclick="sortTable('ticketsTable', 5, 'date')">Date</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -2383,6 +2415,16 @@ You can check your leave balance in the employee portal."></textarea>
                         <tr>
                             <td>{{ $ticket->ticket_no ?? $ticket->id }}</td>
                             <td>{{ \Illuminate\Support\Str::limit($ticket->message ?? 'No message', 50) }}</td>
+                            <td>
+                                @php
+                                    $category = $ticket->category ?? 'General';
+                                    $words = explode(' ', strtolower($category));
+                                    $formatted = array_map(function($word) {
+                                        return strlen($word) >= 4 ? ucfirst($word) : $word;
+                                    }, $words);
+                                    echo implode(' ', $formatted);
+                                @endphp
+                            </td>
                             <td>
                                 <span class="priority {{ $ticket->priority ?? 'medium' }}">
                                     {{ ucfirst($ticket->priority ?? 'medium') }}
@@ -2402,7 +2444,7 @@ You can check your leave balance in the employee portal."></textarea>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 30px; color: #666;">
+                            <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
                                 No tickets found in the system.
                             </td>
                         </tr>
@@ -2501,7 +2543,12 @@ You can check your leave balance in the employee portal."></textarea>
                     <tbody id="accountsTableBody">
                         @forelse($users as $user)
                         <tr>
-                            <td>{{ $user->employeeNum }}</td>
+                            <td>
+                                {{ $user->employeeNum }}
+                                @if($user->is_online)
+                                <span class="online-indicator" title="User is currently online" style="display: inline-block; width: 8px; height: 8px; background-color: #28a745; border-radius: 50%; margin-left: 5px; animation: pulse 1.5s infinite;"></span>
+                                @endif
+                            </td>
                             <td>{{ $user->firstName }}</td>
                             <td>{{ $user->lastName }}</td>
                             <td>{{ $user->email }}</td>
@@ -2514,13 +2561,16 @@ You can check your leave balance in the employee portal."></textarea>
                                 <span class="status-badge status-{{ strtolower($user->status) }}">
                                     {{ $user->status }}
                                 </span>
+                                @if($user->is_online)
+                                <span class="badge" style="background-color: #28a745; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; margin-left: 5px;">Online</span>
+                                @endif
                             </td>
                             <td class="action-buttons-cell">
                                 <button class="btn-action btn-view" onclick="viewAccount('{{ $user->employeeNum }}')">
                                     <i class="fas fa-eye"></i> View
                                 </button>
-                                @if($user->role != 'Admin' || $user->employeeNum == Auth::user()->employeeNum)
-                                <button class="btn-action btn-edit" onclick="editAccountModal('{{ $user->employeeNum }}')">
+                                @if($user->role != 'Admin')
+                                <button class="btn-action btn-edit" onclick="editAccountModal('{{ $user->employeeNum }}')" @if($user->is_online && $user->employeeNum != Auth::user()->employeeNum) title="Cannot edit while user is online" @endif>
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
                                 <button class="btn-action btn-reset" onclick="resetPasswordModal('{{ $user->employeeNum }}')">
@@ -2528,7 +2578,7 @@ You can check your leave balance in the employee portal."></textarea>
                                 </button>
                                 @endif
                                 @if($user->employeeNum != Auth::user()->employeeNum && $user->role != 'Admin')
-                                <button class="btn-action btn-archive" onclick="archiveAccount('{{ $user->employeeNum }}')">
+                                <button class="btn-action btn-archive" onclick="archiveAccount('{{ $user->employeeNum }}')" @if($user->is_online) disabled title="Cannot archive while user is online" style="opacity: 0.5; cursor: not-allowed;" @endif>
                                     <i class="fas fa-archive"></i> Archive
                                 </button>
                                 @endif
@@ -2838,7 +2888,7 @@ You can check your leave balance in the employee portal."></textarea>
                             <select id="role" name="role" required>
                                 <option value="">Select Role</option>
                                 <option value="Employee" {{ old('role') == 'Employee' ? 'selected' : '' }}>Employee</option>
-                                <option value="HR" {{ old('role') == 'HR' ? 'selected' : '' }}>HR Manager</option>
+                                <option value="HR" {{ old('role') == 'HR' ? 'selected' : '' }}>Human Resources</option>
                             </select>
                             @error('role')
                                 <span style="color: #e74c3c; font-size: 0.8rem;">{{ $message }}</span>
@@ -3032,7 +3082,7 @@ You can check your leave balance in the employee portal."></textarea>
                             <select id="edit_role" name="role" required>
                                 <option value="">Select Role</option>
                                 <option value="Employee">Employee</option>
-                                <option value="HR">HR Manager</option>
+                                <option value="HR">Human Resources</option>
                             </select>
                         </div>
 
@@ -3661,8 +3711,8 @@ You can check your leave balance in the employee portal."></textarea>
             
             switch(currentDateRange) {
                 case 'daily':
-                    startDate = new Date(today.setHours(0, 0, 0, 0));
-                    endDate = new Date(today.setHours(23, 59, 59, 999));
+                    startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+                    endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
                     displayText = formatDate(startDate);
                     dateRangeData = {
                         start: startDate,
@@ -3673,11 +3723,8 @@ You can check your leave balance in the employee portal."></textarea>
                     
                 case 'weekly':
                     const firstDayOfWeek = today.getDate() - today.getDay();
-                    startDate = new Date(today.setDate(firstDayOfWeek));
-                    startDate.setHours(0, 0, 0, 0);
-                    endDate = new Date(startDate);
-                    endDate.setDate(startDate.getDate() + 6);
-                    endDate.setHours(23, 59, 59, 999);
+                    startDate = new Date(today.getFullYear(), today.getMonth(), firstDayOfWeek, 0, 0, 0, 0);
+                    endDate = new Date(today.getFullYear(), today.getMonth(), firstDayOfWeek + 6, 23, 59, 59, 999);
                     displayText = formatDate(startDate) + ' - ' + formatDate(endDate);
                     dateRangeData = {
                         start: startDate,
@@ -3687,9 +3734,8 @@ You can check your leave balance in the employee portal."></textarea>
                     break;
                     
                 case 'monthly':
-                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                    endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                    endDate.setHours(23, 59, 59, 999);
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+                    endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
                     displayText = startDate.toLocaleString('default', { month: 'long', year: 'numeric' });
                     dateRangeData = {
                         start: startDate,
@@ -3699,9 +3745,8 @@ You can check your leave balance in the employee portal."></textarea>
                     break;
                     
                 case 'annually':
-                    startDate = new Date(today.getFullYear(), 0, 1);
-                    endDate = new Date(today.getFullYear(), 11, 31);
-                    endDate.setHours(23, 59, 59, 999);
+                    startDate = new Date(today.getFullYear(), 0, 1, 0, 0, 0, 0);
+                    endDate = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
                     displayText = today.getFullYear().toString();
                     dateRangeData = {
                         start: startDate,
@@ -3875,7 +3920,8 @@ You can check your leave balance in the employee portal."></textarea>
                 paginateTable('feedback');
                 paginateTable('feedback-section');
                 paginateTable('interactions');
-                paginateTable('flagged');
+                paginateTable('flagged-dash');
+                paginateTable('flagged-section');
                 paginateTable('tickets');
             }, 200);
         });
@@ -3896,7 +3942,8 @@ You can check your leave balance in the employee portal."></textarea>
             feedback: { currentPage: 1, perPage: 20 },
             'feedback-section': { currentPage: 1, perPage: 20 },
             interactions: { currentPage: 1, perPage: 20 },
-            flagged: { currentPage: 1, perPage: 20 },
+            'flagged-dash': { currentPage: 1, perPage: 20 },
+            'flagged-section': { currentPage: 1, perPage: 20 },
             tickets: { currentPage: 1, perPage: 20 }
         };
 
@@ -3908,7 +3955,8 @@ You can check your leave balance in the employee portal."></textarea>
                 case 'feedback': tableSelector = '#feedbackDashTable tbody tr:not([colspan])'; break;
                 case 'feedback-section': tableSelector = '#feedbackSectionTable tbody tr:not([colspan])'; break;
                 case 'interactions': tableSelector = '#interactionsTable tbody tr:not([colspan])'; break;
-                case 'flagged': tableSelector = '#flaggedDashTable tbody tr:not([colspan]), #flaggedSectionTable tbody tr:not([colspan])'; break;
+                case 'flagged-dash': tableSelector = '#flaggedDashTable tbody tr:not([colspan])'; break;
+                case 'flagged-section': tableSelector = '#flaggedSectionTable tbody tr:not([colspan])'; break;
                 case 'tickets': tableSelector = '#ticketsTable tbody tr:not([colspan])'; break;
             }
             
@@ -3968,9 +4016,13 @@ You can check your leave balance in the employee portal."></textarea>
                     infoSelector = '[data-pagify="interactions-info"]';
                     navSelector = '[data-pagify="interactions-nav"]';
                     break;
-                case 'flagged':
-                    infoSelector = '[data-pagify="flagged-info"]';
-                    navSelector = '[data-pagify="flagged-nav"]';
+                case 'flagged-dash':
+                    infoSelector = '[data-pagify="flagged-dash-info"]';
+                    navSelector = '[data-pagify="flagged-dash-nav"]';
+                    break;
+                case 'flagged-section':
+                    infoSelector = '[data-pagify="flagged-section-info"]';
+                    navSelector = '[data-pagify="flagged-section-nav"]';
                     break;
                 case 'tickets':
                     infoSelector = '[data-pagify="tickets-info"]';
@@ -3984,9 +4036,11 @@ You can check your leave balance in the employee portal."></textarea>
             // Update info text
             info.forEach(el => {
                 if (totalVisible === 0) {
-                    el.textContent = 'No results found';
+                    el.textContent = '';  // Clear the text when no results
+                    el.style.display = 'none';  // Hide the info div
                 } else {
                     el.textContent = `Showing ${startIdx + 1} to ${endIdx} of ${totalVisible} result${totalVisible === 1 ? '' : 's'}`;
+                    el.style.display = '';  // Show the info div
                 }
             });
             
@@ -4573,8 +4627,14 @@ You can check your leave balance in the employee portal."></textarea>
                     topicItem.onmouseout = function() {
                         if (!this.dataset.active) this.style.background = 'transparent';
                     };
+                    
+                    // Apply selective title case (only words with 4+ characters)
+                    const titleCaseTopic = topic.topic.toLowerCase().split(' ').map(word => {
+                        return word.length >= 4 ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+                    }).join(' ');
+                    
                     topicItem.innerHTML = `
-                        <span class="topic-name">${topic.topic}</span>
+                        <span class="topic-name">${titleCaseTopic}</span>
                         <span class="topic-count">${topic.count} inquir${topic.count == 1 ? 'y' : 'ies'}</span>
                     `;
                     topicsContainer.appendChild(topicItem);
@@ -4633,23 +4693,23 @@ You can check your leave balance in the employee portal."></textarea>
             const interactionsDir = urlParams.get('interactions_dir') || 'desc';
             markSortedColumn('interactionsTable', ['question', 'response_time_seconds', 'isEscalated', 'questionTime'], interactionsSort, interactionsDir);
             
-            // Tickets table
+            // Tickets table - columns: 0=Ticket#, 1=Message, 2=Category, 3=Priority, 4=Status, 5=Date, 6=Action
             const ticketsSort = urlParams.get('tickets_sort') || 'created_at';
             const ticketsDir = urlParams.get('tickets_dir') || 'desc';
-            markSortedColumn('ticketsTable', ['ticket_no', 'from_user', 'priority', 'status', 'created_at'], ticketsSort, ticketsDir);
+            markSortedColumn('ticketsTable', ['ticket_no', null, 'category', 'priority', 'status', 'created_at', null], ticketsSort, ticketsDir);
             
-            // Feedback table (both dashboard and section)
+            // Feedback table (both dashboard and section) - columns: 0=ID, 1=Rating, 2=Subject, 3=Date, 4=Actions
             const feedbackSort = urlParams.get('feedback_sort') || 'timeStamp';
             const feedbackDir = urlParams.get('feedback_dir') || 'desc';
-            markSortedColumn('feedbackDashTable', ['feedbackID', 'rating', null, 'timeStamp'], feedbackSort, feedbackDir);
-            markSortedColumn('feedbackSectionTable', ['feedbackID', 'rating', null, 'timeStamp'], feedbackSort, feedbackDir);
+            markSortedColumn('feedbackDashTable', ['feedbackID', 'rating', null, 'timeStamp', null], feedbackSort, feedbackDir);
+            markSortedColumn('feedbackSectionTable', ['feedbackID', 'rating', null, 'timeStamp', null], feedbackSort, feedbackDir);
             
-            // Flags table (all instances)
+            // Flags table (all instances) - columns: 0=ID, 1=Query, 2=Reason, 3=Date, 4=Status, 5=Action
             const flagsSort = urlParams.get('flags_sort') || 'timeStamp';
             const flagsDir = urlParams.get('flags_dir') || 'desc';
-            markSortedColumn('flaggedTable', ['flaggedID', null, null, 'timeStamp', 'status'], flagsSort, flagsDir);
-            markSortedColumn('flaggedDashTable', ['flaggedID', null, null, 'timeStamp', 'status'], flagsSort, flagsDir);
-            markSortedColumn('flaggedSectionTable', ['flaggedID', null, null, 'timeStamp', 'status'], flagsSort, flagsDir);
+            markSortedColumn('flaggedTable', ['flaggedID', null, null, 'timeStamp', 'status', null], flagsSort, flagsDir);
+            markSortedColumn('flaggedDashTable', ['flaggedID', null, null, 'timeStamp', 'status', null], flagsSort, flagsDir);
+            markSortedColumn('flaggedSectionTable', ['flaggedID', null, null, 'timeStamp', 'status', null], flagsSort, flagsDir);
         });
 
         function markSortedColumn(tableId, columns, sortColumn, sortDir) {
@@ -4958,15 +5018,15 @@ You can check your leave balance in the employee portal."></textarea>
                                 </div>
                                 <div class="ticket-detail-item">
                                     <label>Category:</label>
-                                    <div class="value">${ticket.category || 'N/A'}</div>
+                                    <div class="value">${ticket.category ? ticket.category.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'N/A'}</div>
                                 </div>
                                 <div class="ticket-detail-item">
                                     <label>Intent:</label>
                                     <div class="value">${ticket.intent || 'N/A'}</div>
                                 </div>
                                 <div class="ticket-detail-item">
-                                    <label>Resolved By (Employee ID):</label>
-                                    <div class="value">${ticket.resolved_by ? ticket.resolved_by : 'N/A'}</div>
+                                    <label>${ticket.status === 'Resolved' ? 'Resolved By' : 'Assigned To'}:</label>
+                                    <div class="value">${ticket.status === 'Resolved' ? (ticket.resolved_by || 'N/A') : (ticket.assigned_to || 'Unassigned')}</div>
                                 </div>
                                 <div class="ticket-detail-item">
                                     <label>Created:</label>
@@ -5464,34 +5524,42 @@ You can check your leave balance in the employee portal."></textarea>
         // =============================================
         function sortTable(tableId, columnIndex, dataType) {
             // Map table IDs to their sort parameter names and column mappings
+            // Each columns array index matches the table column index (0-based)
             const sortConfig = {
                 'ticketsTable': {
                     param: 'tickets',
-                    columns: ['ticket_no', 'from_user', 'priority', 'status', 'created_at']
+                    // Columns: 0=Ticket#, 1=Message, 2=Category, 3=Priority, 4=Status, 5=Date, 6=Action
+                    columns: ['ticket_no', null, 'category', 'priority', 'status', 'created_at', null]
                 },
                 'feedbackDashTable': {
                     param: 'feedback',
-                    columns: ['feedbackID', 'rating', null, 'timeStamp']
+                    // Columns: 0=Feedback ID, 1=Rating, 2=Subject, 3=Date, 4=Actions
+                    columns: ['feedbackID', 'rating', null, 'timeStamp', null]
                 },
                 'feedbackSectionTable': {
                     param: 'feedback',
-                    columns: ['feedbackID', 'rating', null, 'timeStamp']
+                    // Columns: 0=Feedback ID, 1=Rating, 2=Subject, 3=Date, 4=Actions
+                    columns: ['feedbackID', 'rating', null, 'timeStamp', null]
                 },
                 'interactionsTable': {
                     param: 'interactions',
-                    columns: ['question', 'questionTime', 'isEscalated', 'questionTime']
+                    // Columns: 0=Query, 1=Response Time, 2=Status, 3=Date
+                    columns: ['question', 'response_time_seconds', 'isEscalated', 'questionTime']
                 },
                 'flaggedTable': {
                     param: 'flags',
-                    columns: ['flaggedID', null, null, 'timeStamp', 'status']
+                    // Columns: 0=Flag ID, 1=Query, 2=Reason, 3=Date, 4=Status, 5=Action
+                    columns: ['flaggedID', null, null, 'timeStamp', 'status', null]
                 },
                 'flaggedDashTable': {
                     param: 'flags',
-                    columns: ['flaggedID', null, null, 'timeStamp', 'status']
+                    // Columns: 0=Flag ID, 1=Query, 2=Reason, 3=Date, 4=Status, 5=Action
+                    columns: ['flaggedID', null, null, 'timeStamp', 'status', null]
                 },
                 'flaggedSectionTable': {
                     param: 'flags',
-                    columns: ['flaggedID', null, null, 'timeStamp', 'status']
+                    // Columns: 0=Flag ID, 1=Query, 2=Reason, 3=Date, 4=Status, 5=Action
+                    columns: ['flaggedID', null, null, 'timeStamp', 'status', null]
                 }
             };
 

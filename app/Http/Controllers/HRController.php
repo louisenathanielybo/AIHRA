@@ -35,17 +35,20 @@ class HRController extends Controller
             ->orderBy('createdAt', 'desc')
             ->get();
 
-        // ✅ Get all inbox tickets (newest first)
-        $inbox = HrInbox::orderBy('created_at', 'desc')->get();
+        // ✅ Get all inbox tickets (newest first) - only assigned to this HR
+        $currentHR = Auth::user()->employeeNum ?? null;
+        $inbox = HrInbox::where('assigned_to', $currentHR)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        // ✅ Compute inbox stats
+        // ✅ Compute inbox stats - only for assigned tickets
         $inboxStats = [
-            'total' => HrInbox::count(),
-            'urgent' => HrInbox::where('priority', 'urgent')->count(),
-            'high' => HrInbox::where('priority', 'high')->count(),
-            'medium' => HrInbox::where('priority', 'medium')->count(),
-            'low' => HrInbox::where('priority', 'low')->count(),
-            'replied' => HrInbox::where('status', 'Replied')->count(),
+            'total' => HrInbox::where('assigned_to', $currentHR)->count(),
+            'urgent' => HrInbox::where('assigned_to', $currentHR)->where('priority', 'urgent')->count(),
+            'high' => HrInbox::where('assigned_to', $currentHR)->where('priority', 'high')->count(),
+            'medium' => HrInbox::where('assigned_to', $currentHR)->where('priority', 'medium')->count(),
+            'low' => HrInbox::where('assigned_to', $currentHR)->where('priority', 'low')->count(),
+            'replied' => HrInbox::where('assigned_to', $currentHR)->where('status', 'Replied')->count(),
         ];
 
         // ✅ Get the currently logged-in user
@@ -320,6 +323,21 @@ class HRController extends Controller
             // Employee's original message from hr_inbox
             $inbox = HrInbox::where('ticket_no', $ticket_no)->first();
 
+            // Get employee's full name
+            $employeeName = 'Employee';
+            if ($inbox && $inbox->from_user) {
+                $employee = DB::table('users')
+                    ->where('employeeNum', $inbox->from_user)
+                    ->first(['firstName', 'lastName', 'name']);
+                if ($employee) {
+                    if (!empty($employee->firstName) && !empty($employee->lastName)) {
+                        $employeeName = $employee->firstName . ' ' . $employee->lastName;
+                    } elseif (!empty($employee->name)) {
+                        $employeeName = $employee->name;
+                    }
+                }
+            }
+
             // HR replies from hr_replies table
             $replies = HrReply::where('ticket_no', $ticket_no)
                 ->orderBy('replied_at', 'asc')
@@ -331,6 +349,7 @@ class HRController extends Controller
             if ($inbox) {
                 $messages->push([
                     'sender' => 'employee',
+                    'sender_name' => $employeeName,
                     'message' => $inbox->message,
                     'created_at' => $inbox->created_at,
                 ]);
@@ -342,8 +361,10 @@ class HRController extends Controller
                 // Use replied_by compared to the original ticket's from_user to
                 // infer the correct sender for rendering.
                 $sender = 'hr';
+                $senderName = 'HR';
                 if ($inbox && isset($inbox->from_user) && $reply->replied_by == $inbox->from_user) {
                     $sender = 'employee';
+                    $senderName = $employeeName;
                 }
 
                 $text = $reply->hr_message;
@@ -354,6 +375,7 @@ class HRController extends Controller
 
                 $messages->push([
                     'sender' => $sender,
+                    'sender_name' => $senderName,
                     'message' => $text,
                     'created_at' => $reply->replied_at,
                 ]);
@@ -433,6 +455,7 @@ class HRController extends Controller
     {
         $request->validate([
             'ticket_no' => 'required|string|exists:hr_inbox,ticket_no',
+            'category' => 'required|string|max:100',
         ]);
 
         try {
@@ -440,6 +463,7 @@ class HRController extends Controller
             HrInbox::where('ticket_no', $request->ticket_no)
                 ->update([
                     'status' => 'Resolved',
+                    'category' => $request->category,
                     'resolved_at' => now(),
                     'resolved_by' => $resolvedBy,
                     'updated_at' => now()

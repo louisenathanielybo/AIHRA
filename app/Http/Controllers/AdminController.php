@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Str;
+use App\Http\Middleware\TrackLastSeen;
 
 class AdminController extends Controller
 {
@@ -44,7 +45,7 @@ class AdminController extends Controller
         
         // 🆕 GET HR_INBOX DATA FOR CHATBOT TICKETS - all data for client-side pagination
         $ticketsForKPI = DB::table('hr_inbox')->get(); // For KPI calculations
-        $ticketsSortColumn = in_array($ticketsSort, ['ticket_no', 'from_user', 'priority', 'status', 'created_at']) ? $ticketsSort : 'created_at';
+        $ticketsSortColumn = in_array($ticketsSort, ['ticket_no', 'from_user', 'category', 'priority', 'status', 'created_at']) ? $ticketsSort : 'created_at';
         $tickets = DB::table('hr_inbox')
             ->select('*')
             ->orderBy($ticketsSortColumn, $ticketsDir)
@@ -64,6 +65,23 @@ class AdminController extends Controller
         $unresolvedTickets = $ticketsForKPI->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
         $resolvedTickets = $ticketsForKPI->where('status', 'Resolved')->count();
         $expiredTickets = $ticketsForKPI->where('is_expired', true)->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
+
+        // Calculate most frequent category
+        $categoryCounts = $ticketsForKPI->groupBy('category')->map(function($group) {
+            return $group->count();
+        });
+        $mostFrequentCategory = null;
+        $mostFrequentCategoryCount = 0;
+        if ($categoryCounts->isNotEmpty()) {
+            $mostFrequentCategory = $categoryCounts->keys()->first();
+            $mostFrequentCategoryCount = $categoryCounts->first();
+            foreach ($categoryCounts as $category => $count) {
+                if ($count > $mostFrequentCategoryCount) {
+                    $mostFrequentCategory = $category;
+                    $mostFrequentCategoryCount = $count;
+                }
+            }
+        }
 
         // 🆕 Calculate week-over-week changes for ticket statistics
         $lastWeekStart = now()->subWeek()->startOfWeek();
@@ -122,13 +140,22 @@ class AdminController extends Controller
             });
 
         // 🆕 NEW: Get data for performance tab - all interactions for client-side pagination
-        $interactionsSortColumn = in_array($interactionsSort, ['question', 'questionTime', 'isEscalated']) ? $interactionsSort : 'questionTime';
+        $interactionsSortColumn = in_array($interactionsSort, ['question', 'questionTime', 'isEscalated', 'response_time_seconds']) ? $interactionsSort : 'questionTime';
         $recentInteractions = DB::table('queries')
             ->join('users', 'queries.employeeNum', '=', 'users.employeeNum')
             ->select('queries.*', 'users.firstName', 'users.lastName', 
-                DB::raw('TIMESTAMPDIFF(MICROSECOND, queries.questionTime, IFNULL(queries.responseTime, queries.questionTime)) / 1000000.0 as response_time_seconds'))
-            ->orderBy('queries.' . $interactionsSortColumn, $interactionsDir)
-            ->get();
+                DB::raw('TIMESTAMPDIFF(MICROSECOND, queries.questionTime, IFNULL(queries.responseTime, queries.questionTime)) / 1000000.0 as response_time_seconds'));
+        
+        // Handle response_time_seconds sorting (calculated column)
+        if ($interactionsSort === 'response_time_seconds') {
+            $recentInteractions = $recentInteractions
+                ->orderBy(DB::raw('TIMESTAMPDIFF(MICROSECOND, queries.questionTime, IFNULL(queries.responseTime, queries.questionTime))'), $interactionsDir)
+                ->get();
+        } else {
+            $recentInteractions = $recentInteractions
+                ->orderBy('queries.' . $interactionsSortColumn, $interactionsDir)
+                ->get();
+        }
 
         // Get all interactions data for JavaScript (date + response time only)
         $allInteractionsData = DB::table('queries')
@@ -155,7 +182,7 @@ class AdminController extends Controller
         // Get users with pagination and search (exclude archived accounts)
         $search = request('search', '');
         $users = DB::table('users')
-            ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'profile_picture', 'about', 'status', 'dob')
+            ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'profile_picture', 'about', 'status', 'dob', 'last_seen_at')
             ->where('is_archived', false) // Exclude archived accounts
             ->when($search, function($query, $search) {
                 return $query->where(function($q) use ($search) {
@@ -168,9 +195,15 @@ class AdminController extends Controller
             })
             ->orderBy('employeeNum', 'asc')
             ->paginate(20, ['*'], 'accounts_page');
+        
+        // 🆕 Add online status to each user
+        $users->getCollection()->transform(function ($user) {
+            $user->is_online = TrackLastSeen::isUserOnline($user->employeeNum);
+            return $user;
+        });
 
-        // 🆕 Get Most Asked Topics from queries table
-        $mostAskedTopics = $this->calculateMostAskedTopics(DB::table('queries'));
+        // 🆕 Get Most Asked Topics from queries and tickets tables
+        $mostAskedTopics = $this->calculateMostAskedTopics(DB::table('queries'), DB::table('hr_inbox'));
 
         // Get active tab from URL parameter, session, or default to dashboard
         $active_tab = $request->get('active_tab', 'dashboard');
@@ -182,6 +215,7 @@ class AdminController extends Controller
             'admin', 'kb', 'announcements', 'feedback', 'flags', 'users', 'search', 
             'active_tab', 'tickets', 'totalTickets', 'unresolvedTickets', 'resolvedTickets', 'expiredTickets',
             'totalTicketsChange', 'unresolvedTicketsChange', 'resolvedTicketsChange',
+            'mostFrequentCategory', 'mostFrequentCategoryCount',
             'activeUsers', 'totalInteractions', 'escalatedQueries',
             'resolvedQueries', 'pendingQueries', 'escalatedCount',
             'feedbackData', 'recentInteractions', 'flaggedResponses', 'mostAskedTopics', 'avgResponseTime',
@@ -405,6 +439,16 @@ class AdminController extends Controller
                 ->with('active_tab', 'account-management');
         }
         
+        // 🆕 Prevent deactivating an online user
+        if ($request->status === 'Deactivated' && $targetUser && $targetUser->status === 'Active') {
+            if (TrackLastSeen::isUserOnline($employeeNum)) {
+                \Log::warning('Attempt to deactivate online user:', ['employeeNum' => $employeeNum]);
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'Cannot deactivate this account because the user is currently online. Please wait until they log out.')
+                    ->with('active_tab', 'account-management');
+            }
+        }
+        
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|unique:users,email,' . $employeeNum . ',employeeNum',
             'firstName' => 'required|string|max:255',
@@ -477,6 +521,14 @@ class AdminController extends Controller
             \Log::warning('Attempt to delete own account:', ['employeeNum' => $employeeNum]);
             return redirect()->route('admin.dashboard')
                 ->with('error', 'You cannot delete your own account.')
+                ->with('active_tab', 'account-management');
+        }
+        
+        // 🆕 Prevent archiving an online user
+        if (TrackLastSeen::isUserOnline($employeeNum)) {
+            \Log::warning('Attempt to archive online user:', ['employeeNum' => $employeeNum]);
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Cannot archive this account because the user is currently online. Please wait until they log out.')
                 ->with('active_tab', 'account-management');
         }
 
@@ -565,7 +617,7 @@ class AdminController extends Controller
             $user = DB::table('users')
                 ->where('employeeNum', $employeeNum)
                 ->where('is_archived', false) // Exclude archived accounts
-                ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'dob', 'profile_picture', 'about', 'status')
+                ->select('employeeNum', 'email', 'firstName', 'lastName', 'middleName', 'role', 'sex', 'age', 'dob', 'profile_picture', 'about', 'status', 'last_seen_at')
                 ->first();
             
             if (!$user) {
@@ -579,6 +631,10 @@ class AdminController extends Controller
                 $user->dob = null;
             }
             $user->dob = $user->dob ?? null;
+            
+            // 🆕 Add online status
+            $user->is_online = TrackLastSeen::isUserOnline($employeeNum);
+            
             return response()->json($user);
             
         } catch (\Exception $e) {
@@ -921,6 +977,7 @@ class AdminController extends Controller
                 'created_at' => $ticket->created_at ?? now(),
                 'updated_at' => $ticket->updated_at ?? now(),
                 'resolved_by' => $ticket->resolved_by ?? null,
+                'assigned_to' => $ticket->assigned_to ?? null,
             ];
 
             return response()->json([
@@ -992,35 +1049,82 @@ class AdminController extends Controller
                 $flaggedQuery->whereBetween('timeStamp', [$startDate, $endDate]);
             }
 
-            // Apply topic filter if specified
+            // Get all queries and tickets first, then filter using exact matching
+            $allQueries = (clone $queriesQuery)->get();
+            $allTickets = (clone $ticketsQuery)->get();
+            
+            // Apply topic filter if specified - use keyword matching for queries, category matching for tickets
             if ($topic && $topic !== 'all') {
-                $topicKeywords = $this->getTopicKeywords($topic);
-                $queriesQuery->where(function($q) use ($topicKeywords) {
-                    foreach ($topicKeywords as $keyword) {
-                        $q->orWhere('question', 'LIKE', "%{$keyword}%");
+                $topicMap = $this->getTopicMap();
+                
+                // Find the exact topic name from topicMap (case-insensitive match)
+                $normalizedTopic = null;
+                foreach ($topicMap as $topicName => $keywords) {
+                    if (strtolower(trim($topicName)) === strtolower(trim($topic))) {
+                        $normalizedTopic = $topicName;
+                        break;
                     }
+                }
+                
+                // If topic not found in map, use the original (for custom categories)
+                if ($normalizedTopic === null) {
+                    $normalizedTopic = trim($topic);
+                }
+                
+                // Filter queries by keyword matching (same logic as calculateMostAskedTopics)
+                // Only include bot-handled queries to match the topic counting
+                $allQueries = $allQueries->filter(function($query) use ($normalizedTopic, $topicMap) {
+                    // Only count bot-handled queries
+                    if (($query->handledBy ?? '') !== 'Bot') {
+                        return false;
+                    }
+                    
+                    $question = strtolower($query->question ?? '');
+                    
+                    // Determine which topic this query belongs to
+                    $matchedTopic = 'General'; // Default
+                    foreach ($topicMap as $topicName => $keywords) {
+                        foreach ($keywords as $keyword) {
+                            if (stripos($question, $keyword) !== false) {
+                                $matchedTopic = $topicName;
+                                break 2;
+                            }
+                        }
+                    }
+                    
+                    return $matchedTopic === $normalizedTopic;
                 });
-                $ticketsQuery->where(function($q) use ($topicKeywords) {
-                    foreach ($topicKeywords as $keyword) {
-                        $q->orWhere('message', 'LIKE', "%{$keyword}%");
-                    }
+                
+                // Filter tickets by category match (case-insensitive)
+                $allTickets = $allTickets->filter(function($ticket) use ($normalizedTopic) {
+                    $category = trim($ticket->category ?? '');
+                    return strtolower($category) === strtolower($normalizedTopic);
                 });
             }
 
-            // Calculate KPIs
-            // Bot-resolved queries (queries handled by bot, not escalated)
-            $botResolvedQueries = $queriesQuery->where('handledBy', 'Bot')->count();
+            // Calculate KPIs from filtered collections
+            // Count only bot-handled queries (whether topic was filtered or not)
+            $botResolvedQueries = $allQueries->where('handledBy', 'Bot')->count();
             
-            $ticketsData = $ticketsQuery->get();
-            $escalatedQueries = $ticketsData->count(); // All tickets are escalated queries
-            $pendingQueries = $ticketsData->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
-            $ticketResolvedQueries = $ticketsData->where('status', 'Resolved')->count();
+            $escalatedQueries = $allTickets->count();
+            $pendingQueries = $allTickets->whereIn('status', ['Open', 'Replied', 'Waiting for HR'])->count();
+            $ticketResolvedQueries = $allTickets->where('status', 'Resolved')->count();
             
             // Resolved = Bot-resolved queries + Resolved tickets
             $resolvedQueries = $botResolvedQueries + $ticketResolvedQueries;
             
             // Total Interactions = Bot-resolved + All escalated queries (tickets)
             $totalInteractions = $botResolvedQueries + $escalatedQueries;
+
+            \Log::info('Filtered KPIs Debug', [
+                'range' => $range,
+                'topic' => $topic,
+                'botResolvedQueries' => $botResolvedQueries,
+                'escalatedQueries' => $escalatedQueries,
+                'totalInteractions' => $totalInteractions,
+                'resolvedQueries' => $resolvedQueries,
+                'pendingQueries' => $pendingQueries
+            ]);
 
             // Feedback KPIs
             $feedbacks = $feedbackQuery->get();
@@ -1031,11 +1135,13 @@ class AdminController extends Controller
             $flaggedCount = $flaggedQuery->count();
             
             // Calculate Most Asked Topics with date filter (but not topic filter to show all topics)
-            $topicsQuery = DB::table('queries');
+            $topicsQueriesQuery = DB::table('queries');
+            $topicsTicketsQuery = DB::table('hr_inbox');
             if ($startDate && $endDate) {
-                $topicsQuery->whereBetween('questionTime', [$startDate, $endDate]);
+                $topicsQueriesQuery->whereBetween('questionTime', [$startDate, $endDate]);
+                $topicsTicketsQuery->whereBetween('created_at', [$startDate, $endDate]);
             }
-            $mostAskedTopics = $this->calculateMostAskedTopics($topicsQuery);
+            $mostAskedTopics = $this->calculateMostAskedTopics($topicsQueriesQuery, $topicsTicketsQuery);
 
             return response()->json([
                 'success' => true,
@@ -1065,33 +1171,79 @@ class AdminController extends Controller
     }
 
     /**
-     * Helper method to calculate most asked topics from queries
+     * Helper method to calculate most asked topics from queries and tickets
+     * Displays top 5 topics including custom categories created by HR when resolving tickets
+     * Note: Only counts bot-handled queries to avoid double counting with tickets
      */
-    private function calculateMostAskedTopics($queriesQuery)
+    private function calculateMostAskedTopics($queriesQuery, $ticketsQuery = null)
     {
-        return $queriesQuery
-            ->select('question')
-            ->whereNotNull('question')
-            ->where('question', '!=', '')
+        // Get topic map for normalization
+        $topicMap = $this->getTopicMap();
+        $topicNamesLower = array_map('strtolower', array_keys($topicMap));
+        
+        // Count from tickets table (based on category field including custom categories from HR)
+        if ($ticketsQuery === null) {
+            $ticketsQuery = DB::table('hr_inbox');
+        }
+        
+        $ticketCounts = $ticketsQuery
+            ->select('category')
+            ->whereNotNull('category')
+            ->where('category', '!=', '')
             ->get()
-            ->map(function($query) {
-                // Extract key topics/keywords from questions
-                $question = strtolower($query->question);
-                
-                // Define topic categories and their keywords
-                $topicMap = $this->getTopicMap();
-                
-                foreach ($topicMap as $topic => $keywords) {
-                    foreach ($keywords as $keyword) {
-                        if (strpos($question, $keyword) !== false) {
-                            return $topic;
-                        }
+            ->map(function($ticket) use ($topicMap) {
+                $category = trim($ticket->category);
+                // Try to find matching topic name (case-insensitive)
+                foreach ($topicMap as $topicName => $keywords) {
+                    if (strtolower($category) === strtolower($topicName)) {
+                        return $topicName; // Return the canonical topic name
                     }
                 }
-                
-                return 'General';
+                // If no match found, return as-is (custom category)
+                return $category;
             })
-            ->countBy()
+            ->countBy();
+
+        // Count from queries table - only BOT-HANDLED queries to match KPI calculation
+        // This avoids double counting with tickets (escalated queries become tickets)
+        $queries = $queriesQuery
+            ->select('question')
+            ->where('handledBy', 'Bot')
+            ->get();
+        
+        $queryCounts = collect();
+        foreach ($queries as $query) {
+            $question = strtolower($query->question ?? '');
+            $matchedTopic = 'General'; // Default topic
+            
+            // Try to match query to a topic based on keywords
+            foreach ($topicMap as $topic => $keywords) {
+                foreach ($keywords as $keyword) {
+                    if (stripos($question, $keyword) !== false) {
+                        $matchedTopic = $topic;
+                        break 2; // Break out of both loops
+                    }
+                }
+            }
+            
+            $queryCounts[$matchedTopic] = ($queryCounts->get($matchedTopic, 0) + 1);
+        }
+
+        // Combine counts from both tickets and queries
+        $combinedCounts = collect();
+        
+        // Add ticket counts
+        foreach ($ticketCounts as $category => $count) {
+            $combinedCounts[$category] = ($combinedCounts->get($category, 0) + $count);
+        }
+        
+        // Add query counts (bot-handled only)
+        foreach ($queryCounts as $topic => $count) {
+            $combinedCounts[$topic] = ($combinedCounts->get($topic, 0) + $count);
+        }
+
+        // Return top 5 categories sorted by count
+        return $combinedCounts
             ->sortDesc()
             ->take(5)
             ->map(function($count, $topic) {
@@ -1106,14 +1258,12 @@ class AdminController extends Controller
     private function getTopicMap()
     {
         return [
-            'Leave' => ['leave', 'vacation', 'sick leave', 'time off', 'absence', 'vl', 'sl'],
-            'Benefits' => ['benefit', 'insurance', 'health', 'dental', 'hmo', 'allowance'],
-            'Payroll' => ['payroll', 'salary', 'pay', 'wage', 'compensation', '13th month', 'bonus'],
-            'Promotion' => ['promotion', 'ranking', 'career', 'advancement', 'raise'],
-            'Training' => ['training', 'seminar', 'workshop', 'development', 'course'],
-            'Employment' => ['employment', 'hiring', 'contract', 'resignation', 'termination'],
-            'Policy' => ['policy', 'procedure', 'guideline', 'rule', 'regulation'],
-            'HR Request' => ['request', 'form', 'document', 'certificate', 'clearance']
+            'Conditions on employment' => ['employment', 'hiring', 'contract', 'resignation', 'termination', 'probation', 'regularization', 'job', 'position', 'tenure', 'appointment'],
+            'Compensation and benefits' => ['compensation', '13th month', 'bonus', 'payroll', 'salary', 'pay', 'wage'],
+            'Benefits' => ['benefit', 'insurance', 'health', 'dental', 'hmo', 'allowance', 'leave', 'vacation', 'sick leave', 'vl', 'sl', 'philhealth', 'sss', 'pag-ibig'],
+            'Employee Development' => ['training', 'seminar', 'workshop', 'development', 'course', 'learning', 'skills', 'education', 'scholarship', 'study'],
+            'Ranking and Promotion' => ['promotion', 'ranking', 'career', 'advancement', 'raise', 'upgrade', 'level', 'step', 'increment', 'reclassification'],
+            'General' => ['policy', 'procedure', 'guideline', 'rule', 'regulation', 'request', 'form', 'document', 'certificate', 'clearance', 'inquiry', 'question', 'information']
         ];
     }
 
