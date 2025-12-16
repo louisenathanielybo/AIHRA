@@ -372,6 +372,47 @@ class DialogflowController extends Controller
                 'line' => $e->getLine()
             ]);
 
+            // 🆕 FIXED: Check if user is confirming escalation even when Dialogflow fails
+            $queryText = $queryText ?? $this->extractQueryText($request);
+            $employeeNum = Auth::check() ? Auth::user()->employeeNum : 0;
+            
+            // Check if user wants to create a ticket (escalation confirmation)
+            if ($this->wantsEscalation($queryText) || $this->isEscalationRequest($queryText)) {
+                Log::info('User wants escalation despite Dialogflow error, creating ticket');
+                
+                // Get or create conversation
+                $sessionId = $request->input('sessionId') ?? session()->getId();
+                $conversation = null;
+                try {
+                    $conversation = Conversation::where('session_id', $sessionId)
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                } catch (\Throwable $convErr) {
+                    Log::warning('Could not fetch conversation: ' . $convErr->getMessage());
+                }
+                
+                // Check if already escalated
+                if ($this->isAlreadyEscalated($conversation)) {
+                    $existingTicket = $this->getExistingTicket($conversation);
+                    $ticketInfo = $existingTicket ? " Your existing ticket is: <strong>{$existingTicket}</strong>" : '';
+                    
+                    return response()->json([
+                        'status' => 'already_escalated',
+                        'fulfillmentText' => "You've already created a support ticket for this conversation! 📋{$ticketInfo}<br><br>Our HR team is working on it. Is there anything else I can help you with?",
+                        'already_escalated' => true
+                    ]);
+                }
+                
+                // Create escalation ticket
+                return $this->escalateToHR(
+                    $queryText,
+                    $employeeNum,
+                    'User requested ticket after system error',
+                    0.0,
+                    $conversation ? $conversation->id : null
+                );
+            }
+
             // 🆕 FIXED: Better error response that doesn't break the frontend
             $fallbackReply = "Oops! Something unexpected happened on my end, and I apologize for that! 🙏 Don't worry though – I can still help! Would you like me to create a support ticket so our HR team can assist you personally? Or feel free to browse our guided topics – you might find exactly what you're looking for! 😊";
             // Ensure a conversation exists for this session so replies are persisted
@@ -635,7 +676,14 @@ class DialogflowController extends Controller
             '/\bgo ahead\b/i',
             '/\bcontact hr\b/i',
             '/\bsend to hr\b/i',
-            '/\bhuman help\b/i'
+            '/\bhuman help\b/i',
+            '/\b(want|like|need|create|make|open)\s*(a\s*)?(support\s*)?(ticket|case)\b/i',
+            '/\bticket\s*please\b/i',
+            '/\byes\s*please\b/i',
+            '/\bcreate\s*(a\s*)?ticket\b/i',
+            '/\bopen\s*(a\s*)?ticket\b/i',
+            '/\bi\s*would\s*like\s*(a\s*)?(support\s*)?ticket\b/i',
+            '/\bi\s*want\s*(a\s*)?(support\s*)?ticket\b/i'
         ];
 
         foreach ($escalationPatterns as $pattern) {
