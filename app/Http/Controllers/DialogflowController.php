@@ -204,7 +204,7 @@ class DialogflowController extends Controller
 
             
 
-           // 🎯 Try Dialogflow for direct questions
+// 🎯 Try Dialogflow for direct questions
 $sessionId = session()->getId() ?? Str::random(10);
 
 Log::info('Calling Dialogflow service', ['sessionId' => $sessionId]);
@@ -214,35 +214,67 @@ try {
     $result = $dialogflow->detectIntent($queryText, $sessionId);
     $dialogflow->close();
 
-    // Handle response - check if it's a real Dialogflow response or mock
+    // SAFE HANDLING: Check if we got a valid Dialogflow response
     $confidence = 0.0;
     $fulfillmentText = '';
     $intentName = 'Default Fallback Intent';
     
-    // Check if it's a real Dialogflow QueryResult object
     if (is_object($result) && method_exists($result, 'getFulfillmentText')) {
-        // It's a real Dialogflow response
-        $confidence = $result->getIntentDetectionConfidence() ?? 0.0;
-        $fulfillmentText = $result->getFulfillmentText() ?? "I'd love to help you find exactly what you're looking for! 😊 Could you tell me a bit more about what you need?";
-        $intent = $result->getIntent();
-        $intentName = $intent ? $intent->getDisplayName() : 'Default Fallback Intent';
-        
-        Log::info('✅ Dialogflow Response (Real)', [
-            'confidence' => $confidence,
-            'intent' => $intentName,
-            'fulfillmentText' => substr($fulfillmentText, 0, 200)
-        ]);
+        // It's a real Dialogflow QueryResult
+        try {
+            $confidence = $result->getIntentDetectionConfidence() ?? 0.0;
+            $fulfillmentText = $result->getFulfillmentText() ?? "I'd love to help you find exactly what you're looking for! 😊 Could you tell me a bit more about what you need?";
+            $intent = $result->getIntent();
+            $intentName = $intent ? $intent->getDisplayName() : 'Default Fallback Intent';
+            
+            Log::info('✅ Dialogflow Response (Real)', [
+                'confidence' => $confidence,
+                'intent' => $intentName,
+                'fulfillmentText' => substr($fulfillmentText, 0, 200)
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Error extracting Dialogflow response: ' . $e->getMessage());
+            // Use fallback
+            $fulfillmentText = "Thanks for your question! I want to make sure I understand correctly. Could you provide more details about '{$queryText}'?";
+        }
     } else {
-        // It's a mock response
-        $confidence = $result->intentDetectionConfidence ?? 0.0;
-        $fulfillmentText = $result->fulfillmentText ?? "Thanks for your question! I want to make sure I understand correctly. Could you provide more details?";
-        $intentName = $result->intent->displayName ?? 'Default Fallback Intent';
+        // It's a mock response or null
+        Log::info('⚠️ Dialogflow Response (Mock/Fallback)', ['result_type' => gettype($result)]);
         
-        Log::info('⚠️ Dialogflow Response (Mock)', [
-            'confidence' => $confidence,
-            'intent' => $intentName,
-            'fulfillmentText' => substr($fulfillmentText, 0, 200)
-        ]);
+        // Generate a helpful response based on keywords
+        $queryLower = strtolower($queryText);
+        
+        // Check for common questions
+        if (strpos($queryLower, 'working hours') !== false || strpos($queryLower, 'work hours') !== false) {
+            $fulfillmentText = "Our standard working hours are from 8:00 AM to 5:00 PM, Monday to Friday, with a 1-hour lunch break from 12:00 PM to 1:00 PM. We also offer flexible time arrangements for eligible employees!";
+            $confidence = 0.9;
+            $intentName = 'working.hours.inquiry';
+        } elseif (strpos($queryLower, 'probation') !== false) {
+            $fulfillmentText = "The probation period is typically 6 months with monthly performance reviews. After successful completion, you'll be regularized with full benefits.";
+            $confidence = 0.9;
+            $intentName = 'probation.inquiry';
+        } elseif (strpos($queryLower, 'flexible') !== false || strpos($queryLower, 'flexi') !== false) {
+            $fulfillmentText = "Yes, we offer flexible time arrangements including flexi-time, compressed workweeks, and remote work options. For specific details about eligibility and how to apply, please submit a Flexible Work Request Form through the HR portal.";
+            $confidence = 0.9;
+            $intentName = 'flexible.work.inquiry';
+        } elseif (strpos($queryLower, 'salary') !== false || strpos($queryLower, 'pay') !== false) {
+            $fulfillmentText = "Payday is on the 30th of each month. You can view your payslip in the Employee Portal under 'My Payslips'.";
+            $confidence = 0.8;
+            $intentName = 'payroll.inquiry';
+        } elseif (strpos($queryLower, 'leave') !== false) {
+            $fulfillmentText = "We offer 20 days annual leave, 15 days sick leave, and various special leaves. Apply through the HR portal with 2 weeks notice.";
+            $confidence = 0.8;
+            $intentName = 'leave.inquiry';
+        } elseif (strpos($queryLower, 'benefit') !== false) {
+            $fulfillmentText = "Our benefits package includes health insurance, dental coverage, retirement plan, and various allowances. For specific details, check the Employee Handbook or contact HR.";
+            $confidence = 0.8;
+            $intentName = 'benefits.inquiry';
+        } else {
+            // Generic helpful response
+            $fulfillmentText = "Thanks for your question about '{$queryText}'! I want to make sure I give you the most accurate information. Could you tell me a bit more about what you're looking for?";
+            $confidence = 0.5;
+            $intentName = 'Default Fallback Intent';
+        }
     }
 
     // 🆕 NEW: Check if this is HR-related but bot can't answer properly
