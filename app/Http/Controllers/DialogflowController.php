@@ -193,7 +193,7 @@ class DialogflowController extends Controller
             $dialogflow->close();
 
             $confidence = $result->getIntentDetectionConfidence() ?? 0.0;
-            $fulfillmentText = $result->getFulfillmentText() ?? "I want to make sure I give you accurate information. Let me guide you through our topics.";
+            $fulfillmentText = $result->getFulfillmentText() ?? "I'd love to help you find exactly what you're looking for! 😊 Could you tell me a bit more about what you need? Or if you'd like, I can guide you through our HR topics – just let me know what works best for you!";
             $intentName = $result->getIntent() ? $result->getIntent()->getDisplayName() : 'Default Fallback Intent';
 
             Log::info('Dialogflow Response', [
@@ -215,21 +215,17 @@ class DialogflowController extends Controller
             }
 
             // 🔥 IMPROVED: Auto-escalate based on multiple factors
-            if ($this->shouldEscalate($queryText, $confidence, $intentName)) {
-                Log::info('Auto-escalating query', [
-                    'reason' => 'Low confidence or urgent content',
-                    'confidence' => $confidence,
-                    'intent' => $intentName
-                ]);
-                $this->resetRetryCount();
-                return $this->escalateToHR($queryText, $employeeNum, "Auto-escalated: Confidence {$confidence}, Intent: {$intentName}", $confidence, $conversation ? $conversation->id : null);
-            }
+            // Auto-escalation removed. Escalation now always requires user confirmation after 3 strikes.
 
             // 🆕 NEW: Handle retry logic for unclear questions
             if ($this->shouldRetry($confidence, $intentName)) {
-                $retryCount = $this->incrementRetryCount();
+                // Track strikes per conversation
+                $conversationId = $conversation ? $conversation->id : 'no_convo';
+                $strikes = Session::get('strikes_' . $conversationId, 0) + 1;
+                Session::put('strikes_' . $conversationId, $strikes);
+
                 Log::info('Low confidence response, prompting retry', [
-                    'retryCount' => $retryCount,
+                    'strikes' => $strikes,
                     'confidence' => $confidence
                 ]);
 
@@ -238,14 +234,16 @@ class DialogflowController extends Controller
                     'query' => $queryText,
                     'confidence' => $confidence,
                     'intent' => $intentName,
-                    'timestamp' => now()->toIso8601String()
+                    'timestamp' => now()->toIso8601String(),
+                    'conversation_id' => $conversationId
                 ]);
 
-                if ($retryCount > $this->maxRetries) {
+                if ($strikes >= 3) {
+                    // Ask user if they want to escalate
                     return $this->offerHREscalation($queryText, $employeeNum, $confidence);
                 }
 
-                $retryText = $this->getRetryMessage($retryCount);
+                $retryText = $this->getRetryMessage($strikes);
 
                 if (!empty($conversation)) {
                     try {
@@ -268,7 +266,7 @@ class DialogflowController extends Controller
                 return response()->json([
                     'status' => 'retry',
                     'fulfillmentText' => $retryText,
-                    'retryCount' => $retryCount,
+                    'retryCount' => $strikes,
                     'needs_clarification' => true
                 ]);
             }
@@ -357,7 +355,7 @@ class DialogflowController extends Controller
             ]);
 
             // 🆕 FIXED: Better error response that doesn't break the frontend
-            $fallbackReply = "I encountered an error processing that request. Let me help you by creating a support ticket for HR, or you can browse our guided topics to find what you need.";
+            $fallbackReply = "Oops! Something unexpected happened on my end, and I apologize for that! 🙏 Don't worry though – I can still help! Would you like me to create a support ticket so our HR team can assist you personally? Or feel free to browse our guided topics – you might find exactly what you're looking for! 😊";
             // Ensure a conversation exists for this session so replies are persisted
             try {
                 $sessionId = $request->input('sessionId') ?? session()->getId();
@@ -520,7 +518,7 @@ class DialogflowController extends Controller
 
         return response()->json([
             'status' => 'suggest_escalation',
-            'fulfillmentText' => "I understand this is an HR-related question, but I want to make sure you get the most accurate information. Would you like me to escalate this to our HR team for proper assistance?",
+            'fulfillmentText' => "I can see this is an important matter to you, and I want to make sure you get the best possible help! 💼 Our HR team has the expertise to give you a thorough and personalized response. Would you like me to connect you with them? They'd be more than happy to assist you!",
             'suggest_hr' => true,
             'pending_escalation' => [
                 'query' => $queryText,
@@ -663,9 +661,9 @@ class DialogflowController extends Controller
     private function getRetryMessage(int $retryCount): string
     {
         $messages = [
-            1 => "I'm not sure I understand. Could you please rephrase your question?",
-            2 => "I'm still having trouble understanding. Could you try asking in a different way?",
-            3 => "I want to make sure I help you properly. Could you provide more details or context?"
+            1 => "Thank you for reaching out! 😊 I want to make sure I understand you correctly. Could you tell me a bit more about what you're looking for? Feel free to share any details that might help me assist you better.",
+            2 => "I appreciate your patience! 🙏 I'm still trying to get a clear picture of how I can help. Would you mind rephrasing your question or giving me some additional context? I'm here to help in any way I can.",
+            3 => "Thank you for sticking with me! 💪 I really want to make sure you get the help you need. Could you share a few more details about your situation? The more context you provide, the better I can assist you."
         ];
 
         return $messages[$retryCount] ?? $messages[1];
@@ -705,7 +703,7 @@ class DialogflowController extends Controller
 
         return response()->json([
             'status' => 'offer_escalation',
-            'fulfillmentText' => "I'm having difficulty understanding your question after several attempts. Would you like me to escalate this to our HR team who can provide better assistance?",
+            'fulfillmentText' => "I truly appreciate your patience with me! 🙏 It seems like your question might need a more personalized touch. Our HR team would be happy to help you directly and give you the attention your concern deserves. Would you like me to connect you with them? They're always ready to assist!",
             'max_retries_reached' => true,
             'options' => [
                 ['text' => '✅ Yes, please connect me with HR', 'action' => 'escalate'],
@@ -820,12 +818,61 @@ class DialogflowController extends Controller
     private function handleConversationalQueries(string $queryText): ?\Illuminate\Http\JsonResponse
     {
         $conversationalMap = [
-            'thanks' => ["You're very welcome! 😊 Is there anything else I can help you with?", "Happy to help! Let me know if you need anything else."],
-            'thank you' => ["You're very welcome! 😊 Is there anything else I can help you with?", "My pleasure! Feel free to ask if you have more questions."],
-            'bye' => ["👋 Goodbye! Feel free to ask if you have more HR questions.", "Have a great day! 👋"],
-            'goodbye' => ["👋 Goodbye! Feel free to ask if you have more HR questions.", "Take care! 👋"],
-            'how are you' => ["I'm doing great, thanks for asking! Ready to help with your HR questions. 😊", "I'm functioning well! How can I assist you with HR matters today?"],
-            'who are you' => ["I'm Aihra, your AI HR Assistant! I'm here to help with HR questions and guide you to the right information. 🤖", "I'm Aihra, an AI assistant specialized in HR topics. How can I help you today?"],
+            'thanks' => [
+                "You're so welcome! 😊 It's my pleasure to help. Is there anything else on your mind? I'm here for you!",
+                "I'm glad I could help! 💙 Please don't hesitate to reach out anytime you have questions.",
+                "Thank you for your kind words! 🌟 Feel free to ask me anything else – I'm always happy to assist!"
+            ],
+            'thank you' => [
+                "You're absolutely welcome! 😊 Helping you is what I'm here for. Is there anything else I can do for you today?",
+                "It's my pleasure! 💙 I hope I was able to help. Let me know if there's anything more you'd like to discuss.",
+                "You're very welcome! 🌟 I'm always here if you need any more assistance. Don't be a stranger!"
+            ],
+            'bye' => [
+                "Take care and have a wonderful day! 👋 Remember, I'm always here whenever you need help with anything.",
+                "Goodbye for now! 🌟 Wishing you all the best. Feel free to come back anytime!",
+                "See you next time! 👋💙 Take care of yourself, and don't hesitate to reach out if you need anything."
+            ],
+            'goodbye' => [
+                "Goodbye! 👋 It was lovely chatting with you. Have a fantastic day ahead!",
+                "Take care! 🌟 I hope everything goes smoothly for you. See you next time!",
+                "Farewell for now! 💙 Remember, I'm just a message away if you ever need assistance."
+            ],
+            'how are you' => [
+                "I'm doing wonderfully, thank you for asking! 😊 It's so thoughtful of you. How can I brighten your day today?",
+                "I'm great, thanks! 💙 I'm all set and ready to help you with whatever you need. What's on your mind?",
+                "Feeling fantastic and ready to assist! 🌟 How are you doing? What can I help you with today?"
+            ],
+            'who are you' => [
+                "Hello! I'm Aihra, your friendly AI HR Assistant! 🤖💙 I'm here to help you navigate HR matters, answer your questions, and make sure you get the support you need. What can I help you with today?",
+                "I'm Aihra! 🌟 Think of me as your helpful HR companion – I'm here to answer questions, provide guidance, and connect you with the right people when needed. How can I assist you?",
+                "Nice to meet you! I'm Aihra, your AI-powered HR buddy! 😊 I'm here to help with any HR-related questions or concerns you might have. Feel free to ask me anything!"
+            ],
+            'hello' => [
+                "Hello there! 👋 It's wonderful to hear from you! How can I brighten your day today?",
+                "Hi! 😊 Welcome! I'm so glad you reached out. What can I help you with?",
+                "Hey there! 🌟 Great to see you! I'm here and ready to help with whatever you need."
+            ],
+            'hi' => [
+                "Hi there! 😊 Welcome! I'm here to help you with any questions or concerns you might have.",
+                "Hello! 👋 It's great to hear from you! What can I assist you with today?",
+                "Hey! 🌟 Thanks for reaching out! I'm all ears – what would you like to know?"
+            ],
+            'good morning' => [
+                "Good morning! ☀️ I hope you're having a wonderful start to your day! How can I help you today?",
+                "Morning! 🌅 What a great day to get things done! What can I assist you with?",
+                "Good morning to you! ☀️ Ready to tackle the day together? What's on your mind?"
+            ],
+            'good afternoon' => [
+                "Good afternoon! 🌤️ I hope your day is going well! How can I be of service?",
+                "Afternoon! 😊 Great to hear from you! What can I help you with today?",
+                "Good afternoon! 🌻 Hope you're having a productive day! What brings you here?"
+            ],
+            'good evening' => [
+                "Good evening! 🌙 I hope you had a great day! How can I help you tonight?",
+                "Evening! 🌆 Thanks for reaching out! What can I assist you with?",
+                "Good evening to you! 🌙 I'm here if you need any help or have any questions."
+            ],
         ];
 
         foreach ($conversationalMap as $pattern => $responses) {
@@ -1295,12 +1342,112 @@ class DialogflowController extends Controller
     private function determineCategory(string $queryText): string
     {
         $categories = [
-            'Benefits' => ['benefit', 'insurance', 'health', 'dental', 'vacation', 'time off', 'leave'],
-            'Payroll' => ['salary', 'pay', 'paycheck', 'wage', 'bonus', 'tax'],
-            'Employment' => ['hire', 'hiring', 'promotion', 'raise', 'position', 'job'],
-            'Complaint' => ['complaint', 'issue', 'problem', 'harassment', 'discrimination'],
-            'Technical' => ['system', 'login', 'password', 'access', 'technical', 'error'],
-            'Policy' => ['policy', 'rule', 'regulation', 'procedure', 'guideline'],
+            'Conditions on Employment' => [
+                // Core employment terms
+                'contract', 'probation', 'probationary', 'regularization', 'regular', 'permanent', 'temporary', 'casual', 'project-based', 'fixed-term', 'contractual', 'seasonal', 'apprentice', 'intern', 'internship', 'ojt', 'trainee',
+                // Time and schedule
+                'working hours', 'work hours', 'shift', 'schedule', 'flexi', 'flexible', 'time in', 'time out', 'clock in', 'clock out', 'biometrics', 'bundy', 'timekeeping', 'work schedule', 'night shift', 'graveyard', 'morning shift', 'mid shift', 'rotating', 'fixed schedule',
+                // Attendance
+                'attendance', 'absent', 'absences', 'tardiness', 'late', 'undertime', 'awol', 'no show', 'no-show', 'present', 'presence', 'punctual', 'punctuality', 'habitual', 'consecutive',
+                // Overtime and rest
+                'overtime', 'ot', 'rest day', 'day off', 'holiday', 'weekend', 'legal holiday', 'special holiday', 'regular holiday', 'non-working',
+                // Separation
+                'termination', 'terminate', 'resign', 'resignation', 'end of contract', 'dismissal', 'fired', 'fire', 'layoff', 'retrenchment', 'redundancy', 'separation', 'clearance', 'exit interview', 'exit', 'last day', 'notice period', 'immediate resignation', 'voluntary', 'involuntary', 'constructive dismissal', 'just cause', 'authorized cause',
+                // Retirement
+                'retirement', 'retire', 'retiring', 'pension', 'optional retirement', 'compulsory retirement', 'early retirement', 'retirement age', 'retirement plan', 'retirement benefit',
+                // Policies and rules
+                'leave policy', 'company policy', 'policy', 'policies', 'rules', 'rule', 'regulation', 'regulations', 'handbook', 'manual', 'code of conduct', 'guidelines', 'procedure', 'procedures', 'standard', 'standards', 'protocol', 'protocols', 'sop', 'house rules',
+                // Employment details
+                'condition', 'conditions', 'employment', 'employ', 'employee', 'employer', 'job offer', 'offer letter', 'appointment', 'job description', 'jd', 'scope of work', 'sow', 'terms of employment', 'employment status', 'status', 'work arrangement', 'arrangement',
+                // Duties
+                'duties', 'duty', 'responsibilities', 'responsibility', 'task', 'tasks', 'assignment', 'assignments', 'workload', 'deliverables', 'output', 'outputs', 'scope', 'function', 'functions', 'accountabilities',
+                // Transfer and location
+                'transfer', 'transfers', 'relocation', 'relocate', 'workplace', 'work from home', 'wfh', 'remote', 'hybrid', 'onsite', 'on-site', 'office', 'location', 'deployment', 'deploy', 'site', 'branch', 'area', 'region', 'provincial', 'metro', 'head office', 'main office', 'satellite', 'field', 'reassignment', 'secondment', 'detachment',
+                // Compliance
+                'compliance', 'labor', 'dole', 'nlrc', 'due process', 'notice', 'memo', 'memorandum', 'violation', 'infraction', 'offense', 'discipline', 'disciplinary', 'suspension', 'suspend', 'warning', 'written warning', 'verbal warning', 'final warning', 'nte', 'notice to explain', 'show cause', 'admin case', 'administrative case', 'investigation', 'hearing', 'preventive suspension',
+                // Work environment
+                'harassment', 'bullying', 'discrimination', 'hostile', 'toxic', 'unsafe', 'safety', 'occupational', 'osha', 'accident', 'injury', 'incident', 'hazard', 'ppe', 'security', 'workplace violence', 'threat', 'grievance', 'complaint', 'dispute', 'conflict', 'issue', 'problem', 'concern'
+            ],
+            'Compensation and Benefits' => [
+                // Salary terms
+                'salary', 'salaries', 'pay', 'paid', 'payment', 'wage', 'wages', 'compensation', 'remuneration', 'earnings', 'income', 'minimum wage', 'basic pay', 'basic salary', 'daily rate', 'hourly rate', 'monthly rate', 'annual salary', 'package', 'total compensation',
+                // Bonuses and extras
+                'bonus', 'bonuses', 'allowance', 'allowances', 'overtime pay', 'ot pay', 'holiday pay', 'premium pay', 'night differential', 'nd', '13th month', 'thirteenth month', '14th month', 'mid-year bonus', 'christmas bonus', 'performance bonus', 'signing bonus', 'retention bonus', 'project bonus', 'spot bonus', 'quarterly bonus', 'annual bonus', 'year-end bonus',
+                // Incentives
+                'incentive', 'incentives', 'commission', 'commissions', 'profit sharing', 'rice subsidy', 'meal allowance', 'transpo', 'transportation', 'gas allowance', 'clothing allowance', 'communication allowance', 'cellphone allowance', 'internet allowance', 'data allowance', 'representation allowance', 'travel allowance', 'per diem', 'living allowance', 'housing allowance', 'hardship allowance', 'hazard pay', 'night pay',
+                // Deductions
+                'deduction', 'deductions', 'withholding', 'tax', 'taxes', 'bir', 'income tax', 'withholding tax', 'annual itr', 'tax refund', 'tax exempt', 'taxable', 'non-taxable', 'de minimis',
+                // Government mandatories
+                'sss', 'philhealth', 'pagibig', 'pag-ibig', 'hdmf', 'gsis', 'contribution', 'contributions', 'mandatory', 'government', 'statutory', 'sss loan', 'pagibig loan', 'salary deduction', 'premium',
+                // Insurance and health
+                'insurance', 'life insurance', 'accident insurance', 'benefit', 'benefits', 'health', 'healthcare', 'medical', 'medicine', 'dental', 'optical', 'hmo', 'hospitalization', 'checkup', 'check-up', 'clinic', 'wellness', 'annual physical', 'ape', 'dependent', 'dependents', 'coverage', 'group insurance', 'term life', 'critical illness', 'disability', 'outpatient', 'inpatient', 'emergency', 'surgery', 'consultation', 'lab', 'laboratory', 'xray', 'x-ray', 'ultrasound', 'prescription', 'pharmacy', 'drug', 'hospital', 'confinement',
+                // Claims
+                'reimbursement', 'reimburse', 'claim', 'claims', 'expense', 'expenses', 'receipt', 'receipts', 'liquidation', 'liquidate', 'or', 'official receipt', 'billing', 'invoice', 'petty cash', 'cash voucher', 'replenishment',
+                // Loans
+                'loan', 'loans', 'advance', 'advances', 'cash advance', 'salary loan', 'emergency loan', 'calamity loan', 'multi-purpose loan', 'company loan', 'employee loan', 'housing loan', 'car loan', 'personal loan', 'loan balance', 'loan deduction', 'amortization', 'interest', 'principal',
+                // Payroll
+                'payroll', 'payslip', 'pay slip', 'payday', 'pay day', 'cutoff', 'cut-off', 'net pay', 'gross pay', 'take home', 'take-home', 'payroll period', 'semi-monthly', 'bi-weekly', 'monthly pay', 'weekly pay', 'atm', 'bank account', 'direct deposit', 'salary credited', 'credited', 'delayed salary', 'late salary',
+                // Separation pay
+                'backpay', 'back pay', 'separation pay', 'final pay', 'last pay', 'unpaid', 'outstanding', 'remaining balance', 'pro-rated', 'prorated', 'computation', 'quitclaim', 'release',
+                // Leave credits
+                'leave credits', 'leave balance', 'vacation leave', 'vl', 'sick leave', 'sl', 'maternity', 'paternity', 'solo parent', 'bereavement', 'emergency leave', 'service incentive leave', 'sil', 'leave conversion', 'monetization', 'leave encashment', 'unused leave', 'forfeited', 'carry over', 'leave without pay', 'lwop', 'unpaid leave', 'absence without leave', 'special leave', 'magna carta', 'pwds', 'gynaecological', 'battered woman',
+                // Time off
+                'time off', 'pto', 'paid time off', 'day off', 'off day', 'absent', 'attendance bonus', 'perfect attendance', 'birthday leave', 'anniversary', 'personal day', 'mental health', 'wellness day', 'study leave', 'sabbatical'
+            ],
+            'Employee Development' => [
+                // Training
+                'training', 'trainings', 'train', 'seminar', 'seminars', 'workshop', 'workshops', 'bootcamp', 'boot camp', 'in-house training', 'external training', 'on-the-job', 'ojt', 'hands-on', 'practical', 'simulation', 'role play', 'case study',
+                // Courses
+                'course', 'courses', 'module', 'modules', 'class', 'classes', 'lesson', 'lessons', 'curriculum', 'syllabus', 'subject', 'topic', 'topics', 'session', 'sessions', 'program', 'programs', 'programme',
+                // Learning
+                'learning', 'learn', 'e-learning', 'elearning', 'online learning', 'lms', 'development', 'develop', 'self-paced', 'instructor-led', 'virtual', 'webcast', 'video', 'tutorial', 'tutorials', 'knowledge', 'knowledge base', 'resource', 'resources', 'material', 'materials', 'handout', 'handouts',
+                // Skills
+                'upskill', 'upskilling', 'reskill', 'reskilling', 'cross-training', 'multi-skilling', 'skill', 'skills', 'competency', 'competencies', 'capability', 'capabilities', 'proficiency', 'expertise', 'technical skill', 'soft skill', 'hard skill', 'communication', 'leadership', 'management', 'teamwork', 'collaboration', 'problem solving', 'critical thinking', 'analytical', 'creative', 'innovation', 'adaptability', 'flexibility', 'resilience',
+                // Certification
+                'certification', 'certificate', 'certifications', 'certificates', 'accreditation', 'license', 'licensure', 'credential', 'credentials', 'certified', 'accredited', 'professional', 'designation', 'renewal', 'continuing education', 'cpe', 'ceu', 'units',
+                // Education
+                'education', 'educational', 'study', 'studies', 'scholarship', 'tuition', 'school', 'college', 'university', 'degree', 'masters', 'mba', 'doctorate', 'phd', 'graduate', 'undergraduate', 'diploma', 'associate', 'thesis', 'dissertation', 'research', 'academic', 'assistance', 'subsidy', 'reimbursement', 'sponsorship',
+                // Career
+                'career growth', 'career path', 'career plan', 'career', 'growth', 'advancement', 'opportunities', 'opportunity', 'progression', 'ladder', 'development plan', 'idp', 'individual development', 'succession', 'pipeline', 'talent', 'high potential', 'hipo', 'fast track', 'accelerated',
+                // Mentoring
+                'mentoring', 'mentor', 'mentorship', 'coaching', 'coach', 'buddy', 'buddying', 'shadowing', 'shadow', 'guidance', 'guide', 'advisor', 'adviser', 'counselor', 'counseling', 'support', 'sponsor', 'sponsorship',
+                // Evaluation
+                'evaluation', 'evaluate', 'assessment', 'assess', 'performance review', 'appraisal', 'review', 'self-assessment', 'peer review', '360', 'multi-rater', 'competency assessment', 'skills assessment', 'gap analysis', 'needs analysis', 'tna', 'training needs',
+                // Feedback
+                'feedback', 'feedbacks', 'improvement', 'improve', 'suggestions', 'constructive', 'positive', 'negative', 'areas for improvement', 'strengths', 'weaknesses', 'opportunities', 'threats', 'swot',
+                // Goals
+                'goal', 'goals', 'objective', 'objectives', 'target', 'targets', 'kpi', 'kpis', 'okr', 'okrs', 'metrics', 'metric', 'measure', 'measures', 'indicator', 'indicators', 'benchmark', 'benchmarking', 'standard', 'expectations', 'deliverable', 'deliverables', 'milestone', 'milestones',
+                // Events
+                'conference', 'conferences', 'webinar', 'webinars', 'summit', 'convention', 'symposium', 'forum', 'congress', 'expo', 'exhibition', 'fair', 'meetup', 'networking', 'event', 'events', 'gathering', 'assembly',
+                // Onboarding
+                'orientation', 'onboarding', 'induction', 'immersion', 'probationary review', 'new hire', 'new employee', 'newcomer', 'welcome', 'introduction', 'familiarization', 'nesting', 'transition', 'integration', 'assimilation', 'acclimation', 'culture', 'values', 'mission', 'vision', 'company overview'
+            ],
+            'Ranking and Promotion' => [
+                // Promotion
+                'promotion', 'promotions', 'promote', 'promoted', 'promoting', 'upgrade', 'upgrading', 'move up', 'step up', 'advancement', 'advance', 'elevated', 'elevation', 'career move', 'next level', 'higher position', 'new role', 'bigger role', 'increased responsibility',
+                // Rank
+                'rank', 'ranks', 'ranking', 'rankings', 'tier', 'tiers', 'hierarchy', 'hierarchical', 'structure', 'org chart', 'organizational', 'chain of command', 'reporting line', 'direct report',
+                // Demotion
+                'demotion', 'demotions', 'demote', 'demoted', 'downgrade', 'downgraded', 'lower position', 'reduced', 'reassigned', 'lateral', 'lateral move', 'horizontal', 'same level',
+                // Position and title
+                'position', 'positions', 'title', 'titles', 'designation', 'designations', 'role', 'roles', 'job level', 'job grade', 'job title', 'supervisor', 'manager', 'director', 'executive', 'officer', 'specialist', 'analyst', 'associate', 'coordinator', 'lead', 'head', 'chief', 'vp', 'vice president', 'president', 'ceo', 'coo', 'cfo', 'cto', 'cio',
+                // Levels
+                'level', 'levels', 'grade', 'grades', 'step', 'steps', 'band', 'bands', 'classification', 'category', 'grouping', 'bracket', 'range', 'entry level', 'mid level', 'senior level', 'executive level', 'c-level', 'c-suite', 'junior', 'mid', 'senior', 'lead', 'principal', 'staff',
+                // Salary increase
+                'salary increase', 'pay increase', 'raise', 'raises', 'increment', 'increments', 'adjustment', 'adjustments', 'salary adjustment', 'pay adjustment', 'hike', 'bump', 'upgrade', 'enhanced', 'improved', 'higher pay', 'better pay', 'competitive', 'market rate', 'benchmarking',
+                // Merit
+                'merit', 'merits', 'meritorious', 'deserving', 'earned', 'based on performance', 'performance-based', 'results-based', 'contribution', 'contributions', 'value', 'added value', 'impact', 'impactful',
+                // Performance
+                'appraisal', 'appraisals', 'performance', 'performer', 'performers', 'top performer', 'high performer', 'low performer', 'underperformer', 'exceeds expectations', 'meets expectations', 'below expectations', 'needs improvement', 'satisfactory', 'unsatisfactory', 'outstanding performance', 'excellent performance', 'consistent', 'reliability', 'dependable',
+                // Evaluation
+                'evaluation', 'evaluations', 'review', 'reviews', 'rating', 'ratings', 'score', 'scores', 'grade', 'grading', 'assessment', 'annual review', 'quarterly review', 'mid-year review', 'year-end review', 'calibration', 'bell curve', 'forced ranking', 'distribution',
+                // Criteria
+                'criteria', 'criterion', 'requirement', 'requirements', 'qualification', 'qualifications', 'eligibility', 'eligible', 'qualified', 'disqualified', 'minimum', 'mandatory', 'preferred', 'nice to have', 'prerequisite', 'condition', 'standard', 'threshold',
+                // Tenure
+                'tenure', 'tenured', 'seniority', 'senior', 'junior', 'service length', 'length of service', 'years of service', 'loyalty', 'longevity', 'milestone', 'anniversary', 'work anniversary', 'years', 'months', 'experience', 'experienced', 'veteran', 'long-time', 'dedicated', 'committed',
+                // Recognition
+                'award', 'awards', 'recognition', 'recognize', 'commendation', 'commend', 'achievement', 'achievements', 'accomplishment', 'accomplishments', 'honor', 'honors', 'distinction', 'distinctions', 'excellence', 'excellent', 'outstanding', 'exemplary', 'best employee', 'employee of the month', 'employee of the year', 'star performer', 'hall of fame', 'plaque', 'trophy', 'certificate', 'appreciation', 'thank you', 'kudos', 'shoutout', 'spotlight', 'feature', 'celebrated', 'recognized', 'acknowledged', 'praised', 'commended', 'rewarded', 'incentivized', 'bonus', 'gift', 'prize', 'token'
+            ],
             'General' => [] // Default
         ];
 
