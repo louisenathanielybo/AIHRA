@@ -9,8 +9,14 @@ class GuidedQuestion extends Model
 {
     use HasFactory;
 
+    protected $table = 'guided_questions';
+    protected $primaryKey = 'gq_id';
+
     protected $fillable = [
+        'parent_id',
         'question_text',
+        'answer_text',
+        'LEVEL',
         'linked_intent',
         'display_order',
         'response_type',

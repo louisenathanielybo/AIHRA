@@ -1804,4 +1804,62 @@ class DialogflowController extends Controller
     }
 
     
+
+    public function getIntents()
+    {
+        try {
+            return response()->json(['success' => true, 'data' => [], 'message' => 'Intents management coming soon']);
+        } catch (\Exception $e) {
+            Log::error('Error loading intents: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to load intents'], 500);
+        }
+    }
+
+    public function getGuidedQuestions()
+    {
+        try {
+            $questions = GuidedQuestion::with('children')->whereNull('parent_id')->orderBy('display_order')->get();
+            return response()->json(['success' => true, 'data' => $questions]);
+        } catch (\Exception $e) {
+            Log::error('Error loading guided questions: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to load guided questions'], 500);
+        }
+    }
+
+    public function createGuidedQuestion(Request $request)
+    {
+        try {
+            $validated = $request->validate(['question_text' => 'required|string', 'parent_id' => 'nullable|exists:guided_questions,gq_id', 'answer_text' => 'nullable|string', 'LEVEL' => 'required|integer', 'display_order' => 'nullable|integer']);
+            $question = GuidedQuestion::create($validated);
+            return response()->json(['success' => true, 'data' => $question]);
+        } catch (\Exception $e) {
+            Log::error('Error creating guided question: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to create guided question'], 500);
+        }
+    }
+
+    public function updateGuidedQuestion(Request $request, $id)
+    {
+        try {
+            $question = GuidedQuestion::findOrFail($id);
+            $validated = $request->validate(['question_text' => 'sometimes|string', 'answer_text' => 'nullable|string', 'display_order' => 'nullable|integer', 'status' => 'sometimes|in:active,inactive']);
+            $question->update($validated);
+            return response()->json(['success' => true, 'data' => $question]);
+        } catch (\Exception $e) {
+            Log::error('Error updating guided question: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to update guided question'], 500);
+        }
+    }
+
+    public function deleteGuidedQuestion($id)
+    {
+        try {
+            $question = GuidedQuestion::findOrFail($id);
+            $question->delete();
+            return response()->json(['success' => true, 'message' => 'Guided question deleted successfully']);
+        } catch (\Exception $e) {
+            Log::error('Error deleting guided question: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to delete guided question'], 500);
+        }
+    }
 }

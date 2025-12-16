@@ -27,9 +27,10 @@ class FlagController extends Controller
             $queryRecord = Query::create([
                 'employeeNum' => Auth::user()->employeeNum,
                 'question' => $request->user_query,
-                'answer' => $request->bot_response,
+                'response' => $request->bot_response,
                 'questionTime' => now(),
                 'isEscalated' => false,
+                'handledBy' => 'Bot',
             ]);
 
             \Log::info('Query record created', ['queryID' => $queryRecord->queryID]);
@@ -38,7 +39,7 @@ class FlagController extends Controller
             $flagged = FlaggedResponse::create([
                 'employeeNum' => Auth::user()->employeeNum,
                 'queryID' => $queryRecord->queryID,
-                'reasonID' => $request->reason,
+                'reason' => $request->reason,  // Store reason text directly
                 'timeStamp' => now(),
                 'status' => 'Pending',
             ]);

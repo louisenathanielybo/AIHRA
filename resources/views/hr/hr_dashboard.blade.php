@@ -2380,7 +2380,37 @@ document.getElementById('addAnnouncementForm').addEventListener('submit', functi
     submitButton.innerHTML = 'Creating...';
     submitButton.disabled = true;
     
-    form.submit();
+    const formData = new FormData(form);
+    
+    fetch(form.action, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('✅ ' + (data.message || 'Announcement created successfully!'));
+            closeAddAnnouncementModal();
+            form.reset();
+            // Reload to refresh announcements
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification('❌ ' + (data.message || 'Failed to create announcement'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('❌ Failed to create announcement');
+    })
+    .finally(() => {
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+    });
     
 });
     

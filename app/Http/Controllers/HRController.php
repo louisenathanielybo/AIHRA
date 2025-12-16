@@ -87,6 +87,13 @@ class HRController extends Controller
 
         DB::table('announcements')->insert($data);
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => '📢 Announcement posted successfully!'
+            ]);
+        }
+
         return back()->with('success', '📢 Announcement posted successfully!');
     }
 
@@ -283,6 +290,13 @@ class HRController extends Controller
 
         $user->about = $request->about;
         $user->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully!'
+            ]);
+        }
 
         return redirect()->route('hr.profile')->with('success', 'Profile updated successfully!');
     }

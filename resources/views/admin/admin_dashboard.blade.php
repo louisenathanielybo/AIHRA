@@ -1748,7 +1748,7 @@ use Illuminate\Support\Str;
                             <tr id="flag-row-{{ $flagged->flaggedID }}">
                                 <td><strong>#{{ str_pad($flagged->flaggedID, 6, '0', STR_PAD_LEFT) }}</strong></td>
                                 <td title="{{ $flagged->question }}">{{ \Illuminate\Support\Str::limit($flagged->question, 50) }}</td>
-                                <td>{{ $flagged->description ?? $flagged->reasonID ?? 'Unknown' }}</td>
+                                <td>{{ $flagged->reason ?? 'Unknown' }}</td>
                                 <td>{{ \Carbon\Carbon::parse($flagged->timeStamp)->format('d/m/y') }}</td>
                                 <td><span class="status {{ strtolower($flagged->status) }}">{{ $flagged->status }}</span></td>
                                 <td>
@@ -1787,38 +1787,64 @@ use Illuminate\Support\Str;
         
         <!-- Chatbot Performance Section -->
         <div id="performance-section" class="section-content">
-            <div class="data-table">
-                <h3>Performance Metrics</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Metric</th>
-                            <th>Value</th>
-                            <th>Trend</th>
-                            <th>Target</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Response Accuracy</td>
-                            <td>92%</td>
-                            <td><span class="trend up">+2%</span></td>
-                            <td>95%</td>
-                        </tr>
-                        <tr>
-                            <td>User Satisfaction</td>
-                            <td>88%</td>
-                            <td><span class="trend up">+5%</span></td>
-                            <td>90%</td>
-                        </tr>
-                        <tr>
-                            <td>Average Response Time</td>
-                            <td>1.2s</td>
-                            <td><span class="trend down">-0.3s</span></td>
-                            <td>1.0s</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <!-- Date Range Filter -->
+            <div style="background: white; padding: 15px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(45, 90, 61, 0.08); margin-bottom: 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <label style="font-weight: 600; color: var(--primary);"><i class="fas fa-calendar-alt"></i> Date Range:</label>
+                <input type="date" id="performanceStartDate" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                <span style="color: #666;">to</span>
+                <input type="date" id="performanceEndDate" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                <button onclick="applyPerformanceDateFilter()" style="padding: 8px 16px; background: var(--secondary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+                    <i class="fas fa-filter"></i> Apply Filter
+                </button>
+                <button onclick="resetPerformanceDateFilter()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+            </div>
+
+            <!-- KPI Cards Row -->
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 25px;">
+                <!-- Total Interactions KPI -->
+                <div style="background: linear-gradient(135deg, #2d5a3d 0%, #3d7a4d 100%); padding: 20px 28px; border-radius: 14px; box-shadow: 0 4px 15px rgba(45, 90, 61, 0.2); display: flex; align-items: center; gap: 18px; flex: 1; min-width: 280px;">
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px;">
+                        <i class="fas fa-comments" style="font-size: 2rem; color: white;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.95rem; color: rgba(255,255,255,0.85); font-weight: 500;">Total Interactions</div>
+                        <div id="performanceTotalInteractions" style="font-size: 2.2rem; font-weight: bold; color: white;">{{ $totalInteractions }}</div>
+                        <div id="performanceInteractionsRange" style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">All time</div>
+                    </div>
+                </div>
+                
+                <!-- Average Response Time KPI -->
+                <div style="background: linear-gradient(135deg, #1565c0 0%, #1976d2 100%); padding: 20px 28px; border-radius: 14px; box-shadow: 0 4px 15px rgba(21, 101, 192, 0.2); display: flex; align-items: center; gap: 18px; flex: 1; min-width: 280px;">
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px;">
+                        <i class="fas fa-clock" style="font-size: 2rem; color: white;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.95rem; color: rgba(255,255,255,0.85); font-weight: 500;">Avg Response Time</div>
+                        <div id="performanceAvgResponseTime" style="font-size: 2.2rem; font-weight: bold; color: white;">{{ number_format($avgResponseTime ?? 0, 2) }}s</div>
+                        <div id="performanceResponseTimeRange" style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">All time</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Area Charts Row -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
+                <!-- Response Time Trend Chart -->
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
+                    <h3 style="margin: 0 0 15px 0; color: var(--primary); font-size: 1.1rem;">
+                        <i class="fas fa-chart-area" style="margin-right: 8px;"></i>Average Response Time Trend
+                    </h3>
+                    <canvas id="responseTimeTrendChart" style="max-height: 300px;"></canvas>
+                </div>
+                
+                <!-- Interactions Over Time Chart -->
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);">
+                    <h3 style="margin: 0 0 15px 0; color: var(--primary); font-size: 1.1rem;">
+                        <i class="fas fa-chart-line" style="margin-right: 8px;"></i>Interactions Over Time
+                    </h3>
+                    <canvas id="interactionsOverTimeChart" style="max-height: 300px;"></canvas>
+                </div>
             </div>
         </div>
         
@@ -1941,7 +1967,7 @@ use Illuminate\Support\Str;
                         <tr id="flag-row-{{ $flagged->flaggedID }}">
                             <td><strong>#{{ str_pad($flagged->flaggedID, 6, '0', STR_PAD_LEFT) }}</strong></td>
                             <td title="{{ $flagged->question }}">{{ \Illuminate\Support\Str::limit($flagged->question, 50) }}</td>
-                            <td>{{ $flagged->description ?? $flagged->reasonID ?? 'Unknown' }}</td>
+                            <td>{{ $flagged->reason ?? 'Unknown' }}</td>
                             <td>{{ \Carbon\Carbon::parse($flagged->timeStamp)->format('d/m/y') }}</td>
                             <td><span class="status {{ strtolower($flagged->status) }}">{{ $flagged->status }}</span></td>
                             <td style="display: flex; gap: 5px; align-items: center;">
@@ -2217,8 +2243,8 @@ You can check your leave balance in the employee portal."></textarea>
                     </div>
                     
                     <div class="form-group" style="flex: 1;">
-                        <label for="status">Status</label>
-                        <select id="status" name="status">
+                        <label for="intentStatus">Status</label>
+                        <select id="intentStatus" name="status">
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                         </select>
@@ -2922,8 +2948,8 @@ You can check your leave balance in the employee portal."></textarea>
                         </div>
 
                         <div class="form-group">
-                            <label for="status">Account Status *</label>
-                            <select id="status" name="status" required>
+                            <label for="accountStatus">Account Status *</label>
+                            <select id="accountStatus" name="status" required>
                                 <option value="Active" {{ old('status') == 'Active' ? 'selected' : '' }}>Active</option>
                                 <option value="Deactivated" {{ old('status') == 'Deactivated' ? 'selected' : '' }}>Deactivated</option>
                             </select>
@@ -3304,6 +3330,14 @@ You can check your leave balance in the employee portal."></textarea>
 
         // Store all interactions data for filtering (date + response time)
         const allInteractionsData = @json($allInteractionsData);
+        
+        // DEBUG: Log data count on load
+        console.log('=== INTERACTIONS DATA DEBUG ===');
+        console.log('allInteractionsData loaded, count:', allInteractionsData.length);
+        if (allInteractionsData.length > 0) {
+            console.log('First item sample:', JSON.stringify(allInteractionsData[0]));
+            console.log('Last item sample:', JSON.stringify(allInteractionsData[allInteractionsData.length - 1]));
+        }
 
         // Store all tickets data for filtering (date + priority + status)
         const allTicketsData = @json($allTicketsData);
@@ -4109,6 +4143,10 @@ You can check your leave balance in the employee portal."></textarea>
         }
 
         function refreshPagination(type) {
+            if (!paginationState[type]) {
+                console.warn('Pagination state not found for type:', type);
+                return;
+            }
             paginationState[type].currentPage = 1; // Reset to first page
             paginateTable(type);
         }
@@ -4225,11 +4263,21 @@ You can check your leave balance in the employee portal."></textarea>
             
             console.log('updateTicketTrends called', { start, end, currentDateRange });
             
+            const totalTrend = document.getElementById('totalTicketsTrend');
+            const unresolvedTrend = document.getElementById('unresolvedTicketsTrend');
+            const resolvedTrend = document.getElementById('resolvedTicketsTrend');
+            
+            // Check if elements exist
+            if (!totalTrend || !unresolvedTrend || !resolvedTrend) {
+                console.log('Trend elements not found, skipping update');
+                return;
+            }
+            
             // Hide trends for overall view
             if (start === null || end === null || currentDateRange === 'overall') {
-                document.getElementById('totalTicketsTrend').style.display = 'none';
-                document.getElementById('unresolvedTicketsTrend').style.display = 'none';
-                document.getElementById('resolvedTicketsTrend').style.display = 'none';
+                totalTrend.style.display = 'none';
+                unresolvedTrend.style.display = 'none';
+                resolvedTrend.style.display = 'none';
                 console.log('Trends hidden (overall view)');
                 return;
             }
@@ -4425,15 +4473,18 @@ You can check your leave balance in the employee portal."></textarea>
                 });
             }
             
-            // Calculate average
+            // Calculate average - only from items with valid response time
             let totalResponseTime = 0;
             let count = 0;
             
             filteredData.forEach(interaction => {
-                const responseTime = parseFloat(interaction.response_time_seconds);
-                if (!isNaN(responseTime)) {
-                    totalResponseTime += responseTime;
-                    count++;
+                // Only count items with valid response time (responseTime != questionTime)
+                if (interaction.has_valid_response_time == 1) {
+                    const responseTime = parseFloat(interaction.response_time_seconds);
+                    if (!isNaN(responseTime)) {
+                        totalResponseTime += responseTime;
+                        count++;
+                    }
                 }
             });
             
@@ -4781,6 +4832,268 @@ You can check your leave balance in the employee portal."></textarea>
             
             // Initialize ticket charts
             initTicketCharts();
+            
+            // Initialize performance charts
+            initPerformanceCharts();
+        }
+
+        // =============================================
+        // CHATBOT PERFORMANCE CHARTS
+        // =============================================
+        let responseTimeTrendChartInstance = null;
+        let interactionsOverTimeChartInstance = null;
+        
+        // Initialize performance section charts
+        function initPerformanceCharts() {
+            // Set default date range (last 30 days)
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            document.getElementById('performanceStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('performanceEndDate').value = today.toISOString().split('T')[0];
+            
+            // Apply initial filter
+            applyPerformanceDateFilter();
+        }
+        
+        // Apply date filter for performance section
+        function applyPerformanceDateFilter() {
+            const startDate = document.getElementById('performanceStartDate').value;
+            const endDate = document.getElementById('performanceEndDate').value;
+            
+            console.log('Performance Filter - Start:', startDate, 'End:', endDate);
+            console.log('Total allInteractionsData count:', allInteractionsData.length);
+            
+            // Filter interaction data by date range
+            let filteredData = allInteractionsData;
+            if (startDate && endDate) {
+                filteredData = allInteractionsData.filter(item => {
+                    // Handle null/undefined query_date
+                    if (!item.query_date) return false;
+                    const itemDate = String(item.query_date);
+                    return itemDate >= startDate && itemDate <= endDate;
+                });
+            }
+            
+            console.log('Filtered data count:', filteredData.length);
+            
+            // Update KPIs
+            updatePerformanceKPIs(filteredData, startDate, endDate);
+            
+            // Update charts
+            updatePerformanceCharts(filteredData);
+        }
+        
+        // Reset date filter
+        function resetPerformanceDateFilter() {
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            document.getElementById('performanceStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('performanceEndDate').value = today.toISOString().split('T')[0];
+            
+            applyPerformanceDateFilter();
+        }
+        
+        // Update KPIs based on filtered data
+        function updatePerformanceKPIs(data, startDate, endDate) {
+            // Total interactions
+            const totalInteractions = data.length;
+            document.getElementById('performanceTotalInteractions').textContent = totalInteractions.toLocaleString();
+            
+            // Average response time - only count items with valid response time
+            // (has_valid_response_time = 1 means responseTime != questionTime)
+            const validResponseItems = data.filter(item => item.has_valid_response_time == 1);
+            let avgResponseTime = 0;
+            if (validResponseItems.length > 0) {
+                const totalTime = validResponseItems.reduce((sum, item) => sum + (parseFloat(item.response_time_seconds) || 0), 0);
+                avgResponseTime = totalTime / validResponseItems.length;
+            }
+            document.getElementById('performanceAvgResponseTime').textContent = avgResponseTime.toFixed(2) + 's';
+            
+            // Update date range labels
+            const rangeText = startDate && endDate ? 
+                `${formatDateShort(startDate)} - ${formatDateShort(endDate)}` : 'All time';
+            document.getElementById('performanceInteractionsRange').textContent = rangeText;
+            document.getElementById('performanceResponseTimeRange').textContent = rangeText + ` (${validResponseItems.length} with timing data)`;
+        }
+        
+        // Format date for display
+        function formatDateShort(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+        
+        // Update performance charts
+        function updatePerformanceCharts(data) {
+            // Group data by date
+            const dateGroups = {};
+            data.forEach(item => {
+                const date = item.query_date;
+                if (!dateGroups[date]) {
+                    dateGroups[date] = { count: 0, totalTime: 0, validTimeCount: 0 };
+                }
+                dateGroups[date].count++;
+                // Only add response time if it's a valid measurement
+                if (item.has_valid_response_time == 1) {
+                    dateGroups[date].totalTime += parseFloat(item.response_time_seconds) || 0;
+                    dateGroups[date].validTimeCount++;
+                }
+            });
+            
+            // Sort dates
+            const sortedDates = Object.keys(dateGroups).sort();
+            
+            // Prepare chart data
+            const labels = sortedDates.map(date => {
+                const d = new Date(date);
+                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            
+            const responseTimeData = sortedDates.map(date => {
+                const group = dateGroups[date];
+                // Only calculate average from valid response times
+                return group.validTimeCount > 0 ? (group.totalTime / group.validTimeCount).toFixed(2) : 0;
+            });
+            
+            const interactionData = sortedDates.map(date => dateGroups[date].count);
+            
+            // Update Response Time Trend Chart
+            const responseTimeCanvas = document.getElementById('responseTimeTrendChart');
+            if (responseTimeCanvas) {
+                const ctx = responseTimeCanvas.getContext('2d');
+                
+                if (responseTimeTrendChartInstance) {
+                    responseTimeTrendChartInstance.destroy();
+                }
+                
+                responseTimeTrendChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Avg Response Time (seconds)',
+                            data: responseTimeData,
+                            borderColor: '#1565c0',
+                            backgroundColor: 'rgba(21, 101, 192, 0.15)',
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#1565c0',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Avg Response Time: ' + context.parsed.y + 's';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Seconds'
+                                }
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
+                    }
+                });
+            }
+            
+            // Update Interactions Over Time Chart
+            const interactionsCanvas = document.getElementById('interactionsOverTimeChart');
+            if (interactionsCanvas) {
+                const ctx = interactionsCanvas.getContext('2d');
+                
+                if (interactionsOverTimeChartInstance) {
+                    interactionsOverTimeChartInstance.destroy();
+                }
+                
+                interactionsOverTimeChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Interactions',
+                            data: interactionData,
+                            borderColor: '#2d5a3d',
+                            backgroundColor: 'rgba(45, 90, 61, 0.15)',
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#2d5a3d',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Interactions: ' + context.parsed.y;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Count'
+                                },
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
+                    }
+                });
+            }
         }
 
         // =============================================
@@ -5446,29 +5759,36 @@ You can check your leave balance in the employee portal."></textarea>
                     showUnresolvedTicketsModal(data.unresolvedCount, data.tickets);
                 } else {
                     if (confirm(`Are you sure you want to archive account ${employeeNum}? The account will be archived and deactivated but data will be preserved.`)) {
-                        // Create and submit form
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = `/admin/accounts/${employeeNum}`;
-                        // Add CSRF token
-                        const csrfInput = document.createElement('input');
-                        csrfInput.type = 'hidden';
-                        csrfInput.name = '_token';
-                        csrfInput.value = csrfToken;
-                        form.appendChild(csrfInput);
-                        // Add method spoofing for ARCHIVE (still uses DELETE for backend compatibility)
-                        const methodInput = document.createElement('input');
-                        methodInput.type = 'hidden';
-                        methodInput.name = '_method';
-                        methodInput.value = 'DELETE';
-                        form.appendChild(methodInput);
-                        document.body.appendChild(form);
-                        form.submit();
+                        // Use AJAX instead of form submission for seamless UX
+                        fetch(`/admin/accounts/${employeeNum}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success) {
+                                showNotification(result.message || 'Account archived successfully!', 'success');
+                                // Reload page to refresh the table
+                                setTimeout(() => {
+                                    window.location.href = window.location.pathname + '?active_tab=account-management';
+                                }, 1000);
+                            } else {
+                                showNotification(result.message || 'Failed to archive account', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error archiving account:', error);
+                            showNotification('An error occurred while archiving the account.', 'error');
+                        });
                     }
                 }
             })
             .catch(() => {
-                alert('Could not check unresolved tickets. Please try again.');
+                showNotification('Could not check unresolved tickets. Please try again.', 'error');
             });
         }
 
@@ -6762,6 +7082,223 @@ function showNotification(message, type = 'success') {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
+}
+
+// =============================================
+// AJAX FORM HANDLERS FOR SEAMLESS UX
+// =============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // CREATE ACCOUNT FORM AJAX HANDLER
+    const createForm = document.getElementById('createAccountForm');
+    if (createForm) {
+        createForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = createForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+            
+            try {
+                const formData = new FormData(createForm);
+                const response = await fetch(createForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message || 'Account created successfully!', 'success');
+                    closeCreateModal();
+                    createForm.reset();
+                    // Reload page to refresh the table
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname + '?active_tab=account-management';
+                    }, 1000);
+                } else {
+                    showNotification(result.message || 'Failed to create account', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating account:', error);
+                showNotification('An error occurred while creating the account.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    }
+    
+    // EDIT ACCOUNT FORM AJAX HANDLER
+    const editForm = document.getElementById('editAccountForm');
+    if (editForm) {
+        editForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = editForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            try {
+                const formData = new FormData(editForm);
+                const response = await fetch(editForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message || 'Account updated successfully!', 'success');
+                    closeEditModal();
+                    // Reload page to refresh the table
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname + '?active_tab=account-management';
+                    }, 1000);
+                } else {
+                    showNotification(result.message || 'Failed to update account', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating account:', error);
+                showNotification('An error occurred while updating the account.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    }
+    
+    // RESET PASSWORD FORM AJAX HANDLER
+    const resetForm = document.getElementById('resetPasswordForm');
+    if (resetForm) {
+        resetForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = resetForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+            
+            try {
+                const formData = new FormData(resetForm);
+                const response = await fetch(resetForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message || 'Password reset successfully!', 'success');
+                    closeResetModal();
+                    resetForm.reset();
+                } else {
+                    showNotification(result.message || 'Failed to reset password', 'error');
+                }
+            } catch (error) {
+                console.error('Error resetting password:', error);
+                showNotification('An error occurred while resetting the password.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    }
+    
+    // IMPORT ACCOUNTS FORM AJAX HANDLER
+    const importForm = document.getElementById('importAccountForm');
+    if (importForm) {
+        importForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = importForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+            
+            try {
+                const formData = new FormData(importForm);
+                const response = await fetch(importForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message || 'Accounts imported successfully!', 'success');
+                    closeImportModal();
+                    importForm.reset();
+                    // Reload page to refresh the table
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname + '?active_tab=account-management';
+                    }, 1000);
+                } else {
+                    showNotification(result.message || 'Failed to import accounts', 'error');
+                }
+            } catch (error) {
+                console.error('Error importing accounts:', error);
+                showNotification('An error occurred while importing accounts.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    }
+});
+
+// ARCHIVE ACCOUNT WITH AJAX (updated version)
+function archiveAccountAjax(employeeNum) {
+    if (!confirm(`Are you sure you want to archive account ${employeeNum}? The account will be archived and deactivated but data will be preserved.`)) {
+        return;
+    }
+    
+    fetch(`/admin/accounts/${employeeNum}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showNotification(result.message || 'Account archived successfully!', 'success');
+            // Reload page to refresh the table
+            setTimeout(() => {
+                window.location.href = window.location.pathname + '?active_tab=account-management';
+            }, 1000);
+        } else {
+            showNotification(result.message || 'Failed to archive account', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error archiving account:', error);
+        showNotification('An error occurred while archiving the account.', 'error');
+    });
 }
 </script>
     <script src="/assets/js/feedback_kpi.js"></script>

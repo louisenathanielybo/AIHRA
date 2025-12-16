@@ -158,12 +158,27 @@ class AdminController extends Controller
         }
 
         // Get all interactions data for JavaScript (date + response time only)
-        $allInteractionsData = DB::table('queries')
+        // Include a flag to identify if response time is valid (not equal to question time)
+        // Combine queries (bot interactions) with tickets (escalated interactions)
+        // Only include bot-handled queries to match dashboard's totalInteractions calculation
+        $queryInteractions = DB::table('queries')
+            ->where('handledBy', 'Bot')
             ->select(
-                DB::raw('DATE(questionTime) as query_date'),
-                DB::raw('TIMESTAMPDIFF(MICROSECOND, questionTime, IFNULL(responseTime, questionTime)) / 1000000.0 as response_time_seconds')
-            )
-            ->get();
+                DB::raw("DATE_FORMAT(questionTime, '%Y-%m-%d') as query_date"),
+                DB::raw('TIMESTAMPDIFF(MICROSECOND, questionTime, IFNULL(responseTime, questionTime)) / 1000000.0 as response_time_seconds'),
+                DB::raw('CASE WHEN responseTime IS NOT NULL AND responseTime != questionTime THEN 1 ELSE 0 END as has_valid_response_time'),
+                DB::raw("'query' as interaction_type")
+            );
+        
+        $ticketInteractions = DB::table('hr_inbox')
+            ->select(
+                DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d') as query_date"),
+                DB::raw('0 as response_time_seconds'),
+                DB::raw('0 as has_valid_response_time'),
+                DB::raw("'ticket' as interaction_type")
+            );
+        
+        $allInteractionsData = $queryInteractions->unionAll($ticketInteractions)->get();
 
         $flagsSortColumn = in_array($flagsSort, ['flaggedID', 'reasonID', 'timeStamp', 'status']) ? $flagsSort : 'timeStamp';
         
@@ -174,10 +189,14 @@ class AdminController extends Controller
             ->orderBy('flaggedresponse.' . $flagsSortColumn, $flagsDir)
             ->get();
 
-        // Calculate average response time from all queries
+        // Calculate average response time from bot queries with actual response time data
+        // Only include queries where responseTime differs from questionTime
         $avgResponseTime = DB::table('queries')
-            ->select(DB::raw('AVG(TIMESTAMPDIFF(MICROSECOND, questionTime, IFNULL(responseTime, questionTime)) / 1000000.0) as avg_seconds'))
-            ->value('avg_seconds');
+            ->where('handledBy', 'Bot')
+            ->whereNotNull('responseTime')
+            ->whereRaw('responseTime != questionTime')
+            ->select(DB::raw('AVG(TIMESTAMPDIFF(MICROSECOND, questionTime, responseTime) / 1000000.0) as avg_seconds'))
+            ->value('avg_seconds') ?? 0;
 
         // Get users with pagination and search (exclude archived accounts)
         $search = request('search', '');
@@ -386,6 +405,13 @@ class AdminController extends Controller
         ]);
 
         if ($validator->fails()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
             return redirect()->route('admin.dashboard')
                 ->withErrors($validator)
                 ->withInput()
@@ -412,11 +438,23 @@ class AdminController extends Controller
                 'profile_picture' => 'default.png'
             ]);
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Account created successfully!'
+                ]);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('success', 'Account created successfully!')
                 ->with('active_tab', 'account-management');
             
         } catch (\Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create account: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()->route('admin.dashboard')
                 ->withErrors(['error' => 'Failed to create account: ' . $e->getMessage()])
                 ->withInput()
@@ -443,6 +481,12 @@ class AdminController extends Controller
         if ($request->status === 'Deactivated' && $targetUser && $targetUser->status === 'Active') {
             if (TrackLastSeen::isUserOnline($employeeNum)) {
                 \Log::warning('Attempt to deactivate online user:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Cannot deactivate this account because the user is currently online. Please wait until they log out.'
+                    ], 422);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('error', 'Cannot deactivate this account because the user is currently online. Please wait until they log out.')
                     ->with('active_tab', 'account-management');
@@ -463,6 +507,13 @@ class AdminController extends Controller
 
         if ($validator->fails()) {
             \Log::warning('Validation failed:', ['errors' => $validator->errors()]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
             return redirect()->route('admin.dashboard')
                 ->withErrors($validator)
                 ->withInput()
@@ -489,11 +540,23 @@ class AdminController extends Controller
 
             if ($updated) {
                 \Log::info('Account updated successfully:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Account updated successfully!'
+                    ]);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('success', 'Account updated successfully!')
                     ->with('active_tab', 'account-management');
             } else {
                 \Log::warning('No rows updated:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No changes were made or user not found.'
+                    ]);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('error', 'No changes were made or user not found.')
                     ->with('active_tab', 'account-management');
@@ -504,6 +567,12 @@ class AdminController extends Controller
                 'employeeNum' => $employeeNum,
                 'error' => $e->getMessage()
             ]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update account: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Failed to update account: ' . $e->getMessage())
                 ->withInput()
@@ -512,13 +581,19 @@ class AdminController extends Controller
     }
 
     // 🆕 DELETE (ARCHIVE) ACCOUNT - Updated to archive instead of delete
-    public function deleteAccount($employeeNum)
+    public function deleteAccount(Request $request, $employeeNum)
     {
         \Log::info('Archiving account:', ['employeeNum' => $employeeNum]);
         
         // Prevent admin from deleting their own account
         if ($employeeNum == Auth::user()->employeeNum) {
             \Log::warning('Attempt to delete own account:', ['employeeNum' => $employeeNum]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot delete your own account.'
+                ], 422);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'You cannot delete your own account.')
                 ->with('active_tab', 'account-management');
@@ -527,6 +602,12 @@ class AdminController extends Controller
         // 🆕 Prevent archiving an online user
         if (TrackLastSeen::isUserOnline($employeeNum)) {
             \Log::warning('Attempt to archive online user:', ['employeeNum' => $employeeNum]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot archive this account because the user is currently online. Please wait until they log out.'
+                ], 422);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Cannot archive this account because the user is currently online. Please wait until they log out.')
                 ->with('active_tab', 'account-management');
@@ -537,6 +618,12 @@ class AdminController extends Controller
             
             if (!$user) {
                 \Log::warning('User not found for archiving:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'User not found.'
+                    ], 404);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('error', 'User not found.')
                     ->with('active_tab', 'account-management');
@@ -545,6 +632,12 @@ class AdminController extends Controller
             // Prevent admin from deleting other admins
             if ($user->role === 'Admin') {
                 \Log::warning('Attempt to delete another admin:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You cannot delete admin accounts.'
+                    ], 422);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('error', 'You cannot delete admin accounts.')
                     ->with('active_tab', 'account-management');
@@ -560,11 +653,23 @@ class AdminController extends Controller
             
             if ($archived) {
                 \Log::info('Account archived successfully:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Account archived successfully!'
+                    ]);
+                }
                 return redirect()->route('admin.dashboard', ['active_tab' => 'account-management'])
                     ->with('success', 'Account archived successfully!')
                     ->withFragment('account-management');
             } else {
                 \Log::error('Archive query returned 0 rows affected:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No account was deleted. User may not exist.'
+                    ], 404);
+                }
                 return redirect()->route('admin.dashboard', ['active_tab' => 'account-management'])
                     ->with('error', 'No account was deleted. User may not exist.')
                     ->withFragment('account-management');
@@ -575,6 +680,12 @@ class AdminController extends Controller
                 'employeeNum' => $employeeNum,
                 'error' => $e->getMessage()
             ]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to archive account: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Failed to archive account: ' . $e->getMessage())
                 ->with('active_tab', 'account-management');
@@ -654,6 +765,12 @@ class AdminController extends Controller
         // Check if the account being reset is an admin (and not the current user)
         $targetUser = DB::table('users')->where('employeeNum', $employeeNum)->first();
         if ($targetUser && $targetUser->role === 'Admin' && $targetUser->employeeNum != Auth::user()->employeeNum) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot reset passwords for other admin accounts.'
+                ], 422);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'You cannot reset passwords for other admin accounts.')
                 ->with('active_tab', 'account-management');
@@ -665,6 +782,12 @@ class AdminController extends Controller
 
         if ($validator->fails()) {
             \Log::warning('Password validation failed:', ['errors' => $validator->errors()]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first()
+                ], 422);
+            }
             return redirect()->route('admin.dashboard')
                 ->withErrors($validator)
                 ->with('active_tab', 'account-management');
@@ -677,11 +800,23 @@ class AdminController extends Controller
 
             if ($updated) {
                 \Log::info('Password reset successfully:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Password reset successfully!'
+                    ]);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('success', 'Password reset successfully!')
                     ->with('active_tab', 'account-management');
             } else {
                 \Log::warning('No rows updated for password reset:', ['employeeNum' => $employeeNum]);
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'User not found or no changes made.'
+                    ], 404);
+                }
                 return redirect()->route('admin.dashboard')
                     ->with('error', 'User not found or no changes made.')
                     ->with('active_tab', 'account-management');
@@ -692,6 +827,12 @@ class AdminController extends Controller
                 'employeeNum' => $employeeNum,
                 'error' => $e->getMessage()
             ]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to reset password: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Failed to reset password: ' . $e->getMessage())
                 ->with('active_tab', 'account-management');
@@ -901,6 +1042,16 @@ class AdminController extends Controller
                 $message .= " {$failed} rows failed.";
             }
             
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'imported' => $imported,
+                    'failed' => $failed,
+                    'errors' => $errors
+                ]);
+            }
+            
             $response = redirect()->route('admin.dashboard')
                 ->with('success', $message)
                 ->with('active_tab', 'account-management');
@@ -913,6 +1064,12 @@ class AdminController extends Controller
             
         } catch (\Exception $e) {
             \Log::error('CSV Import Failed: ' . $e->getMessage());
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to import CSV: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Failed to import CSV: ' . $e->getMessage())
                 ->with('active_tab', 'account-management');
