@@ -3433,7 +3433,7 @@ function startReplyChecker() {
         } catch (error) {
             console.error('Error checking replies:', error);
         }
-    }, 15000); // Check every 15 seconds
+    }, 60000); // Check every 60 seconds (reduced from 15 to save DB connections)
 }
 </script>
 
