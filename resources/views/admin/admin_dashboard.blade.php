@@ -6518,46 +6518,49 @@ function confirmDelete() {
 
 // API Functions
 async function loadIntents() {
+    console.log('📋 Loading intents from server...');
+    
     try {
-        console.log('Loading intents from server...');
-        
-        const response = await fetch('/admin/dialogflow/intents', {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfToken
-            }
-        });
-        
-        console.log('Response status:', response.status);
+        const response = await fetch('/admin/dialogflow/intents/active');
+        console.log('📥 Response status:', response.status);
         
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Response error:', errorText.substring(0, 500));
-            throw new Error('Failed to load intents - HTTP ' + response.status);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        const data = await response.json();
-        console.log('Received data:', data);
+        const result = await response.json();
+        console.log('📊 Received data:', result);
         
-        if (data.success) {
-            console.log('Intents received:', data.intents);
-            console.log('Number of intents:', data.intents.length);
-            updateIntentsTable(data.intents);
-            updateStats(data.stats);
+        let intents = [];
+        
+        // Handle different response formats
+        if (result.data && Array.isArray(result.data)) {
+            // Format 1: { data: [...] }
+            intents = result.data;
+        } else if (result.intents && Array.isArray(result.intents)) {
+            // Format 2: { intents: [...] }
+            intents = result.intents;
+        } else if (Array.isArray(result)) {
+            // Format 3: direct array
+            intents = result;
+        } else if (result.data && result.data.intents && Array.isArray(result.data.intents)) {
+            // Format 4: { data: { intents: [...] } }
+            intents = result.data.intents;
         } else {
-            console.error('API returned failure:', data);
-            throw new Error(data.message || 'Failed to load intents');
+            console.warn('⚠️ Unexpected response format:', result);
         }
+        
+        console.log('✅ Intents received:', intents);
+        
+        // Update the table
+        await updateIntentsTable(intents);
+        
+        return intents;
+        
     } catch (error) {
-        console.error('Error loading intents:', error);
-        document.getElementById('intentsTableBody').innerHTML = `
-            <tr>
-                <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
-                    Error loading intents. Please try again.<br>
-                    <small>Error: ${error.message}</small>
-                </td>
-            </tr>
-        `;
+        console.error('❌ Error loading intents:', error);
+        showNotification('Failed to load intents: ' + error.message, 'error');
+        throw error;
     }
 }
 
@@ -6759,21 +6762,19 @@ async function deleteGuidedQuestion(questionId) {
 }
 
 async function syncWithDialogflow() {
-    let originalText = 'Sync with Dialogflow'; // Declare here, outside try block
+    let originalText = 'Sync with Dialogflow';
     let syncBtn = null;
     
     try {
-        syncBtn = document.querySelector('button[onclick="syncWithDialogflow()"]') || 
-                 document.querySelector('button[onclick*="syncWithDialogflow"]');
-        
-        // Store original button state
+        syncBtn = document.querySelector('button[onclick="syncWithDialogflow()"]');
         originalText = syncBtn ? syncBtn.innerHTML : 'Sync with Dialogflow';
+        
         if (syncBtn) {
             syncBtn.disabled = true;
             syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
         }
         
-        // Show a loading notification
+        console.log('🔄 Starting Dialogflow sync...');
         showNotification('Syncing with Dialogflow...', 'info');
         
         const response = await fetch('/admin/dialogflow/sync', {
@@ -6785,105 +6786,156 @@ async function syncWithDialogflow() {
             }
         });
         
-        // Check if response is JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            console.error('Non-JSON response:', text.substring(0, 500));
-            throw new Error('Server returned an HTML error page instead of JSON');
+        console.log('📥 Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         const result = await response.json();
+        console.log('📊 Sync result:', result);
         
         if (result.success) {
-            showNotification('Successfully synchronized with Dialogflow! ' + 
-                           `Found ${result.data.intents_synced} intents.`, 'success');
+            // Show success message
+            const message = result.data && result.data.is_mock_data ?
+                `Using mock data: Found ${result.data.intents_synced} intents. Check Dialogflow credentials.` :
+                `Success! Found ${result.data.intents_synced} intents.`;
             
-            // Reload intents table
-            await loadIntents();
+            showNotification(message, result.data && result.data.is_mock_data ? 'warning' : 'success');
             
-            if (result.data.note) {
-                console.log('Sync note:', result.data.note);
+            // Check if we have intents to display
+            let intents = [];
+            if (result.data && result.data.intents && Array.isArray(result.data.intents)) {
+                intents = result.data.intents;
+                console.log(`✅ Received ${intents.length} intents from sync`);
+            } else {
+                console.warn('⚠️ No intents found in sync response:', result);
+                // Try to load intents from the separate endpoint
+                intents = await loadIntents();
             }
+            
+            // Update the table with intents
+            if (intents.length > 0) {
+                await updateIntentsTable(intents);
+            } else {
+                showNotification('No intents found in Dialogflow', 'warning');
+            }
+            
         } else {
+            console.error('❌ Sync failed:', result.message);
             showNotification(result.message || 'Failed to sync with Dialogflow', 'error');
         }
         
     } catch (error) {
-        console.error('Error syncing with Dialogflow:', error);
+        console.error('💥 Sync error:', error);
+        showNotification('Error syncing with Dialogflow: ' + error.message, 'error');
         
-        let errorMessage = 'Error syncing with Dialogflow';
-        if (error.message.includes('HTML error page')) {
-            errorMessage = 'Dialogflow API connection failed. Please check server configuration.';
-        } else if (error.message.includes('Failed to fetch')) {
-            errorMessage = 'Network error. Please check your internet connection.';
-        } else {
-            errorMessage = error.message;
-        }
-        
-        showNotification(errorMessage, 'error');
-        
+        // Try to load existing intents anyway
         try {
             await loadIntents();
-            showNotification('Loaded intents with available data.', 'info');
         } catch (loadError) {
             console.error('Failed to load intents:', loadError);
         }
     } finally {
-        // Restore button state - now originalText is accessible
+        // Restore button state
         if (syncBtn) {
             syncBtn.disabled = false;
             syncBtn.innerHTML = originalText;
         }
     }
 }
-// Table Update Functions
-function updateIntentsTable(intents) {
-    const tbody = document.getElementById('intentsTableBody');
-    
-    if (!intents || intents.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
-                    No intents found. Click "Create Intent" to add your first intent.
+        
+async function updateIntentsTable(intents) {
+    try {
+        console.log('📊 Updating table with', intents.length, 'intents');
+        
+        const tableBody = document.getElementById('intents-table-body');
+        if (!tableBody) {
+            console.error('❌ Table body not found with id: intents-table-body');
+            return;
+        }
+        
+        // Clear existing rows
+        tableBody.innerHTML = '';
+        
+        if (!intents || intents.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                        <i class="fas fa-inbox mr-2"></i>
+                        No intents found. Sync with Dialogflow first.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        // Add intents to table
+        intents.forEach((intent, index) => {
+            const row = document.createElement('tr');
+            row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${intent.display_name || 'No name'}</div>
+                    <div class="text-xs text-gray-500 truncate max-w-xs">${intent.id || 'No ID'}</div>
                 </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    let html = '';
-    intents.forEach(intent => {
-        html += `
-            <tr>
-                <td>
-                    <strong>${intent.intent_name}</strong>
-                    ${intent.description ? `<br><small style="color: #666;">${intent.description}</small>` : ''}
-                </td>
-                <td>${intent.display_name}</td>
-                <td>${intent.training_phrases_count || 0}</td>
-                <td>${intent.responses_count || 0}</td>
-                <td>
-                    <span class="status ${intent.status === 'active' ? 'open' : 'resolved'}">
-                        ${intent.status === 'active' ? 'Active' : 'Inactive'}
-                    </span>
-                </td>
-                <td>${formatDate(intent.updated_at)}</td>
-                <td>
-                    <div style="display: flex; gap: 5px;">
-                        <button class="btn-action btn-edit" onclick="openEditIntentModal('${intent.id}', ${JSON.stringify(intent).replace(/'/g, "\\'")})">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                        <button class="btn-action btn-delete" onclick="openDeleteIntentModal('${intent.id}', '${intent.display_name.replace(/'/g, "\\'")}')">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
+                <td class="px-6 py-4">
+                    <div class="text-sm text-gray-900">${intent.training_phrases_count || 0}</div>
+                    <div class="text-xs text-gray-500 mt-1 truncate max-w-xs">
+                        ${(intent.training_phrases || []).slice(0, 2).map(p => `"${p}"`).join(', ')}
+                        ${(intent.training_phrases_count || 0) > 2 ? '...' : ''}
                     </div>
                 </td>
-            </tr>
-        `;
-    });
-    
-    tbody.innerHTML = html;
+                <td class="px-6 py-4">
+                    <div class="text-sm text-gray-900">${intent.responses_count || 0}</div>
+                    <div class="text-xs text-gray-500 mt-1 truncate max-w-xs">
+                        ${(intent.responses || []).slice(0, 1).map(r => {
+                            const text = String(r || '');
+                            return `"${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`;
+                        }).join(', ')}
+                        ${(intent.responses_count || 0) > 1 ? '...' : ''}
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${intent.is_fallback ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                        ${intent.is_fallback ? 'Fallback' : 'Regular'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${(intent.status || 'active') === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                        ${intent.status || 'active'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${intent.priority || 'normal'}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button onclick="editIntent('${intent.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                        Edit
+                    </button>
+                    <button onclick="deleteIntent('${intent.id}')" class="text-red-600 hover:text-red-900">
+                        Delete
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+        
+        // Update the counter
+        const counterElement = document.getElementById('intents-count');
+        if (counterElement) {
+            counterElement.textContent = intents.length;
+        }
+        
+        console.log('✅ Table updated successfully');
+        
+    } catch (error) {
+        console.error('❌ Error updating table:', error);
+        throw error;
+    }
 }
 
 function updateGuidedQuestionsTable(questions) {
