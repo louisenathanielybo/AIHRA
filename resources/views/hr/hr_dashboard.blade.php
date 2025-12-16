@@ -541,10 +541,11 @@
 
         /* Sidebar Footer */
         .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
             padding: 12px;
-            margin-top: auto;
-            flex-shrink: 0;
-            box-sizing: border-box;
         }
 
         .account-info {
