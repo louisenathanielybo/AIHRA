@@ -241,9 +241,6 @@
             padding: 6px;
             border-radius: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            position: sticky;
-            top: 0;
-            z-index: 5;
         }
         .split-tab {
             display: inline-flex;
@@ -377,7 +374,19 @@
             padding: 15px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             max-height: 600px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .ticket-list-header {
+            flex-shrink: 0;
+            background: white;
+            padding-bottom: 10px;
+        }
+        .ticket-list-content {
+            flex: 1;
             overflow-y: auto;
+            min-height: 0;
         }
         .chat-container {
             flex: 2;
@@ -1529,13 +1538,14 @@
                     });
                     </script>
                     <div class="ticket-list">
-                        <!-- Search Box -->
-                        <div class="search-box" style="margin-bottom: 15px; max-width: 220px;">
-                            <i class="fas fa-search search-icon"></i>
-                            <input type="text" id="searchInboxTickets" placeholder="Search tickets...">
-                        </div>
+                        <div class="ticket-list-header">
+                            <!-- Search Box -->
+                            <div class="search-box" style="margin-bottom: 15px; max-width: 220px;">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" id="searchInboxTickets" placeholder="Search tickets...">
+                            </div>
 
-                        <div class="split-tabs">
+                            <div class="split-tabs">
                             <button type="button" class="split-tab active" id="btn-pending" onclick="switchTicketList('pending')">
                                 <i class="fa-regular fa-clock"></i>
                                 <span>Pending</span>
@@ -1575,8 +1585,10 @@
                                 <span>Resolved</span>
                                 <span class="tab-count">{{ $inbox->where('status','Resolved')->count() }}</span>
                             </button>
+                            </div>
                         </div>
 
+                        <div class="ticket-list-content">
                         <h3 class="split-heading" id="heading-pending">Pending Tickets</h3>
                         <div id="list-pending">
                         @forelse($inbox->filter(function($t){
@@ -1725,6 +1737,7 @@
                         @empty
                             <p>No resolved tickets.</p>
                         @endforelse
+                        </div>
                         </div>
                     </div>
 
