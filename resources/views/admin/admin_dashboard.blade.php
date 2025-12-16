@@ -6861,14 +6861,29 @@ async function syncWithDialogflow() {
         }
     }
 }
-        
 async function updateIntentsTable(intents) {
     try {
         console.log('📊 Updating table with', intents.length, 'intents');
         
-        const tableBody = document.getElementById('intentsTableBody');
+        // Try multiple possible table body IDs
+        let tableBody = document.getElementById('intentsTableBody') || 
+                       document.getElementById('intents-table-body');
+        
         if (!tableBody) {
-            console.error('❌ Table body not found with id: intents-table-body');
+            console.error('❌ Table body not found! Looking for:');
+            console.error('- intentsTableBody:', !!document.getElementById('intentsTableBody'));
+            console.error('- intents-table-body:', !!document.getElementById('intents-table-body'));
+            
+            // Try to find any table body in the content management section
+            const contentSection = document.getElementById('intent-management');
+            if (contentSection) {
+                tableBody = contentSection.querySelector('tbody');
+                console.log('Found table body in section:', !!tableBody);
+            }
+        }
+        
+        if (!tableBody) {
+            showNotification('Could not find intents table on page', 'warning');
             return;
         }
         
@@ -6878,7 +6893,7 @@ async function updateIntentsTable(intents) {
         if (!intents || intents.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                    <td colspan="8" style="text-align: center; padding: 30px; color: #666;">
                         <i class="fas fa-inbox mr-2"></i>
                         No intents found. Sync with Dialogflow first.
                     </td>
@@ -6892,21 +6907,23 @@ async function updateIntentsTable(intents) {
             const row = document.createElement('tr');
             row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
             row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">${intent.display_name || 'No name'}</div>
-                    <div class="text-xs text-gray-500 truncate max-w-xs">${intent.id || 'No ID'}</div>
+                <td style="padding: 12px; white-space: nowrap;">${index + 1}</td>
+                <td style="padding: 12px; white-space: nowrap;">
+                    <div style="font-weight: 600;">${intent.display_name || 'No name'}</div>
+                    <div style="font-size: 12px; color: #666; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                        ${intent.id || 'No ID'}
+                    </div>
                 </td>
-                <td class="px-6 py-4">
-                    <div class="text-sm text-gray-900">${intent.training_phrases_count || 0}</div>
-                    <div class="text-xs text-gray-500 mt-1 truncate max-w-xs">
+                <td style="padding: 12px;">
+                    <div>${intent.training_phrases_count || 0}</div>
+                    <div style="font-size: 12px; color: #666; margin-top: 4px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
                         ${(intent.training_phrases || []).slice(0, 2).map(p => `"${p}"`).join(', ')}
                         ${(intent.training_phrases_count || 0) > 2 ? '...' : ''}
                     </div>
                 </td>
-                <td class="px-6 py-4">
-                    <div class="text-sm text-gray-900">${intent.responses_count || 0}</div>
-                    <div class="text-xs text-gray-500 mt-1 truncate max-w-xs">
+                <td style="padding: 12px;">
+                    <div>${intent.responses_count || 0}</div>
+                    <div style="font-size: 12px; color: #666; margin-top: 4px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
                         ${(intent.responses || []).slice(0, 1).map(r => {
                             const text = String(r || '');
                             return `"${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`;
@@ -6914,26 +6931,26 @@ async function updateIntentsTable(intents) {
                         ${(intent.responses_count || 0) > 1 ? '...' : ''}
                     </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${intent.is_fallback ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                <td style="padding: 12px; white-space: nowrap;">
+                    <span style="padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;
+                        ${intent.is_fallback ? 'background: #fee; color: #c00;' : 'background: #efe; color: #090;'}">
                         ${intent.is_fallback ? 'Fallback' : 'Regular'}
                     </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${(intent.status || 'active') === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                <td style="padding: 12px; white-space: nowrap;">
+                    <span style="padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;
+                        ${(intent.status || 'active') === 'active' ? 'background: #efe; color: #090;' : 'background: #eee; color: #666;'}">
                         ${intent.status || 'active'}
                     </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td style="padding: 12px; white-space: nowrap; font-size: 14px; color: #666;">
                     ${intent.priority || 'normal'}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onclick="editIntent('${intent.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                <td style="padding: 12px; white-space: nowrap; text-align: right;">
+                    <button onclick="editIntent('${intent.id}')" style="color: #4f46e5; margin-right: 12px;">
                         Edit
                     </button>
-                    <button onclick="deleteIntent('${intent.id}')" class="text-red-600 hover:text-red-900">
+                    <button onclick="deleteIntent('${intent.id}')" style="color: #dc2626;">
                         Delete
                     </button>
                 </td>
