@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AlHRA Admin Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/responsive.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
     :root {
@@ -1184,7 +1185,7 @@ use Illuminate\Support\Str;
     /* Responsive Design */
     @media (max-width: 1600px) {
         :root {
-            --sidebar-width: clamp(220px, 22vw, 270px);
+            --sidebar-width: 250px;
         }
     }
 
@@ -1208,7 +1209,7 @@ use Illuminate\Support\Str;
 
     @media (max-width: 1400px) {
         :root {
-            --sidebar-width: clamp(230px, 24vw, 280px);
+            --sidebar-width: 240px;
         }
         .main-content {
             padding: clamp(12px, 2vw, 18px);
@@ -1217,7 +1218,7 @@ use Illuminate\Support\Str;
 
     @media (max-width: 1200px) {
         :root {
-            --sidebar-width: 250px;
+            --sidebar-width: 230px;
         }
         .dashboard-cards {
             grid-template-columns: repeat(2, 1fr);
@@ -1241,11 +1242,14 @@ use Illuminate\Support\Str;
     }
 
     @media (max-width: 768px) {
+        :root {
+            --sidebar-width: 200px;
+        }
         .sidebar {
-            width: 200px;
+            width: var(--sidebar-width);
         }
         .main-content {
-            margin-left: 200px;
+            margin-left: var(--sidebar-width);
             padding: 12px;
         }
         .header h1 {

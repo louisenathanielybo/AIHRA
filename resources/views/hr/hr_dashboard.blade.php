@@ -18,7 +18,7 @@
         .sidebar {
             background: linear-gradient(180deg, #164a4a 0%, #2a5547 100%);
             box-shadow: 2px 0 10px rgba(26, 77, 77, 0.1);
-            width: 16vw;
+            width: 250px;
             color: white;
             min-height: 100vh;
             padding: 20px 0;
@@ -39,7 +39,7 @@
         
         .main-content { 
             flex: 1;
-            margin-left: 16vw; 
+            margin-left: 250px; 
             padding: 30px;
             padding-bottom: 0;
             background: #e6f7f0;
@@ -47,6 +47,8 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            max-width: calc(100vw - 250px);
+            overflow-x: hidden;
         }
         
         .section {
@@ -1057,29 +1059,29 @@
         /* Responsive Design */
         @media (max-width: 1600px) {
             .sidebar {
-                width: 18vw;
+                width: 250px;
             }
             .main-content {
-                margin-left: 18vw;
+                margin-left: 250px;
             }
         }
 
         @media (max-width: 1400px) {
             .sidebar {
-                width: 20vw;
+                width: 240px;
             }
             .main-content {
-                margin-left: 20vw;
+                margin-left: 240px;
                 padding: 25px;
             }
         }
 
         @media (max-width: 1200px) {
             .sidebar {
-                width: 22vw;
+                width: 230px;
             }
             .main-content {
-                margin-left: 22vw;
+                margin-left: 230px;
                 padding: 20px;
             }
             .split-tab {
@@ -1090,14 +1092,19 @@
 
         @media (max-width: 992px) {
             .sidebar {
-                width: 250px;
+                width: 220px;
             }
             .main-content {
-                margin-left: 250px;
+                margin-left: 220px;
                 padding: 15px;
             }
             .ticket-container {
                 flex-direction: column;
+            }
+            .ticket-list,
+            .chat-container {
+                width: 100%;
+                flex: none;
             }
         }
 

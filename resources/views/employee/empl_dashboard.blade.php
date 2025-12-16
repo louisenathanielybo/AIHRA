@@ -874,23 +874,29 @@
     /* Responsive Design */
     @media (max-width: 1600px) {
         :root {
-            --sidebar-width: clamp(220px, 22vw, 270px);
+            --sidebar-width: 250px;
         }
     }
 
     @media (max-width: 1400px) {
         :root {
-            --sidebar-width: clamp(230px, 24vw, 280px);
+            --sidebar-width: 240px;
+        }
+        .main-content {
+            padding: 18px;
         }
     }
 
     @media (max-width: 1200px) {
         :root {
-            --sidebar-width: 250px;
+            --sidebar-width: 230px;
         }
         .top-nav-link {
             padding: 8px 16px;
             font-size: 0.85rem;
+        }
+        .main-content {
+            padding: 15px;
         }
     }
 
@@ -904,8 +910,14 @@
     }
 
     @media (max-width: 768px) {
+        :root {
+            --sidebar-width: 200px;
+        }
         .sidebar {
-            width: 200px;
+            width: var(--sidebar-width);
+        }
+        .main-content {
+            margin-left: var(--sidebar-width);
         }
         .top-nav {
             flex-wrap: wrap;

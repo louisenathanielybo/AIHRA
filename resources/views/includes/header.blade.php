@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+<link rel="stylesheet" href="{{ asset('css/responsive.css') }}">
 
 <link rel="icon" type="ico" sizes="32x32" href="{{ asset('favicon.ico') }}">
 <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
