@@ -873,7 +873,7 @@ async function sendMessage() {
     } catch (err) {
         console.error('❌ Chat error:', err);
         addMessageToChat(chatBox, 'bot', 
-            "I'm having trouble connecting right now. Please try the guided questions below or contact HR directly.", 
+            "I'm having trouble connecting right now. Please try the guided questions Above or contact HR directly.", 
             'error'
         );
         await loadGuidedQuestions();

@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use Google\Cloud\Dialogflow\V2\SessionsClient;
+use Google\Cloud\Dialogflow\V2\Client\SessionsClient;
 use Google\Cloud\Dialogflow\V2\TextInput;
 use Google\Cloud\Dialogflow\V2\QueryInput;
 use Google\Cloud\Dialogflow\V2\DetectIntentRequest;
-use Google\Cloud\Dialogflow\V2\IntentsClient;
+use Google\Cloud\Dialogflow\V2\Client\IntentsClient;
 use Google\Cloud\Dialogflow\V2\Intent;
 use Google\Cloud\Dialogflow\V2\Intent\TrainingPhrase;
 use Google\Cloud\Dialogflow\V2\Intent\TrainingPhrase\Part;
@@ -70,50 +70,57 @@ class DialogflowService
     }
 
     public function detectIntent($queryText, $sessionId, $languageCode = 'en-US')
-{
-    try {
-        Log::info('🔍 Dialogflow detectIntent called', [
-            'query' => $queryText,
-            'session_id' => $sessionId,
-            'project_id' => $this->projectId
-        ]);
+    {
+        try {
+            Log::info('🔍 Dialogflow detectIntent called', [
+                'query' => $queryText,
+                'session_id' => $sessionId,
+                'project_id' => $this->projectId
+            ]);
 
-        // Clean session ID
-        $sessionId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $sessionId);
-        $session = $this->sessionsClient->sessionName($this->projectId, $sessionId);
-        
-        // Create text input
-        $textInput = new TextInput();
-        $textInput->setText($queryText);
-        $textInput->setLanguageCode($languageCode);
-        
-        // Create query input
-        $queryInput = new QueryInput();
-        $queryInput->setText($textInput);
-        
-        // Get response
-        $response = $this->sessionsClient->detectIntent($session, $queryInput);
-        $queryResult = $response->getQueryResult();
-        
-        // Return simple object with needed data
-        return (object)[
-            'fulfillmentText' => $queryResult->getFulfillmentText(),
-            'intentDetectionConfidence' => $queryResult->getIntentDetectionConfidence(),
-            'intent' => $queryResult->getIntent() ? (object)[
-                'displayName' => $queryResult->getIntent()->getDisplayName()
-            ] : null
-        ];
-        
-    } catch (\Exception $e) {
-        Log::error('❌ Dialogflow API Error: ' . $e->getMessage(), [
-            'query' => $queryText,
-            'session' => $sessionId
-        ]);
-        
-        // Return fallback response
-        return $this->createFallbackResponse($queryText);
+            // Clean session ID
+            $sessionId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $sessionId);
+            
+            // Use static method for session name (new API)
+            $session = SessionsClient::sessionName($this->projectId, $sessionId);
+            
+            // Create text input
+            $textInput = new TextInput();
+            $textInput->setText($queryText);
+            $textInput->setLanguageCode($languageCode);
+            
+            // Create query input
+            $queryInput = new QueryInput();
+            $queryInput->setText($textInput);
+            
+            // Create request object (new API requires this)
+            $request = new DetectIntentRequest();
+            $request->setSession($session);
+            $request->setQueryInput($queryInput);
+            
+            // Get response using new API
+            $response = $this->sessionsClient->detectIntent($request);
+            $queryResult = $response->getQueryResult();
+            
+            // Return simple object with needed data
+            return (object)[
+                'fulfillmentText' => $queryResult->getFulfillmentText(),
+                'intentDetectionConfidence' => $queryResult->getIntentDetectionConfidence(),
+                'intent' => $queryResult->getIntent() ? (object)[
+                    'displayName' => $queryResult->getIntent()->getDisplayName()
+                ] : null
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Dialogflow API Error: ' . $e->getMessage(), [
+                'query' => $queryText,
+                'session' => $sessionId
+            ]);
+            
+            // Return fallback response
+            return $this->createFallbackResponse($queryText);
+        }
     }
-}
 
  /**
  * Create a fallback response when Dialogflow fails
