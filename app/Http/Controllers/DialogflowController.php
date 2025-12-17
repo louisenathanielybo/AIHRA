@@ -205,6 +205,10 @@ class DialogflowController extends Controller
             
 
 // 🎯 Try Dialogflow for direct questions
+$fulfillmentText = '';
+$confidence = 0.0;
+$intentName = 'Default Fallback Intent';
+
 try {
     Log::info('Calling Dialogflow service', [
         'query' => $queryText,
@@ -214,18 +218,25 @@ try {
     $dialogflow = new DialogflowService();
     $result = $dialogflow->detectIntent($queryText, $sessionId);
     
-    // FIXED: Handle array response from DialogflowService
-    $confidence = $result['intentDetectionConfidence'] ?? 0.0;
-    $fulfillmentText = $result['fulfillmentText'] ?? '';
-    $intentName = $result['intent']['displayName'] ?? 'Default Fallback Intent';
+    // Handle both object and array responses
+    if (is_array($result)) {
+        // Array response format
+        $confidence = $result['intentDetectionConfidence'] ?? 0.0;
+        $fulfillmentText = $result['fulfillmentText'] ?? '';
+        $intentName = $result['intent']['displayName'] ?? 'Default Fallback Intent';
+    } else {
+        // Object response format
+        $confidence = $result->intentDetectionConfidence ?? 0.0;
+        $fulfillmentText = $result->fulfillmentText ?? '';
+        $intentName = $result->intent->displayName ?? 'Default Fallback Intent';
+    }
     
     Log::info('✅ Dialogflow Response Received', [
         'confidence' => $confidence,
         'intent' => $intentName,
-        'fulfillmentText_length' => strlen($fulfillmentText)
+        'fulfillmentText' => substr($fulfillmentText, 0, 100),
+        'response_type' => is_array($result) ? 'array' : 'object'
     ]);
-    
-    // Continue with your existing logic...
     
 } catch (\Exception $dialogflowError) {
     Log::error('❌ Dialogflow call failed', [
@@ -233,9 +244,9 @@ try {
         'trace' => $dialogflowError->getTraceAsString()
     ]);
     
-    // Use fallback
+    // Use fallback only if Dialogflow completely fails
     $fulfillmentText = $this->getKeywordResponse($queryText);
-    $confidence = 0.5;
+    $confidence = 0.0;
     $intentName = 'fallback';
 }
 
