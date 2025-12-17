@@ -217,22 +217,31 @@ class DialogflowService
     /**
      * List intents (for admin panel) - FIXED VERSION
      */
-    public function listIntents()
-    {
+   // In App\Services\DialogflowService.php - Update the listIntents method
+
+/**
+ * List intents (for admin panel)
+ */
+public function listIntents()
+{
+    try {
+        Log::info('Fetching intents from Dialogflow...');
+        
+        // Initialize intents client only when needed
+        if (!class_exists('Google\Cloud\Dialogflow\V2\IntentsClient')) {
+            Log::error('IntentsClient class not found');
+            return [];
+        }
+        
+        $intentsClient = new \Google\Cloud\Dialogflow\V2\IntentsClient();
+        $parent = $intentsClient->projectAgentName($this->projectId);
+        
+        $intentList = [];
+        
         try {
-            Log::info('🔄 Starting to fetch intents from Dialogflow...');
+            $response = $intentsClient->listIntents($parent);
             
-            // Initialize intents client with proper configuration
-            $intentsClient = $this->initIntentsClient();
-            
-            $parent = $intentsClient->projectAgentName($this->projectId);
-            Log::info('Parent resource: ' . $parent);
-            
-            // Get intents with pagination
-            $intentList = [];
-            $page = $intentsClient->listIntents($parent);
-            
-            foreach ($page->iterateAllElements() as $intent) {
+            foreach ($response as $intent) {
                 // Extract training phrases
                 $trainingPhrases = [];
                 foreach ($intent->getTrainingPhrases() as $phrase) {
@@ -263,33 +272,28 @@ class DialogflowService
                     'responses_count' => count($responses),
                     'priority' => $intent->getPriority(),
                     'is_fallback' => $intent->getIsFallback(),
-                    'status' => 'active'
+                    'status' => 'active',
+                    'created_at' => now()->toDateTimeString(),
+                    'updated_at' => now()->toDateTimeString(),
                 ];
             }
             
-            Log::info('✅ Successfully fetched ' . count($intentList) . ' intents from Dialogflow');
-            return $intentList;
-            
-        } catch (\Google\ApiCore\ApiException $e) {
-            Log::error('❌ Google API Exception in listIntents', [
-                'message' => $e->getMessage(),
-                'status' => $e->getStatus(),
-                'details' => $e->getDetails(),
-                'code' => $e->getCode()
-            ]);
-            
-            // Return empty array for the controller to handle
-            return [];
+            $intentsClient->close();
             
         } catch (\Exception $e) {
-            Log::error('❌ General Exception in listIntents', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
+            Log::error('Failed to fetch intents: ' . $e->getMessage());
+            $intentsClient->close();
             return [];
         }
+        
+        Log::info('Successfully fetched ' . count($intentList) . ' intents');
+        return $intentList;
+        
+    } catch (\Exception $e) {
+        Log::error('Dialogflow listIntents failed: ' . $e->getMessage());
+        return [];
     }
+}
 
     // Add this method to your DialogflowService class
 public function testConnection()
