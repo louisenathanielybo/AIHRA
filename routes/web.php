@@ -24,6 +24,24 @@ use Illuminate\Support\Facades\DB;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+
+// In routes/web.php
+Route::get('/test-dialogflow', function() {
+    try {
+        $service = new \App\Services\DialogflowService();
+        $result = $service->detectIntent('Hello', 'test-session');
+        return response()->json([
+            'success' => true,
+            'result' => $result
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
 // Redirect root to login
 Route::get('/', function () {
     return redirect('/login');
