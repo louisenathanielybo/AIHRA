@@ -2527,6 +2527,62 @@ public function testConnection()
         ], 500);
     }
 }
+
+    // Add this to your DialogflowController
+public function checkConfig(Request $request)
+{
+    try {
+        $config = [
+            'env' => [
+                'DIALOGFLOW_PROJECT_ID' => env('DIALOGFLOW_PROJECT_ID', '❌ Not set'),
+                'GOOGLE_APPLICATION_CREDENTIALS' => env('GOOGLE_APPLICATION_CREDENTIALS', '❌ Not set'),
+                'APP_ENV' => env('APP_ENV', 'unknown'),
+                'APP_DEBUG' => env('APP_DEBUG', false),
+            ],
+            'files' => [
+                'credentials_file_exists' => false,
+                'credentials_file_path' => null,
+                'credentials_file_readable' => false,
+            ],
+            'classes' => [
+                'DialogflowService' => class_exists('App\Services\DialogflowService') ? '✅ Exists' : '❌ Missing',
+                'SessionsClient' => class_exists('Google\Cloud\Dialogflow\V2\SessionsClient') ? '✅ Exists' : '❌ Missing',
+                'IntentsClient' => class_exists('Google\Cloud\Dialogflow\V2\IntentsClient') ? '✅ Exists' : '❌ Missing',
+            ]
+        ];
+        
+        // Check credentials file
+        $credentialsPath = env('GOOGLE_APPLICATION_CREDENTIALS');
+        if ($credentialsPath) {
+            $config['files']['credentials_file_path'] = $credentialsPath;
+            $config['files']['credentials_file_exists'] = file_exists($credentialsPath);
+            $config['files']['credentials_file_readable'] = is_readable($credentialsPath);
+            
+            if (file_exists($credentialsPath)) {
+                $content = json_decode(file_get_contents($credentialsPath), true);
+                $config['credentials'] = [
+                    'type' => $content['type'] ?? 'Not found',
+                    'project_id' => $content['project_id'] ?? 'Not found',
+                    'client_email' => isset($content['client_email']) ? '✅ Set' : '❌ Not found',
+                    'private_key_exists' => isset($content['private_key']) ? '✅ Yes' : '❌ No',
+                ];
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Configuration check completed',
+            'data' => $config
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Config check failed: ' . $e->getMessage(),
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 private function getMockIntents()
 {
     // Return mock data for testing
