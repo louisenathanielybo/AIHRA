@@ -408,3 +408,72 @@ Route::get('/health', function() {
     
     return response()->json($health);
 });
+Route::post('/debug-webhook', function(Request $request) {
+    try {
+        Log::info('DEBUG Webhook called', ['full_request' => $request->all()]);
+        
+        // Test each component step by step
+        
+        // 1. Test session
+        $sessionId = session()->getId();
+        Log::info('Session ID: ' . $sessionId);
+        
+        // 2. Test DialogflowService
+        try {
+            $service = new \App\Services\DialogflowService();
+            Log::info('DialogflowService created successfully');
+            
+            // Test with a simple query
+            $testResult = $service->detectIntent('Hello', 'test-session-' . time());
+            Log::info('Dialogflow test result', ['result' => $testResult]);
+            
+            $service->close();
+        } catch (\Exception $e) {
+            Log::error('DialogflowService failed: ' . $e->getMessage());
+            throw $e;
+        }
+        
+        // 3. Test models
+        try {
+            $testQuery = \App\Models\Query::create([
+                'queryID' => \Illuminate\Support\Str::uuid(),
+                'employeeNum' => 0,
+                'question' => 'Test question',
+                'response' => 'Test response',
+                'confidenceScore' => 0.8,
+                'queryType' => 'Test',
+                'questionTime' => now(),
+                'responseTime' => now(),
+                'isEscalated' => false,
+                'handledBy' => 'Test'
+            ]);
+            Log::info('Query model test: Created ID ' . $testQuery->id);
+            
+            // Clean up
+            $testQuery->delete();
+            
+        } catch (\Exception $e) {
+            Log::error('Model test failed: ' . $e->getMessage());
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'All tests passed',
+            'session_id' => $sessionId,
+            'timestamp' => now()->toDateTimeString()
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('DEBUG Webhook failed: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
