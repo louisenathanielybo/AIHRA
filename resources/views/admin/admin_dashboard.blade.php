@@ -2018,9 +2018,7 @@ use Illuminate\Support\Str;
             <h3 style="margin: 0; color: var(--primary);">Dialogflow Intents & Guided Questions</h3>
             <div style="display: flex; gap: 10px;">
                
-                <button class="btn btn-secondary" onclick="openCreateGuidedQuestionModal()">
-                    <i class="fas fa-question-circle"></i> Add Guided Question
-                </button>
+               
             </div>
         </div>
         
@@ -2051,7 +2049,7 @@ use Illuminate\Support\Str;
         <!-- Tabs for Intents and Guided Questions -->
         <div class="dashboard-tabs">
             <button class="dashboard-tab-btn active" data-tab="intents">Dialogflow Intents</button>
-            <button class="dashboard-tab-btn" data-tab="guided-questions">Guided Questions</button>
+           
         </div>
         
         <!-- Intents Tab -->
