@@ -1817,7 +1817,7 @@ async function sendMessage() {
     } catch (err) {
         console.error('❌ Chat error:', err);
         addMessageToChat(chatBox, 'bot', 
-            "I'm having trouble connecting right now. Please try the guided questions below or contact HR directly.", 
+            "I'm having trouble connecting right now. Please try the guided questions Above or contact HR directly.", 
             'error'
         );
         await loadGuidedQuestions();
@@ -2853,6 +2853,36 @@ async function loadTicketConversation(ticketNo) {
                 const statusData = await statusResponse.json();
                 document.getElementById('ticketStatus').innerHTML = 
                     `<span class="ticket-badge ${statusData.status.toLowerCase()}">${statusData.status}</span>`;
+                
+                // 🆕 Disable input for resolved tickets
+                const userInput = document.getElementById('userMessage');
+                const sendBtn = document.querySelector('.send-btn');
+                const resolvedNotice = document.getElementById('ticketResolvedNotice');
+                
+                if (statusData.status === 'Resolved') {
+                    if (userInput) {
+                        userInput.disabled = true;
+                        userInput.placeholder = '🔒 This ticket has been resolved. No further replies allowed.';
+                    }
+                    if (sendBtn) sendBtn.disabled = true;
+                    
+                    // Add resolved notice if not already present
+                    if (!resolvedNotice) {
+                        const notice = document.createElement('div');
+                        notice.id = 'ticketResolvedNotice';
+                        notice.style.cssText = 'text-align: center; padding: 10px; background: #f8d7da; color: #721c24; border-radius: 8px; margin: 10px 0;';
+                        notice.innerHTML = '🔒 This ticket has been resolved. No further replies are allowed.';
+                        const inputContainer = document.querySelector('.input-container');
+                        if (inputContainer) inputContainer.parentNode.insertBefore(notice, inputContainer);
+                    }
+                } else {
+                    if (userInput) {
+                        userInput.disabled = false;
+                        userInput.placeholder = 'Type your reply to HR...';
+                    }
+                    if (sendBtn) sendBtn.disabled = false;
+                    if (resolvedNotice) resolvedNotice.remove();
+                }
             }
         } catch (statusError) {
             console.error('Error loading status:', statusError);
@@ -2875,6 +2905,13 @@ async function loadTicketConversation(ticketNo) {
 async function sendTicketReply(fromSendMessage = false, passedMessage = null) {
     if (!currentSelectedTicket) {
         alert('Please select a ticket first');
+        return;
+    }
+
+    // 🆕 Check if ticket is resolved before sending
+    const ticketStatusEl = document.getElementById('ticketStatus');
+    if (ticketStatusEl && ticketStatusEl.textContent.toLowerCase().includes('resolved')) {
+        alert('This ticket has been resolved. No further replies are allowed.');
         return;
     }
 

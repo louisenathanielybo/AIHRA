@@ -2,10 +2,17 @@
 
 namespace App\Services;
 
-use Google\Cloud\Dialogflow\V2\SessionsClient;
+use Google\Cloud\Dialogflow\V2\Client\SessionsClient;
+use Google\Cloud\Dialogflow\V2\Client\IntentsClient;
 use Google\Cloud\Dialogflow\V2\TextInput;
 use Google\Cloud\Dialogflow\V2\QueryInput;
-use Google\Cloud\Dialogflow\V2\IntentsClient;
+use Google\Cloud\Dialogflow\V2\DetectIntentRequest;
+use Google\Cloud\Dialogflow\V2\Intent;
+use Google\Cloud\Dialogflow\V2\Intent\TrainingPhrase;
+use Google\Cloud\Dialogflow\V2\Intent\TrainingPhrase\Part;
+use Google\Cloud\Dialogflow\V2\Intent\Message;
+use Google\Cloud\Dialogflow\V2\Intent\Message\Text;
+use Google\ApiCore\ApiException;
 use Illuminate\Support\Facades\Log;
 
 class DialogflowService
@@ -116,9 +123,13 @@ class DialogflowService
             // Create query input
             $queryInput = new QueryInput();
             $queryInput->setText($textInput);
+
+            // Send request to Dialogflow
+            Log::info('Sending request to Dialogflow...');
             
-            // Get response
             $response = $this->sessionsClient->detectIntent($session, $queryInput);
+            
+            // Get query result
             $queryResult = $response->getQueryResult();
             
             // Return as array
@@ -225,8 +236,8 @@ class DialogflowService
             // Initialize intents client with proper configuration
             $intentsClient = $this->initIntentsClient();
             
-            $parent = $intentsClient->projectAgentName($this->projectId);
-            Log::info('Parent resource: ' . $parent);
+            $parent = $this->intentsClient->projectAgentName($this->projectId);
+            $response = $this->intentsClient->listIntents($parent);
             
             // Get intents with pagination
             $intentList = [];

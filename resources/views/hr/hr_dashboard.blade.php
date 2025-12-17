@@ -2337,6 +2337,26 @@
             });
             document.getElementById('ticket_no').value = ticketNo;
             chat.scrollTop = chat.scrollHeight;
+            
+            // 🆕 Check if ticket is resolved and hide/show reply form accordingly
+            const ticketElement = document.getElementById(`ticket-${ticketNo}`);
+            const ticketStatus = ticketElement ? ticketElement.getAttribute('data-status') : '';
+            const replyForm = document.getElementById('replyForm');
+            if (ticketStatus === 'Resolved') {
+                replyForm.style.display = 'none';
+                // Add resolved notice if not already present
+                if (!document.getElementById('resolvedNotice')) {
+                    const notice = document.createElement('div');
+                    notice.id = 'resolvedNotice';
+                    notice.style.cssText = 'text-align: center; padding: 15px; background: #f8d7da; color: #721c24; border-radius: 8px; margin-top: 10px;';
+                    notice.innerHTML = '🔒 This ticket has been resolved. No further replies are allowed.';
+                    replyForm.parentNode.insertBefore(notice, replyForm.nextSibling);
+                }
+            } else {
+                replyForm.style.display = 'flex';
+                const existingNotice = document.getElementById('resolvedNotice');
+                if (existingNotice) existingNotice.remove();
+            }
         } catch (error) {
             console.error('Error loading messages:', error);
             document.getElementById('chatMessages').innerHTML = '<p style="color: red;">Error loading messages</p>';

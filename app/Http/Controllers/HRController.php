@@ -36,11 +36,24 @@ class HRController extends Controller
             ->get();
 
         // ✅ Get all inbox tickets (newest first) - assigned to this HR OR unassigned
+        // Resolved tickets are only visible to the HR who resolved them
         $currentHR = Auth::user()->employeeNum ?? null;
         $inbox = HrInbox::where(function($query) use ($currentHR) {
+                // Show tickets assigned to this HR (any status)
                 $query->where('assigned_to', $currentHR)
-                      ->orWhereNull('assigned_to')
-                      ->orWhere('assigned_to', '');
+                      // OR show unassigned tickets that are NOT resolved
+                      ->orWhere(function($q) {
+                          $q->where(function($q2) {
+                              $q2->whereNull('assigned_to')
+                                 ->orWhere('assigned_to', '');
+                          })->where('status', '!=', 'Resolved');
+                      });
+            })
+            // Exclude resolved tickets that were resolved by OTHER HR staff
+            ->where(function($query) use ($currentHR) {
+                $query->where('status', '!=', 'Resolved')
+                      ->orWhere('resolved_by', $currentHR)
+                      ->orWhereNull('resolved_by');
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -418,6 +431,15 @@ class HRController extends Controller
         ]);
 
         try {
+            // 🆕 Check if ticket is resolved - no replies allowed
+            $ticket = HrInbox::where('ticket_no', $request->ticket_no)->first();
+            if ($ticket && $ticket->status === 'Resolved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This ticket has been resolved. No further replies are allowed.'
+                ], 403);
+            }
+
             // 🆕 FIXED: Only save to hr_replies table
             // Use a reliable identifier for replied_by (employeeNum > email > 'HR')
             $repliedBy = 'HR';
