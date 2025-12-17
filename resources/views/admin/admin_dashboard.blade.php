@@ -2017,9 +2017,7 @@ use Illuminate\Support\Str;
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h3 style="margin: 0; color: var(--primary);">Dialogflow Intents & Guided Questions</h3>
             <div style="display: flex; gap: 10px;">
-                <button class="btn btn-primary" onclick="openCreateIntentModal()">
-                    <i class="fas fa-plus"></i> Create Intent
-                </button>
+               
                 <button class="btn btn-secondary" onclick="openCreateGuidedQuestionModal()">
                     <i class="fas fa-question-circle"></i> Add Guided Question
                 </button>
