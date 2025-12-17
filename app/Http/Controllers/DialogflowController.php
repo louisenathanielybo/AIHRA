@@ -275,17 +275,6 @@ try {
 }
 
     // 🆕 NEW: Check if this is HR-related but bot can't answer properly
-    $isHRRelated = $this->isHRRelatedQuestion($queryText);
-    $cantAnswer = $this->cantAnswerQuestion($confidence, $intentName, $fulfillmentText);
-
-    if ($isHRRelated && $cantAnswer) {
-        Log::info('HR-related question detected but bot cannot answer', [
-            'confidence' => $confidence,
-            'intent' => $intentName
-        ]);
-        return $this->suggestHREscalation($queryText, $employeeNum, "HR-related question with low confidence");
-    }
-
     // 🔥 IMPROVED: Auto-escalate based on multiple factors
     // Auto-escalation removed. Escalation now always requires user confirmation after 3 strikes.
 
@@ -616,12 +605,12 @@ return response()->json([
     private function cantAnswerQuestion(float $confidence, string $intentName, string $fulfillmentText): bool
     {
         // Low confidence
-        if ($confidence < 0.4) {
+        if ($confidence <= 0.5) {
             return true;
         }
 
-        // Default fallback intent
-        if ($intentName === 'Default Fallback Intent') {
+        // Default fallback intent or keyword fallback
+        if ($intentName === 'Default Fallback Intent' || $intentName === 'fallback') {
             return true;
         }
 
@@ -633,7 +622,9 @@ return response()->json([
             'i\'m not sure',
             'can you try asking',
             'please rephrase',
-            'not clear'
+            'not clear',
+            'provide more details',
+            'i want to make sure i understand'
         ];
 
         foreach ($unclearResponses as $unclear) {
@@ -687,7 +678,44 @@ return response()->json([
      */
     private function handleRetryScenario(string $queryText, $employeeNum, $conversation = null): ?\Illuminate\Http\JsonResponse
     {
-        $retryCount = Session::get('retry_count', 0);
+        // Use conversation-specific strikes tracking
+        $conversationId = $conversation ? $conversation->id : 'no_convo';
+        $retryCount = Session::get('strikes_' . $conversationId, 0);
+        
+        Log::info('handleRetryScenario check', [
+            'conversationId' => $conversationId,
+            'retryCount' => $retryCount,
+            'queryText' => $queryText,
+            'wantsEscalation' => $this->wantsEscalation($queryText)
+        ]);
+        
+        // If user said yes/escalate after 3 strikes, handle escalation confirmation
+        if ($retryCount >= 3 && $this->wantsEscalation($queryText)) {
+            Log::info('User confirmed escalation after 3 strikes');
+            
+            // Check if already escalated
+            if ($this->isAlreadyEscalated($conversation)) {
+                $existingTicket = $this->getExistingTicket($conversation);
+                $ticketInfo = $existingTicket ? " Your existing ticket is: <strong>{$existingTicket}</strong>" : '';
+                
+                return response()->json([
+                    'status' => 'already_escalated',
+                    'fulfillmentText' => "I see that you've already created a support ticket for this conversation! 📋{$ticketInfo}<br><br>Our HR team is working on it. Each conversation can only be escalated once. Is there anything else I can help you with?",
+                    'already_escalated' => true
+                ]);
+            }
+            
+            // Ask for more context before creating ticket
+            $pendingEscalation = Session::get('pending_escalation', []);
+            Session::put('pending_escalation', array_merge($pendingEscalation, [
+                'awaiting_clarification' => true
+            ]));
+            
+            return response()->json([
+                'status' => 'ask_for_clarity',
+                'fulfillmentText' => 'Before I escalate this to the HR team, could you please provide a bit more detail about your issue? This will help them assist you better. 📝'
+            ]);
+        }
         
         if ($retryCount > 0) {
             // 🆕 Check if this conversation has already been escalated
@@ -813,11 +841,11 @@ return response()->json([
      */
     private function shouldRetry(float $confidence, string $intentName): bool
     {
-        if ($confidence < 0.5) {
+        if ($confidence <= 0.5) {
             return true;
         }
 
-        if ($intentName === 'Default Fallback Intent') {
+        if ($intentName === 'Default Fallback Intent' || $intentName === 'fallback') {
             return true;
         }
 

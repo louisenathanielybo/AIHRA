@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
-use Google\Cloud\Dialogflow\V2\SessionsClient;
+use Google\Cloud\Dialogflow\V2\Client\SessionsClient;
+use Google\Cloud\Dialogflow\V2\Client\IntentsClient;
 use Google\Cloud\Dialogflow\V2\TextInput;
 use Google\Cloud\Dialogflow\V2\QueryInput;
 use Google\Cloud\Dialogflow\V2\DetectIntentRequest;
-use Google\Cloud\Dialogflow\V2\IntentsClient;
+use Google\Cloud\Dialogflow\V2\ListIntentsRequest;
 use Google\Cloud\Dialogflow\V2\Intent;
 use Google\Cloud\Dialogflow\V2\Intent\TrainingPhrase;
 use Google\Cloud\Dialogflow\V2\Intent\TrainingPhrase\Part;
@@ -101,10 +102,15 @@ class DialogflowService
             $queryInput = new QueryInput();
             $queryInput->setText($textInput);
 
+            // Create DetectIntentRequest (required for new API)
+            $request = new DetectIntentRequest();
+            $request->setSession($session);
+            $request->setQueryInput($queryInput);
+
             // Send request to Dialogflow
             Log::info('Sending request to Dialogflow...');
             
-            $response = $this->sessionsClient->detectIntent($session, $queryInput);
+            $response = $this->sessionsClient->detectIntent($request);
             
             // Get query result
             $queryResult = $response->getQueryResult();
@@ -263,8 +269,10 @@ private function createFallbackResponse($queryText)
         try {
             Log::info('Fetching intents from Dialogflow...');
             
-            $parent = $this->intentsClient->projectAgentName($this->projectId);
-            $response = $this->intentsClient->listIntents($parent);
+            $parent = IntentsClient::projectAgentName($this->projectId);
+            $request = new ListIntentsRequest();
+            $request->setParent($parent);
+            $response = $this->intentsClient->listIntents($request);
             
             $intentList = [];
             foreach ($response as $intent) {

@@ -273,6 +273,14 @@ public function replyToTicket(Request $request)
             ], 403);
         }
 
+        // 🆕 Check if ticket is resolved - no replies allowed
+        if ($ticket->status === 'Resolved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This ticket has been resolved. No further replies are allowed.'
+            ], 403);
+        }
+
         // Save employee's additional message to hr_replies. Store the raw message and
         // use replied_by to identify the sender when rendering messages.
         \App\Models\HrReply::create([

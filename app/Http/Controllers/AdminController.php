@@ -477,6 +477,20 @@ class AdminController extends Controller
                 ->with('active_tab', 'account-management');
         }
         
+        // 🆕 Prevent editing an online user (except self)
+        if ($employeeNum != Auth::user()->employeeNum && TrackLastSeen::isUserOnline($employeeNum)) {
+            \Log::warning('Attempt to edit online user:', ['employeeNum' => $employeeNum]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot edit this account because the user is currently online. Please wait until they log out.'
+                ], 422);
+            }
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Cannot edit this account because the user is currently online. Please wait until they log out.')
+                ->with('active_tab', 'account-management');
+        }
+        
         // 🆕 Prevent deactivating an online user
         if ($request->status === 'Deactivated' && $targetUser && $targetUser->status === 'Active') {
             if (TrackLastSeen::isUserOnline($employeeNum)) {
@@ -773,6 +787,20 @@ class AdminController extends Controller
             }
             return redirect()->route('admin.dashboard')
                 ->with('error', 'You cannot reset passwords for other admin accounts.')
+                ->with('active_tab', 'account-management');
+        }
+        
+        // 🆕 Prevent resetting password for an online user
+        if ($employeeNum != Auth::user()->employeeNum && TrackLastSeen::isUserOnline($employeeNum)) {
+            \Log::warning('Attempt to reset password for online user:', ['employeeNum' => $employeeNum]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot reset password because the user is currently online. Please wait until they log out.'
+                ], 422);
+            }
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Cannot reset password because the user is currently online. Please wait until they log out.')
                 ->with('active_tab', 'account-management');
         }
         

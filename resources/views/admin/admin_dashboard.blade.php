@@ -2603,10 +2603,10 @@ You can check your leave balance in the employee portal."></textarea>
                                     <i class="fas fa-eye"></i> View
                                 </button>
                                 @if($user->role != 'Admin')
-                                <button class="btn-action btn-edit" onclick="editAccountModal('{{ $user->employeeNum }}')" @if($user->is_online && $user->employeeNum != Auth::user()->employeeNum) title="Cannot edit while user is online" @endif>
+                                <button class="btn-action btn-edit" onclick="editAccountModal('{{ $user->employeeNum }}')" @if($user->is_online && $user->employeeNum != Auth::user()->employeeNum) disabled title="Cannot edit while user is online" style="opacity: 0.5; cursor: not-allowed;" @endif>
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
-                                <button class="btn-action btn-reset" onclick="resetPasswordModal('{{ $user->employeeNum }}')">
+                                <button class="btn-action btn-reset" onclick="resetPasswordModal('{{ $user->employeeNum }}')" @if($user->is_online && $user->employeeNum != Auth::user()->employeeNum) disabled title="Cannot reset password while user is online" style="opacity: 0.5; cursor: not-allowed;" @endif>
                                     <i class="fas fa-key"></i> Reset
                                 </button>
                                 @endif
