@@ -291,6 +291,68 @@ class DialogflowService
         }
     }
 
+    // Add this method to your DialogflowService class
+public function testConnection()
+{
+    try {
+        Log::info('Testing Dialogflow connection...');
+        
+        // Test 1: Check if project ID is set
+        if (empty($this->projectId)) {
+            throw new \Exception('Project ID not set');
+        }
+        
+        // Test 2: Check if we can create a session
+        $sessionId = 'test-session-' . time();
+        $session = $this->sessionsClient->sessionName($this->projectId, $sessionId);
+        
+        // Test 3: Try a simple detectIntent
+        $textInput = new TextInput();
+        $textInput->setText('Hello');
+        $textInput->setLanguageCode('en-US');
+        
+        $queryInput = new QueryInput();
+        $queryInput->setText($textInput);
+        
+        $response = $this->sessionsClient->detectIntent($session, $queryInput);
+        $queryResult = $response->getQueryResult();
+        
+        Log::info('✅ Dialogflow connection test successful', [
+            'project_id' => $this->projectId,
+            'response_received' => $queryResult->getFulfillmentText() ? 'Yes' : 'No'
+        ]);
+        
+        return [
+            'success' => true,
+            'message' => 'Connection successful',
+            'project_id' => $this->projectId,
+            'test_response' => $queryResult->getFulfillmentText()
+        ];
+        
+    } catch (\Google\ApiCore\ApiException $e) {
+        Log::error('❌ Google API Exception in testConnection', [
+            'message' => $e->getMessage(),
+            'status' => $e->getStatus(),
+            'code' => $e->getCode()
+        ]);
+        
+        return [
+            'success' => false,
+            'error' => 'Google API Error: ' . $e->getMessage()
+        ];
+        
+    } catch (\Exception $e) {
+        Log::error('❌ General Exception in testConnection', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return [
+            'success' => false,
+            'error' => 'Connection failed: ' . $e->getMessage()
+        ];
+    }
+}
+
     /**
      * Test connection to Dialogflow
      */
