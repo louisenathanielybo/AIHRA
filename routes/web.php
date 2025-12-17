@@ -377,3 +377,34 @@ Route::get('/test-simple', function() {
         ], 500);
     }
 });
+Route::get('/health', function() {
+    $health = [
+        'app' => 'OK',
+        'timestamp' => now()->toDateTimeString(),
+        'environment' => app()->environment(),
+    ];
+    
+    try {
+        // Test database connection
+        DB::connection()->getPdo();
+        $health['database'] = 'OK';
+    } catch (\Exception $e) {
+        $health['database'] = 'FAILED: ' . $e->getMessage();
+    }
+    
+    try {
+        // Test if models exist
+        $models = ['Query', 'HrInbox', 'GuidedQuestion', 'Conversation', 'ChatMessage'];
+        foreach ($models as $model) {
+            if (class_exists("App\\Models\\{$model}")) {
+                $health["model_{$model}"] = 'EXISTS';
+            } else {
+                $health["model_{$model}"] = 'MISSING';
+            }
+        }
+    } catch (\Exception $e) {
+        $health['models_check'] = 'FAILED: ' . $e->getMessage();
+    }
+    
+    return response()->json($health);
+});
