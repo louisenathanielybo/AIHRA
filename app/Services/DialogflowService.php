@@ -26,34 +26,94 @@ class DialogflowService
         try {
             $this->projectId = env('DIALOGFLOW_PROJECT_ID');
 
-            if (!$this->projectId) {
-                throw new \Exception('DIALOGFLOW_PROJECT_ID is not set');
-            }
+           public function __construct()
+{
+    try {
+        Log::info('=== DIALOGFLOW SERVICE CONSTRUCTOR START ===');
+        
+        $this->projectId = env('DIALOGFLOW_PROJECT_ID', 'aihra-472311');
+        $credentialsPath = env('DIALOGFLOW_CREDENTIALS_PATH', 'aihra-key.json');
+        $fullCredentialsPath = base_path($credentialsPath);
+        
+        Log::info('Config check:', [
+            'project_id' => $this->projectId,
+            'credentials_path' => $fullCredentialsPath,
+            'file_exists' => file_exists($fullCredentialsPath)
+        ]);
 
-            Log::info('Initializing DialogflowService', [
-                'project_id' => $this->projectId,
-                'credentials_env' => getenv('GOOGLE_APPLICATION_CREDENTIALS'),
-                'credentials_exists' => file_exists(getenv('GOOGLE_APPLICATION_CREDENTIALS') ?: ''),
-            ]);
+        if (!file_exists($fullCredentialsPath)) {
+            throw new \Exception("Credentials file not found: " . $fullCredentialsPath);
+        }
 
-            /**
-             * IMPORTANT:
-             * Do NOT pass credentials manually.
-             * Google SDK automatically reads GOOGLE_APPLICATION_CREDENTIALS
-             */
-            $this->sessionsClient = new SessionsClient();
+        // Read credentials
+        $credentials = json_decode(file_get_contents($fullCredentialsPath), true);
+        if (!$credentials) {
+            throw new \Exception("Failed to parse credentials JSON");
+        }
 
-            Log::info('✅ DialogflowService initialized successfully');
+        Log::info('Credentials loaded', [
+            'client_email' => $credentials['client_email'] ?? 'unknown',
+            'project_id_in_file' => $credentials['project_id'] ?? 'missing'
+        ]);
 
-        } catch (\Throwable $e) {
-            Log::error('❌ DialogflowService initialization failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
+        // Set environment variable
+        putenv('GOOGLE_APPLICATION_CREDENTIALS=' . $fullCredentialsPath);
 
-            throw new \Exception('DialogflowService failed to initialize');
-       }
+        // Check if Dialogflow classes exist
+        if (!class_exists('Google\Cloud\Dialogflow\V2\SessionsClient')) {
+            throw new \Exception(
+                'Dialogflow SessionsClient class not found. ' .
+                'Make sure google/cloud-dialogflow package is installed: ' .
+                'composer require google/cloud-dialogflow'
+            );
+        }
+        
+        if (!class_exists('Google\Cloud\Dialogflow\V2\IntentsClient')) {
+            throw new \Exception(
+                'Dialogflow IntentsClient class not found. ' .
+                'Make sure google/cloud-dialogflow package is installed: ' .
+                'composer require google/cloud-dialogflow'
+            );
+        }
+
+        // Initialize with explicit config
+        $config = [
+            'credentials' => $credentials,
+            'projectId' => $this->projectId,
+        ];
+
+        Log::info('Creating Dialogflow clients...');
+        
+        try {
+            $this->sessionsClient = new \Google\Cloud\Dialogflow\V2\SessionsClient($config);
+            Log::info('✅ SessionsClient created');
+        } catch (\Exception $e) {
+            Log::error('Failed to create SessionsClient: ' . $e->getMessage());
+            throw new \Exception('SessionsClient creation failed: ' . $e->getMessage());
+        }
+        
+        try {
+            $this->intentsClient = new \Google\Cloud\Dialogflow\V2\IntentsClient($config);
+            Log::info('✅ IntentsClient created');
+        } catch (\Exception $e) {
+            Log::error('Failed to create IntentsClient: ' . $e->getMessage());
+            throw new \Exception('IntentsClient creation failed: ' . $e->getMessage());
+        }
+        
+        Log::info('✅ DialogflowService initialized successfully', [
+            'client_email' => $credentials['client_email'] ?? 'unknown'
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('❌ DialogflowService initialization failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'credentials_path' => $fullCredentialsPath ?? 'not set',
+            'project_id' => $this->projectId ?? 'not set'
+        ]);
+        throw new \Exception('DialogflowService init failed: ' . $e->getMessage());
     }
+}
 
     public function detectIntent($queryText, $sessionId, $languageCode = 'en-US')
 {
