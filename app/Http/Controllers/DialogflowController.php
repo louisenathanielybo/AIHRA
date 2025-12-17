@@ -353,70 +353,34 @@ try {
         ]);
     }
 
-} catch (\Exception $dialogflowError) {
-    Log::error('❌ Dialogflow call failed completely', [
-        'error' => $dialogflowError->getMessage(),
-        'query' => $queryText
-    ]);
-    
-    // Use conversational responses as fallback
-    $conversationalResponse = $this->handleConversationalQueries($queryText);
-    if ($conversationalResponse) {
-        return $conversationalResponse;
-    }
-    
-    // Generate a helpful response based on keywords
-    $queryLower = strtolower($queryText);
-    $fulfillmentText = "Thanks for your question! I want to make sure I understand correctly. Could you provide more details about '{$queryText}'?";
-    
-    if (strpos($queryLower, 'probation') !== false) {
-        $fulfillmentText = "The probation period is typically 6 months with monthly performance reviews. After successful completion, you'll be regularized with full benefits.";
-    } elseif (strpos($queryLower, 'flexible') !== false) {
-        $fulfillmentText = "Yes, we offer flexible time arrangements including flexi-time, compressed workweeks, and remote work options. For specific details about eligibility and how to apply, please submit a Flexible Work Request Form through the HR portal.";
-    } elseif (strpos($queryLower, 'salary') !== false) {
-        $fulfillmentText = "Payday is on the 30th of each month. You can view your payslip in the Employee Portal under 'My Payslips'.";
-    } elseif (strpos($queryLower, 'leave') !== false) {
-        $fulfillmentText = "We offer 20 days annual leave, 15 days sick leave, and various special leaves. Apply through the HR portal with 2 weeks notice.";
-    }
-    
-    // Return fallback response
-    return response()->json([
-        'status' => 'success',
-        'fulfillmentText' => $fulfillmentText,
-        'confidence' => 0.8,
-        'intent' => 'fallback.response',
-        'dialogflow_failed' => true
-    ]);
-}
+    // 🔄 Low confidence - start guided flow (only reached if no exception was thrown)
+    Log::info('Low confidence, starting guided flow', ['confidence' => $confidence]);
+    $this->resetRetryCount();
+    $reply = "I want to make sure I give you the right information. Let me guide you through our HR topics.";
 
-// 🔄 Low confidence - start guided flow (only reached if no exception was thrown)
-Log::info('Low confidence, starting guided flow', ['confidence' => $confidence]);
-$this->resetRetryCount();
-$reply = "I want to make sure I give you the right information. Let me guide you through our HR topics.";
+    if (!empty($conversation)) {
+        try {
+            ChatMessage::create([
+                'ticket_no' => null,
+                'sender' => 'bot',
+                'message' => $reply,
+                'conversation_id' => $conversation->id
+            ]);
 
-if (!empty($conversation)) {
-    try {
-        ChatMessage::create([
-            'ticket_no' => null,
-            'sender' => 'bot',
-            'message' => $reply,
-            'conversation_id' => $conversation->id
-        ]);
-
-        if (empty($conversation->title)) {
-            $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
-            $conversation->save();
+            if (empty($conversation->title)) {
+                $conversation->title = now()->toDateString() . ' - ' . Str::limit($conversation->first_message ?? $queryText, 80);
+                $conversation->save();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to save guided flow bot message: ' . $e->getMessage());
         }
-    } catch (\Throwable $e) {
-        Log::warning('Failed to save guided flow bot message: ' . $e->getMessage());
     }
-}
 
-return response()->json([
-    'status' => 'guided_flow',
-    'fulfillmentText' => $reply,
-    'guided_flow' => true
-]);
+    return response()->json([
+        'status' => 'guided_flow',
+        'fulfillmentText' => $reply,
+        'guided_flow' => true
+    ]);
 
         } catch (\Throwable $e) {
             Log::error('❌ Dialogflow error: ' . $e->getMessage(), [
