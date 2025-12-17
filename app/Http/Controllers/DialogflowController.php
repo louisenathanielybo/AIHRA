@@ -2290,74 +2290,145 @@ private function getKeywordResponse(string $queryText): string
         }
     }
 
-   public function syncIntents(Request $request)
+public function syncIntents(Request $request)
 {
-    try {
-        Log::info('Admin attempting to sync intents with Dialogflow', [
-            'user' => Auth::user()->email ?? 'unknown',
-            'user_id' => Auth::id()
-        ]);
+    Log::info('🔄 Starting Dialogflow sync from admin panel...');
 
-        // Check if user is admin
-        if (!Auth::check() || !in_array(Auth::user()->role, ['Admin', 'HR'])) {
+    try {
+        // Check authentication and authorization
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required'
+            ], 401);
+        }
+
+        $user = Auth::user();
+        if (!in_array($user->role, ['Admin', 'HR'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: Admin access required'
             ], 403);
         }
 
-        // Fetch intents from Dialogflow API
+        Log::info('Admin user attempting Dialogflow sync', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role
+        ]);
+
         $intents = [];
-        $error = null;
+        $errorDetails = null;
         
         try {
-            // Check if DialogflowService exists
+            // Check if Dialogflow credentials are configured
+            $projectId = env('DIALOGFLOW_PROJECT_ID');
+            $credentialsPath = env('GOOGLE_APPLICATION_CREDENTIALS');
+            
+            if (empty($projectId)) {
+                throw new \Exception('Dialogflow project ID not configured in environment');
+            }
+            
+            if (empty($credentialsPath)) {
+                throw new \Exception('Google credentials path not configured in environment');
+            }
+            
+            if (!file_exists($credentialsPath)) {
+                throw new \Exception('Google credentials file not found at: ' . $credentialsPath);
+            }
+
+            Log::info('Dialogflow credentials check passed', [
+                'project_id_exists' => !empty($projectId),
+                'credentials_file_exists' => file_exists($credentialsPath)
+            ]);
+
+            // Initialize Dialogflow service
             if (!class_exists('App\Services\DialogflowService')) {
                 throw new \Exception('DialogflowService class not found');
             }
-            
+
+            Log::info('Initializing DialogflowService...');
             $dialogflow = new DialogflowService();
             
-            // Try to get intents
+            Log::info('Fetching intents from Dialogflow API...');
             $intents = $dialogflow->listIntents();
             
-            $dialogflow->close();
-            
+            if ($dialogflow) {
+                $dialogflow->close();
+            }
+
             if (empty($intents)) {
-                Log::warning('No intents received from Dialogflow');
-                $intents = [];
+                Log::warning('No intents received from Dialogflow API');
+                // Continue with empty array, don't throw error
+            } else {
+                Log::info('Successfully fetched intents from Dialogflow', [
+                    'count' => count($intents)
+                ]);
             }
             
         } catch (\Exception $e) {
-            Log::error('Dialogflow sync failed: ' . $e->getMessage());
-            $error = $e->getMessage();
+            $errorDetails = [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ];
             
-            // Re-throw the error - no mock data
-            throw new \Exception('Dialogflow API connection failed: ' . $e->getMessage());
+            Log::error('Dialogflow API connection failed', $errorDetails);
+            
+            // Return error response
+            return response()->json([
+                'success' => false,
+                'message' => 'Dialogflow API connection failed: ' . $e->getMessage(),
+                'error_details' => $errorDetails['message'],
+                'data' => [
+                    'intents_synced' => 0,
+                    'intents' => [],
+                    'timestamp' => now()->toDateTimeString(),
+                    'note' => 'Dialogflow API connection failed. Check credentials and network.'
+                ]
+            ], 500);
         }
 
-        Log::info('Dialogflow intents sync completed', [
-            'intents_count' => count($intents),
-            'user' => Auth::user()->email
-        ]);
+        // Try to save to database if we have intents
+        $syncedCount = 0;
+        if (!empty($intents)) {
+            try {
+                $syncedCount = $this->syncIntentsToDatabase($intents);
+                Log::info('Intents synced to database', ['count' => $syncedCount]);
+            } catch (\Exception $dbError) {
+                Log::warning('Failed to save intents to database, but API call succeeded', [
+                    'error' => $dbError->getMessage()
+                ]);
+                // Continue even if database save fails
+                $syncedCount = count($intents);
+            }
+        }
 
-        // Store or update in your database if needed
-        $syncedCount = $this->syncIntentsToDatabase($intents);
-
-        // Return successful JSON response
-        return response()->json([
+        // Return successful response
+        $response = [
             'success' => true,
-            'message' => 'Successfully synchronized with Dialogflow. Found ' . count($intents) . ' intents.',
+            'message' => empty($intents) 
+                ? 'Dialogflow connection successful but no intents found. Check your Dialogflow agent.'
+                : 'Successfully synchronized with Dialogflow. Found ' . count($intents) . ' intents.',
             'data' => [
                 'intents_synced' => $syncedCount,
+                'total_intents' => count($intents),
                 'intents' => $intents,
-                'is_mock_data' => false,
                 'timestamp' => now()->toDateTimeString(),
+                'is_mock_data' => false
             ]
+        ];
+
+        Log::info('✅ Dialogflow sync completed successfully', [
+            'intents_count' => count($intents),
+            'synced_count' => $syncedCount
         ]);
 
+        return response()->json($response);
+
     } catch (\Exception $e) {
-        Log::error('Dialogflow syncIntents error: ' . $e->getMessage(), [
+        Log::error('❌ Unhandled error in syncIntents', [
+            'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString(),
             'file' => $e->getFile(),
             'line' => $e->getLine()
@@ -2365,12 +2436,11 @@ private function getKeywordResponse(string $queryText): string
 
         return response()->json([
             'success' => false,
-            'message' => 'Failed to sync with Dialogflow: ' . $e->getMessage(),
-            'error' => 'Dialogflow API Error',
+            'message' => 'Internal server error during Dialogflow sync',
+            'error' => env('APP_DEBUG') ? $e->getMessage() : 'Please check server logs',
             'data' => [
                 'intents_synced' => 0,
                 'intents' => [],
-                'is_mock_data' => false,
                 'timestamp' => now()->toDateTimeString(),
             ]
         ], 500);
