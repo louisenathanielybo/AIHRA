@@ -75,6 +75,10 @@ Route::middleware(['auth'])->group(function () {
         return redirect('/employee/dashboard');
     })->name('dashboard');
 
+    // In your routes file
+Route::get('/admin/dialogflow/check-config', [DialogflowController::class, 'checkConfig'])
+    ->name('admin.dialogflow.check-config')
+    ->middleware(['auth', 'admin']);
     // Employee routes
     Route::prefix('employee')->group(function () {
         Route::get('/dashboard', [EmployeeController::class, 'index'])->name('employee.dashboard');
