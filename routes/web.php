@@ -349,3 +349,31 @@ Route::get('/check-file-exists', function() {
 });
 
 Route::get('/test-dialogflow', [App\Http\Controllers\DialogflowController::class, 'testConnection']);
+
+Route::get('/test-simple', function() {
+    try {
+        Log::info('Test endpoint hit');
+        
+        // Test basic Laravel functionality
+        $tests = [
+            'session_works' => session()->getId(),
+            'auth_check' => Auth::check(),
+            'dialogflow_service_exists' => class_exists('App\Services\DialogflowService'),
+        ];
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Basic test passed',
+            'tests' => $tests,
+            'session_id' => session()->getId(),
+            'timestamp' => now()->toDateTimeString()
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
