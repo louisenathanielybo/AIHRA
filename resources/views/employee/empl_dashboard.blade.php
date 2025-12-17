@@ -2846,16 +2846,52 @@ async function loadTicketConversation(ticketNo) {
             messagesEl.appendChild(messageDiv);
         });
 
-        // Load ticket status
+        // Load ticket status and check if resolved
+        let ticketIsResolved = false;
         try {
             const statusResponse = await fetch(`{{ url('employee/ticket-status') }}/${ticketNo}`);
             if (statusResponse.ok) {
                 const statusData = await statusResponse.json();
                 document.getElementById('ticketStatus').innerHTML = 
                     `<span class="ticket-badge ${statusData.status.toLowerCase()}">${statusData.status}</span>`;
+                ticketIsResolved = statusData.status === 'Resolved';
             }
         } catch (statusError) {
             console.error('Error loading status:', statusError);
+        }
+
+        // Disable input if ticket is resolved
+        const userInput = document.getElementById('userMessage');
+        const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+        if (ticketIsResolved) {
+            if (userInput) {
+                userInput.disabled = true;
+                userInput.placeholder = 'This ticket has been resolved. No further replies can be sent.';
+            }
+            if (sendButton) {
+                sendButton.disabled = true;
+                sendButton.style.opacity = '0.5';
+                sendButton.style.cursor = 'not-allowed';
+            }
+            // Add resolved message to chat
+            const resolvedNote = document.createElement('div');
+            resolvedNote.className = 'chat-row bot';
+            resolvedNote.innerHTML = `
+                <div class="chat-bubble" style="background: #e2e3e5; color: #383d41; text-align: center;">
+                    ✅ <strong>This ticket has been resolved.</strong> No further replies can be sent.
+                </div>
+            `;
+            messagesEl.appendChild(resolvedNote);
+        } else {
+            if (userInput) {
+                userInput.disabled = false;
+                userInput.placeholder = 'Type your reply to HR...';
+            }
+            if (sendButton) {
+                sendButton.disabled = false;
+                sendButton.style.opacity = '1';
+                sendButton.style.cursor = 'pointer';
+            }
         }
 
         scrollChat('messagesContainer');

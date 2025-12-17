@@ -273,6 +273,14 @@ public function replyToTicket(Request $request)
             ], 403);
         }
 
+        // 🆕 Check if ticket is resolved - prevent replies to resolved tickets
+        if ($ticket->status === 'Resolved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot reply to a resolved ticket. This ticket has already been closed.'
+            ], 403);
+        }
+
         // Save employee's additional message to hr_replies. Store the raw message and
         // use replied_by to identify the sender when rendering messages.
         \App\Models\HrReply::create([

@@ -36,11 +36,22 @@ class HRController extends Controller
             ->get();
 
         // ✅ Get all inbox tickets (newest first) - assigned to this HR OR unassigned
+        // For resolved tickets, only show those resolved by current HR
         $currentHR = Auth::user()->employeeNum ?? null;
         $inbox = HrInbox::where(function($query) use ($currentHR) {
-                $query->where('assigned_to', $currentHR)
-                      ->orWhereNull('assigned_to')
-                      ->orWhere('assigned_to', '');
+                $query->where(function($q) use ($currentHR) {
+                    // Non-resolved tickets: assigned to this HR or unassigned
+                    $q->where('status', '!=', 'Resolved')
+                      ->where(function($q2) use ($currentHR) {
+                          $q2->where('assigned_to', $currentHR)
+                             ->orWhereNull('assigned_to')
+                             ->orWhere('assigned_to', '');
+                      });
+                })->orWhere(function($q) use ($currentHR) {
+                    // Resolved tickets: only those resolved by current HR
+                    $q->where('status', 'Resolved')
+                      ->where('resolved_by', $currentHR);
+                });
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -310,7 +321,27 @@ class HRController extends Controller
      */
     public function ticketsJson()
     {
-        return response()->json(HrInbox::orderBy('created_at', 'desc')->get());
+        $currentHR = Auth::user()->employeeNum ?? null;
+        
+        $tickets = HrInbox::where(function($query) use ($currentHR) {
+                $query->where(function($q) use ($currentHR) {
+                    // Non-resolved tickets: assigned to this HR or unassigned
+                    $q->where('status', '!=', 'Resolved')
+                      ->where(function($q2) use ($currentHR) {
+                          $q2->where('assigned_to', $currentHR)
+                             ->orWhereNull('assigned_to')
+                             ->orWhere('assigned_to', '');
+                      });
+                })->orWhere(function($q) use ($currentHR) {
+                    // Resolved tickets: only those resolved by current HR
+                    $q->where('status', 'Resolved')
+                      ->where('resolved_by', $currentHR);
+                });
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        return response()->json($tickets);
     }
 
     /**
@@ -418,6 +449,15 @@ class HRController extends Controller
         ]);
 
         try {
+            // 🆕 Check if ticket is resolved - prevent replies to resolved tickets
+            $ticket = HrInbox::where('ticket_no', $request->ticket_no)->first();
+            if ($ticket && $ticket->status === 'Resolved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot reply to a resolved ticket. This ticket has already been closed.'
+                ], 403);
+            }
+
             // 🆕 FIXED: Only save to hr_replies table
             // Use a reliable identifier for replied_by (employeeNum > email > 'HR')
             $repliedBy = 'HR';

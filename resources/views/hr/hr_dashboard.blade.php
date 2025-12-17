@@ -2314,6 +2314,34 @@
         currentTicket = ticketNo;
         document.querySelectorAll('.ticket-item').forEach(item => item.classList.remove('active'));
         document.getElementById(`ticket-${ticketNo}`).classList.add('active');
+        
+        // Get ticket status to check if resolved
+        const ticketElement = document.getElementById(`ticket-${ticketNo}`);
+        const ticketStatus = ticketElement ? ticketElement.getAttribute('data-status') : '';
+        const isResolved = ticketStatus === 'Resolved';
+        
+        // Show/hide reply form based on ticket status
+        const replyForm = document.getElementById('replyForm');
+        if (isResolved) {
+            replyForm.style.display = 'none';
+            // Show a message that ticket is resolved
+            const chatContainer = replyForm.parentElement;
+            let resolvedNote = document.getElementById('resolvedNote');
+            if (!resolvedNote) {
+                resolvedNote = document.createElement('div');
+                resolvedNote.id = 'resolvedNote';
+                resolvedNote.style.cssText = 'text-align: center; padding: 15px; background: #e2e3e5; border-radius: 8px; color: #383d41; margin-top: 10px;';
+                resolvedNote.innerHTML = '✅ <strong>This ticket has been resolved.</strong> No further replies can be sent.';
+                chatContainer.appendChild(resolvedNote);
+            } else {
+                resolvedNote.style.display = 'block';
+            }
+        } else {
+            replyForm.style.display = 'flex';
+            const resolvedNote = document.getElementById('resolvedNote');
+            if (resolvedNote) resolvedNote.style.display = 'none';
+        }
+        
         try {
             const response = await fetch(`/hr/messages/${ticketNo}`);
             const messages = await response.json();
