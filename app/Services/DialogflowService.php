@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 class DialogflowService
 {
     protected SessionsClient $sessionsClient;
-    protected ?IntentsClient $intentsClient = null; // Make it nullable
+    protected ?IntentsClient $intentsClient = null;
     protected string $projectId;
 
     public function __construct()
@@ -28,15 +28,15 @@ class DialogflowService
             ]);
 
             /**
-             * IMPORTANT:
-             * Do NOT pass credentials manually.
-             * Google SDK automatically reads GOOGLE_APPLICATION_CREDENTIALS
+             * IMPORTANT: Initialize both clients with proper configuration
              */
-            $this->sessionsClient = new SessionsClient();
-            
-            // Initialize intents client only if needed for listIntents
-            // Don't initialize it here, initialize it in listIntents() method if needed
+            $config = [
+                'credentials' => $this->getGoogleCredentials(),
+                'projectId' => $this->projectId,
+            ];
 
+            $this->sessionsClient = new SessionsClient($config);
+            
             Log::info('✅ DialogflowService initialized successfully');
 
         } catch (\Throwable $e) {
@@ -47,6 +47,52 @@ class DialogflowService
 
             throw new \Exception('DialogflowService failed to initialize');
        }
+    }
+
+    /**
+     * Get Google credentials from environment
+     */
+    private function getGoogleCredentials()
+    {
+        $credentialsPath = env('GOOGLE_APPLICATION_CREDENTIALS');
+        
+        if (!$credentialsPath) {
+            Log::warning('GOOGLE_APPLICATION_CREDENTIALS not set, checking default locations');
+            // Try default locations
+            $home = getenv('HOME');
+            if ($home) {
+                $defaultPath = $home . '/.config/gcloud/application_default_credentials.json';
+                if (file_exists($defaultPath)) {
+                    $credentialsPath = $defaultPath;
+                }
+            }
+        }
+        
+        if ($credentialsPath && file_exists($credentialsPath)) {
+            Log::info('Using credentials from: ' . $credentialsPath);
+            return json_decode(file_get_contents($credentialsPath), true);
+        }
+        
+        Log::warning('No Google credentials file found, trying environment authentication');
+        return null; // Let Google SDK use default authentication
+    }
+
+    /**
+     * Initialize IntentsClient with proper configuration
+     */
+    private function initIntentsClient()
+    {
+        if (!$this->intentsClient) {
+            $config = [
+                'credentials' => $this->getGoogleCredentials(),
+                'projectId' => $this->projectId,
+            ];
+            
+            $this->intentsClient = new IntentsClient($config);
+            Log::info('IntentsClient initialized');
+        }
+        
+        return $this->intentsClient;
     }
 
     public function detectIntent($queryText, $sessionId, $languageCode = 'en-US')
@@ -75,7 +121,7 @@ class DialogflowService
             $response = $this->sessionsClient->detectIntent($session, $queryInput);
             $queryResult = $response->getQueryResult();
             
-            // SIMPLIFIED: Return as array instead of object
+            // Return as array
             return [
                 'fulfillmentText' => $queryResult->getFulfillmentText(),
                 'intentDetectionConfidence' => $queryResult->getIntentDetectionConfidence(),
@@ -90,7 +136,7 @@ class DialogflowService
                 'session' => $sessionId
             ]);
             
-            // Return fallback response as array
+            // Return fallback response
             return $this->createFallbackResponse($queryText);
         }
     }
@@ -103,11 +149,10 @@ class DialogflowService
         try {
             Log::info('Creating fallback response for: ' . substr($queryText, 0, 100));
             
-            // Generate intelligent response based on keywords
             $queryLower = strtolower($queryText);
             $fulfillmentText = "";
             $intentName = "Default Fallback Intent";
-            $confidence = 0.7; // Give it decent confidence
+            $confidence = 0.7;
             
             if (strpos($queryLower, 'working hours') !== false || strpos($queryLower, 'work hours') !== false) {
                 $fulfillmentText = "Our standard working hours are from 8:00 AM to 5:00 PM, Monday to Friday, with a 1-hour lunch break from 12:00 PM to 1:00 PM. We also offer flexible time arrangements for eligible employees!";
@@ -148,7 +193,6 @@ class DialogflowService
                 'text_length' => strlen($fulfillmentText)
             ]);
             
-            // Return as simple array
             return [
                 'fulfillmentText' => $fulfillmentText,
                 'intentDetectionConfidence' => $confidence,
@@ -160,7 +204,6 @@ class DialogflowService
         } catch (\Exception $e) {
             Log::error('Failed to create fallback response: ' . $e->getMessage());
             
-            // Ultimate simple fallback as array
             return [
                 'fulfillmentText' => "I want to help you with your question! Could you provide a bit more detail so I can give you the most accurate information?",
                 'intentDetectionConfidence' => 0.5,
@@ -172,23 +215,24 @@ class DialogflowService
     }
 
     /**
-     * List intents (for admin panel)
+     * List intents (for admin panel) - FIXED VERSION
      */
     public function listIntents()
     {
         try {
-            Log::info('Fetching intents from Dialogflow...');
+            Log::info('🔄 Starting to fetch intents from Dialogflow...');
             
-            // Initialize intents client only when needed
-            if (!$this->intentsClient) {
-                $this->intentsClient = new IntentsClient();
-            }
+            // Initialize intents client with proper configuration
+            $intentsClient = $this->initIntentsClient();
             
-            $parent = $this->intentsClient->projectAgentName($this->projectId);
-            $response = $this->intentsClient->listIntents($parent);
+            $parent = $intentsClient->projectAgentName($this->projectId);
+            Log::info('Parent resource: ' . $parent);
             
+            // Get intents with pagination
             $intentList = [];
-            foreach ($response as $intent) {
+            $page = $intentsClient->listIntents($parent);
+            
+            foreach ($page->iterateAllElements() as $intent) {
                 // Extract training phrases
                 $trainingPhrases = [];
                 foreach ($intent->getTrainingPhrases() as $phrase) {
@@ -223,12 +267,64 @@ class DialogflowService
                 ];
             }
             
-            Log::info('Successfully fetched ' . count($intentList) . ' intents');
+            Log::info('✅ Successfully fetched ' . count($intentList) . ' intents from Dialogflow');
             return $intentList;
             
-        } catch (\Exception $e) {
-            Log::error('Failed to list intents: ' . $e->getMessage());
+        } catch (\Google\ApiCore\ApiException $e) {
+            Log::error('❌ Google API Exception in listIntents', [
+                'message' => $e->getMessage(),
+                'status' => $e->getStatus(),
+                'details' => $e->getDetails(),
+                'code' => $e->getCode()
+            ]);
+            
+            // Return empty array for the controller to handle
             return [];
+            
+        } catch (\Exception $e) {
+            Log::error('❌ General Exception in listIntents', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return [];
+        }
+    }
+
+    /**
+     * Test connection to Dialogflow
+     */
+    public function testConnection()
+    {
+        try {
+            Log::info('Testing Dialogflow connection...');
+            
+            // Test SessionsClient
+            $testResult = $this->detectIntent('Hello', 'test-session-' . time());
+            
+            // Test IntentsClient
+            $intentsClient = $this->initIntentsClient();
+            $parent = $intentsClient->projectAgentName($this->projectId);
+            
+            Log::info('✅ Dialogflow connection test successful');
+            
+            return [
+                'success' => true,
+                'sessions_client' => '✅ Working',
+                'intents_client' => '✅ Working',
+                'project_id' => $this->projectId,
+                'test_response' => $testResult
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Dialogflow connection test failed', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
         }
     }
 
@@ -239,11 +335,15 @@ class DialogflowService
 
     public function close()
     {
-        if ($this->sessionsClient) {
-            $this->sessionsClient->close();
-        }
-        if ($this->intentsClient) {
-            $this->intentsClient->close();
+        try {
+            if ($this->sessionsClient) {
+                $this->sessionsClient->close();
+            }
+            if ($this->intentsClient) {
+                $this->intentsClient->close();
+            }
+        } catch (\Exception $e) {
+            Log::warning('Error closing Dialogflow clients: ' . $e->getMessage());
         }
     }
 }
