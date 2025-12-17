@@ -214,10 +214,10 @@ try {
     $dialogflow = new DialogflowService();
     $result = $dialogflow->detectIntent($queryText, $sessionId);
     
-    // SIMPLIFIED: Direct access to response properties
-    $confidence = $result->intentDetectionConfidence ?? 0.0;
-    $fulfillmentText = $result->fulfillmentText ?? '';
-    $intentName = $result->intent->displayName ?? 'Default Fallback Intent';
+    // FIXED: Handle array response from DialogflowService
+    $confidence = $result['intentDetectionConfidence'] ?? 0.0;
+    $fulfillmentText = $result['fulfillmentText'] ?? '';
+    $intentName = $result['intent']['displayName'] ?? 'Default Fallback Intent';
     
     Log::info('✅ Dialogflow Response Received', [
         'confidence' => $confidence,
