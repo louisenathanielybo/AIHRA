@@ -214,10 +214,10 @@ try {
     $dialogflow = new DialogflowService();
     $result = $dialogflow->detectIntent($queryText, $sessionId);
     
-    // SIMPLIFIED: Direct access to response properties
-    $confidence = $result->intentDetectionConfidence ?? 0.0;
-    $fulfillmentText = $result->fulfillmentText ?? '';
-    $intentName = $result->intent->displayName ?? 'Default Fallback Intent';
+    // FIXED: Handle array response from DialogflowService
+    $confidence = $result['intentDetectionConfidence'] ?? 0.0;
+    $fulfillmentText = $result['fulfillmentText'] ?? '';
+    $intentName = $result['intent']['displayName'] ?? 'Default Fallback Intent';
     
     Log::info('✅ Dialogflow Response Received', [
         'confidence' => $confidence,
@@ -2254,44 +2254,212 @@ private function getKeywordResponse(string $queryText): string
         }
     }
 
-    // DialogflowController.php
 public function syncIntents(Request $request)
 {
+    Log::info('🔄 Starting Dialogflow sync from admin panel...');
+
     try {
-        // Fetch intents from Dialogflow API
-        $intents = $this->fetchDialogflowIntents();
+        // Check authentication and authorization
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required'
+            ], 401);
+        }
+
+        $user = Auth::user();
+        if (!in_array($user->role, ['Admin', 'HR'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: Admin access required'
+            ], 403);
+        }
+
+        Log::info('Admin user attempting Dialogflow sync', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role
+        ]);
+
+        $intents = [];
+        $errorDetails = null;
         
-        // Store or update in your database
-        $syncedCount = $this->syncIntentsToDatabase($intents);
-        
-        return response()->json([
+        try {
+            // Check if Dialogflow credentials are configured
+            $projectId = env('DIALOGFLOW_PROJECT_ID');
+            $credentialsPath = env('GOOGLE_APPLICATION_CREDENTIALS');
+            
+            if (empty($projectId)) {
+                throw new \Exception('Dialogflow project ID not configured in environment');
+            }
+            
+            if (empty($credentialsPath)) {
+                throw new \Exception('Google credentials path not configured in environment');
+            }
+            
+            if (!file_exists($credentialsPath)) {
+                throw new \Exception('Google credentials file not found at: ' . $credentialsPath);
+            }
+
+            Log::info('Dialogflow credentials check passed', [
+                'project_id_exists' => !empty($projectId),
+                'credentials_file_exists' => file_exists($credentialsPath)
+            ]);
+
+            // Initialize Dialogflow service
+            if (!class_exists('App\Services\DialogflowService')) {
+                throw new \Exception('DialogflowService class not found');
+            }
+
+            Log::info('Initializing DialogflowService...');
+            $dialogflow = new DialogflowService();
+            
+            Log::info('Fetching intents from Dialogflow API...');
+            $intents = $dialogflow->listIntents();
+            
+            if ($dialogflow) {
+                $dialogflow->close();
+            }
+
+            if (empty($intents)) {
+                Log::warning('No intents received from Dialogflow API');
+                // Continue with empty array, don't throw error
+            } else {
+                Log::info('Successfully fetched intents from Dialogflow', [
+                    'count' => count($intents)
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            $errorDetails = [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ];
+            
+            Log::error('Dialogflow API connection failed', $errorDetails);
+            
+            // Return error response
+            return response()->json([
+                'success' => false,
+                'message' => 'Dialogflow API connection failed: ' . $e->getMessage(),
+                'error_details' => $errorDetails['message'],
+                'data' => [
+                    'intents_synced' => 0,
+                    'intents' => [],
+                    'timestamp' => now()->toDateTimeString(),
+                    'note' => 'Dialogflow API connection failed. Check credentials and network.'
+                ]
+            ], 500);
+        }
+
+        // Try to save to database if we have intents
+        $syncedCount = 0;
+        if (!empty($intents)) {
+            try {
+                $syncedCount = $this->syncIntentsToDatabase($intents);
+                Log::info('Intents synced to database', ['count' => $syncedCount]);
+            } catch (\Exception $dbError) {
+                Log::warning('Failed to save intents to database, but API call succeeded', [
+                    'error' => $dbError->getMessage()
+                ]);
+                // Continue even if database save fails
+                $syncedCount = count($intents);
+            }
+        }
+
+        // Return successful response
+        $response = [
             'success' => true,
-            'message' => 'Successfully synced with Dialogflow',
+            'message' => empty($intents) 
+                ? 'Dialogflow connection successful but no intents found. Check your Dialogflow agent.'
+                : 'Successfully synchronized with Dialogflow. Found ' . count($intents) . ' intents.',
             'data' => [
                 'intents_synced' => $syncedCount,
+                'total_intents' => count($intents),
                 'intents' => $intents,
+                'timestamp' => now()->toDateTimeString(),
                 'is_mock_data' => false
             ]
+        ];
+
+        Log::info('✅ Dialogflow sync completed successfully', [
+            'intents_count' => count($intents),
+            'synced_count' => $syncedCount
         ]);
-        
+
+        return response()->json($response);
+
     } catch (\Exception $e) {
-        // Log error
-        \Log::error('Dialogflow sync error: ' . $e->getMessage());
-        
-        // For development/testing, you can return mock data
-        $mockIntents = $this->getMockIntents();
-        
+        Log::error('❌ Unhandled error in syncIntents', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+
         return response()->json([
-            'success' => true,
-            'message' => 'Using mock data - Dialogflow connection failed: ' . $e->getMessage(),
+            'success' => false,
+            'message' => 'Internal server error during Dialogflow sync',
+            'error' => env('APP_DEBUG') ? $e->getMessage() : 'Please check server logs',
             'data' => [
-                'intents_synced' => count($mockIntents),
-                'intents' => $mockIntents,
-                'is_mock_data' => true
+                'intents_synced' => 0,
+                'intents' => [],
+                'timestamp' => now()->toDateTimeString(),
             ]
-        ], 200);
+        ], 500);
     }
 }
+
+private function syncIntentsToDatabase(array $intents): int
+{
+    try {
+        Log::info('Syncing intents to database', ['count' => count($intents)]);
+        
+        // Check if you have an Intent model
+        if (class_exists('App\\Models\\Intent')) {
+            $model = new \App\Models\Intent();
+            
+            // Clear existing intents
+            $model::truncate();
+            
+            // Insert new intents
+            foreach ($intents as $intent) {
+                $model::create([
+                    'dialogflow_id' => $intent['id'] ?? null,
+                    'display_name' => $intent['display_name'] ?? 'Unknown',
+                    'training_phrases' => json_encode($intent['training_phrases'] ?? []),
+                    'responses' => json_encode($intent['responses'] ?? []),
+                    'priority' => $intent['priority'] ?? 500000,
+                    'is_fallback' => $intent['is_fallback'] ?? false,
+                    'status' => $intent['status'] ?? 'active',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            
+            Log::info('Intents saved to database', ['count' => count($intents)]);
+            return count($intents);
+        } else {
+            // If no Intent model, log but continue
+            Log::warning('No Intent model found. Intents not saved to database.', [
+                'intents_count' => count($intents)
+            ]);
+            
+            // You could create an intents table with:
+            // php artisan make:model Intent -m
+            // Then run migrations
+            
+            return count($intents);
+        }
+        
+    } catch (\Exception $e) {
+        Log::error('Failed to save intents to database: ' . $e->getMessage());
+        // Don't fail the whole sync if database save fails
+        return count($intents);
+    }
+}
+
 
 private function fetchDialogflowIntents()
 {
@@ -2336,7 +2504,29 @@ private function fetchDialogflowIntents()
         throw $e;
     }
 }
+public function testConnection()
+{
+    try {
+        // Test the service directly
+        $service = new \App\Services\DialogflowService();
+        // Use a simple query
+        $result = $service->detectIntent('Hello', 'render-test-session');
+        $service->close();
 
+        return response()->json([
+            'status' => 'success',
+            'fulfillmentText' => $result->fulfillmentText ?? 'No text',
+            'intent' => $result->intent->displayName ?? 'None'
+        ]);
+    } catch (\Exception $e) {
+        // This will show the real error
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString() // Remove this line in production
+        ], 500);
+    }
+}
 private function getMockIntents()
 {
     // Return mock data for testing

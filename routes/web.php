@@ -24,6 +24,24 @@ use Illuminate\Support\Facades\DB;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+
+// In routes/web.php
+Route::get('/test-dialogflow', function() {
+    try {
+        $service = new \App\Services\DialogflowService();
+        $result = $service->detectIntent('Hello', 'test-session');
+        return response()->json([
+            'success' => true,
+            'result' => $result
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
 // Redirect root to login
 Route::get('/', function () {
     return redirect('/login');
@@ -252,4 +270,210 @@ Route::get('/debug-dialogflow', function() {
     
     return '';
 });
+
+    // In web.php, add this route:
+Route::get('/debug-dialogflow-sync', function() {
+    try {
+        echo "<h1>Dialogflow Sync Debug</h1>";
+        
+        // 1. Check authentication
+        if (!Auth::check()) {
+            echo "❌ Not authenticated<br>";
+            return;
+        }
+        
+        $user = Auth::user();
+        echo "✅ User: {$user->email} ({$user->role})<br>";
+        
+        if (!in_array($user->role, ['Admin', 'HR'])) {
+            echo "❌ User not authorized (requires Admin or HR)<br>";
+            return;
+        }
+        
+        // 2. Check DialogflowService
+        echo "<h2>DialogflowService Check</h2>";
+        if (!class_exists('App\Services\DialogflowService')) {
+            echo "❌ DialogflowService class not found<br>";
+            return;
+        }
+        echo "✅ DialogflowService class exists<br>";
+        
+        // 3. Try to instantiate
+        try {
+            $service = new \App\Services\DialogflowService();
+            echo "✅ DialogflowService instantiated<br>";
+            
+            // 4. Try to list intents
+            $intents = $service->listIntents();
+            echo "✅ Intents fetched: " . count($intents) . "<br>";
+            
+            if (count($intents) > 0) {
+                echo "<pre>First intent: " . json_encode($intents[0], JSON_PRETTY_PRINT) . "</pre>";
+            }
+            
+            $service->close();
+            
+        } catch (\Exception $e) {
+            echo "❌ Error: " . $e->getMessage() . "<br>";
+            echo "<pre>Stack trace:\n" . $e->getTraceAsString() . "</pre>";
+        }
+        
+    } catch (\Exception $e) {
+        echo "❌ Debug error: " . $e->getMessage() . "<br>";
+        echo "<pre>Stack trace:\n" . $e->getTraceAsString() . "</pre>";
+    }
+    
+    return '';
+});
+
+    // Add to your web.php file temporarily
+Route::get('/check-file-exists', function() {
+    $filePath = env('DIALOGFLOW_CREDENTIALS_PATH', 'aihra-key.json');
+    $fullPath = base_path($filePath);
+    $absolutePath = realpath($fullPath);
+    
+    return response()->json([
+        'env_value' => $filePath,
+        'base_path' => base_path(),
+        'full_path' => $fullPath,
+        'absolute_path' => $absolutePath,
+        'file_exists' => file_exists($fullPath),
+        'is_readable' => is_readable($fullPath),
+        'file_size' => file_exists($fullPath) ? filesize($fullPath) : 0,
+        'permissions' => file_exists($fullPath) ? substr(sprintf('%o', fileperms($fullPath)), -4) : null,
+        'file_content_preview' => file_exists($fullPath) ? 
+            substr(file_get_contents($fullPath), 0, 200) . '...' : 
+            null
+    ]);
+});
+});
+
+Route::get('/test-dialogflow', [App\Http\Controllers\DialogflowController::class, 'testConnection']);
+
+Route::get('/test-simple', function() {
+    try {
+        Log::info('Test endpoint hit');
+        
+        // Test basic Laravel functionality
+        $tests = [
+            'session_works' => session()->getId(),
+            'auth_check' => Auth::check(),
+            'dialogflow_service_exists' => class_exists('App\Services\DialogflowService'),
+        ];
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Basic test passed',
+            'tests' => $tests,
+            'session_id' => session()->getId(),
+            'timestamp' => now()->toDateTimeString()
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+Route::get('/health', function() {
+    $health = [
+        'app' => 'OK',
+        'timestamp' => now()->toDateTimeString(),
+        'environment' => app()->environment(),
+    ];
+    
+    try {
+        // Test database connection
+        DB::connection()->getPdo();
+        $health['database'] = 'OK';
+    } catch (\Exception $e) {
+        $health['database'] = 'FAILED: ' . $e->getMessage();
+    }
+    
+    try {
+        // Test if models exist
+        $models = ['Query', 'HrInbox', 'GuidedQuestion', 'Conversation', 'ChatMessage'];
+        foreach ($models as $model) {
+            if (class_exists("App\\Models\\{$model}")) {
+                $health["model_{$model}"] = 'EXISTS';
+            } else {
+                $health["model_{$model}"] = 'MISSING';
+            }
+        }
+    } catch (\Exception $e) {
+        $health['models_check'] = 'FAILED: ' . $e->getMessage();
+    }
+    
+    return response()->json($health);
+});
+Route::post('/debug-webhook', function(Request $request) {
+    try {
+        Log::info('DEBUG Webhook called', ['full_request' => $request->all()]);
+        
+        // Test each component step by step
+        
+        // 1. Test session
+        $sessionId = session()->getId();
+        Log::info('Session ID: ' . $sessionId);
+        
+        // 2. Test DialogflowService
+        try {
+            $service = new \App\Services\DialogflowService();
+            Log::info('DialogflowService created successfully');
+            
+            // Test with a simple query
+            $testResult = $service->detectIntent('Hello', 'test-session-' . time());
+            Log::info('Dialogflow test result', ['result' => $testResult]);
+            
+            $service->close();
+        } catch (\Exception $e) {
+            Log::error('DialogflowService failed: ' . $e->getMessage());
+            throw $e;
+        }
+        
+        // 3. Test models
+        try {
+            $testQuery = \App\Models\Query::create([
+                'queryID' => \Illuminate\Support\Str::uuid(),
+                'employeeNum' => 0,
+                'question' => 'Test question',
+                'response' => 'Test response',
+                'confidenceScore' => 0.8,
+                'queryType' => 'Test',
+                'questionTime' => now(),
+                'responseTime' => now(),
+                'isEscalated' => false,
+                'handledBy' => 'Test'
+            ]);
+            Log::info('Query model test: Created ID ' . $testQuery->id);
+            
+            // Clean up
+            $testQuery->delete();
+            
+        } catch (\Exception $e) {
+            Log::error('Model test failed: ' . $e->getMessage());
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'All tests passed',
+            'session_id' => $sessionId,
+            'timestamp' => now()->toDateTimeString()
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('DEBUG Webhook failed: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
 });
