@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d8c3321289ec6739d92e56ad7e772458",
+    "content-hash": "4c3e6f63e4a524c36d1f6df2677b6731",
     "packages": [
         {
             "name": "brick/math",
@@ -706,16 +706,16 @@
         },
         {
             "name": "google/cloud-dialogflow",
-            "version": "v2.2.1",
+            "version": "v2.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/google-cloud-php-dialogflow.git",
-                "reference": "345e1936c1aea0cf6504e714dab2d111546b741e"
+                "reference": "d2692b1e5eca690d95856af44b1377768cf8309a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/google-cloud-php-dialogflow/zipball/345e1936c1aea0cf6504e714dab2d111546b741e",
-                "reference": "345e1936c1aea0cf6504e714dab2d111546b741e",
+                "url": "https://api.github.com/repos/googleapis/google-cloud-php-dialogflow/zipball/d2692b1e5eca690d95856af44b1377768cf8309a",
+                "reference": "d2692b1e5eca690d95856af44b1377768cf8309a",
                 "shasum": ""
             },
             "require": {
@@ -750,9 +750,9 @@
             ],
             "description": "Google Cloud Dialogflow Client for PHP",
             "support": {
-                "source": "https://github.com/googleapis/google-cloud-php-dialogflow/tree/v2.2.1"
+                "source": "https://github.com/googleapis/google-cloud-php-dialogflow/tree/v2.3.0"
             },
-            "time": "2025-10-07T18:41:09+00:00"
+            "time": "2025-12-13T02:51:17+00:00"
         },
         {
             "name": "google/common-protos",

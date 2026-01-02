@@ -1,7 +1,8 @@
 services:
   - type: web
-    name: AIHRA
-    runtime: php  # This is the critical line
+    name: aihra
+    runtime: php
+    runtimeVersion: "8.1"  # Specify PHP 8.1+ for Dialogflow compatibility
     buildCommand: |
       composer install --no-dev --optimize-autoloader
       php artisan config:cache

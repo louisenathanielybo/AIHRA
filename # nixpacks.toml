@@ -1,0 +1,9 @@
+# nixpacks.toml
+[phases.setup]
+nixPkgs = ["php82", "php82Extensions.mysql", "php82Packages.composer", "nodejs-18_x"]
+
+[phases.install]
+cmds = ["composer install --no-dev --optimize-autoloader"]
+
+[start]
+cmd = "php -S 0.0.0.0:$PORT -t public"

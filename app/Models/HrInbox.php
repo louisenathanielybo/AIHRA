@@ -24,6 +24,7 @@ class HrInbox extends Model
         'resolved_at',
         'resolved_by',
         'is_expired',
+    
     ];
 
     /**
